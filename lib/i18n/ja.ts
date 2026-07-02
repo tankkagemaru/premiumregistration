@@ -135,8 +135,24 @@ export const ja: Dictionary = {
   confirm: {
     title: "ありがとうございます、{name}様。",
     body: "ご登録を受け付けました。担当者より追ってご連絡いたします。",
-    note: "（送信機能はフェーズ3でサーバーに接続されます。ここではクライアント側の流れを確認しています。）",
+    note: "",
     back: "ホームに戻る",
+  },
+
+  submit: {
+    sending: "送信中…",
+    error: "問題が発生しました。もう一度お試しください。",
+    verify: "認証を完了してください。",
+  },
+
+  upload: {
+    title: "書類",
+    sub: "今は任意です。後から送信することもできます。",
+    passport: "パスポート",
+    transcript: "成績証明書",
+    hint: "PDF、JPG、またはPNG · 各5MBまで。",
+    choose: "ファイルを選択",
+    remove: "削除",
   },
   options: {
     programs: { general: "一般英語", business: "ビジネス英語", exam_prep: "試験対策", corporate_other: "法人／その他" },

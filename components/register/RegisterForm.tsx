@@ -48,9 +48,13 @@ import {
   SearchableSelect,
   SearchableMultiSelect,
 } from "@/components/form/Fields";
+import { Turnstile } from "@/components/form/Turnstile";
+import { FileUpload } from "@/components/form/FileUpload";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
+
+const BUCKET = "registration-docs";
 
 const TRACK_ICONS = { BookOpen, GraduationCap, Briefcase } as const;
 
@@ -75,6 +79,11 @@ export function RegisterForm() {
   const { t } = useI18n();
   const [stepIndex, setStepIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [token, setToken] = useState("");
+  const [passport, setPassport] = useState<File[]>([]);
+  const [transcripts, setTranscripts] = useState<File[]>([]);
 
   const form = useForm<RegistrationValues>({
     resolver: zodResolver(registrationSchema),
@@ -118,10 +127,57 @@ export function RegisterForm() {
     setStepIndex((i) => Math.max(i - 1, 0));
   }
 
-  function onSubmit(values: RegistrationValues) {
-    // Phase 3 wires this to the Turnstile-verified server route.
-    console.log("registration payload", values);
-    setSubmitted(true);
+  async function onSubmit(values: RegistrationValues) {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !token) {
+      setSubmitError(t("submit.verify"));
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
+
+    // Documents (university track). Order here == order of returned uploads.
+    const files = [
+      ...passport.map((file) => ({ kind: "passport" as const, file })),
+      ...transcripts.map((file) => ({ kind: "transcript" as const, file })),
+    ];
+    const documents = files.map(({ kind, file }) => ({
+      kind,
+      filename: file.name,
+      contentType: file.type,
+      size: file.size,
+    }));
+
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ values, turnstileToken: token, documents }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "error");
+
+      if (Array.isArray(data.uploads) && data.uploads.length > 0) {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        await Promise.all(
+          data.uploads.map(
+            (u: { path: string; token: string }, i: number) => {
+              const file = files[i]?.file;
+              if (!file) return Promise.resolve();
+              return supabase.storage
+                .from(BUCKET)
+                .uploadToSignedUrl(u.path, u.token, file);
+            },
+          ),
+        );
+      }
+      setSubmitted(true);
+    } catch {
+      setSubmitError(t("submit.error"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) return <Confirmation form={form} t={t} />;
@@ -147,14 +203,31 @@ export function RegisterForm() {
         {current === "english" && <EnglishStep form={form} t={t} />}
         {current === "university" && <UniversityStep form={form} t={t} />}
         {current === "corporate" && <CorporateStep form={form} t={t} />}
-        {current === "review" && <ReviewStep form={form} t={t} />}
+        {current === "review" && (
+          <ReviewStep
+            form={form}
+            t={t}
+            passport={passport}
+            setPassport={setPassport}
+            transcripts={transcripts}
+            setTranscripts={setTranscripts}
+            onToken={setToken}
+          />
+        )}
 
-        <div className="mt-10 flex items-center justify-between">
+        {submitError && (
+          <p className="mt-6 rounded-md border border-brand-red/40 bg-brand-red-bg px-4 py-2.5 text-sm text-brand-red">
+            {submitError}
+          </p>
+        )}
+
+        <div className="mt-8 flex items-center justify-between">
           {stepIndex > 0 ? (
             <button
               type="button"
               onClick={back}
-              className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-cream-50 disabled:opacity-50"
             >
               <ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden />
               {t("nav.back")}
@@ -166,10 +239,11 @@ export function RegisterForm() {
           {current === "review" ? (
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
             >
-              {t("review.submit")}
-              <Check className="h-4 w-4" aria-hidden />
+              {submitting ? t("submit.sending") : t("review.submit")}
+              {!submitting && <Check className="h-4 w-4" aria-hidden />}
             </button>
           ) : (
             <button
@@ -638,7 +712,23 @@ function Row({ k, v }: { k: string; v?: React.ReactNode }) {
   );
 }
 
-function ReviewStep({ form, t }: { form: Form; t: T }) {
+function ReviewStep({
+  form,
+  t,
+  passport,
+  setPassport,
+  transcripts,
+  setTranscripts,
+  onToken,
+}: {
+  form: Form;
+  t: T;
+  passport: File[];
+  setPassport: (f: File[]) => void;
+  transcripts: File[];
+  setTranscripts: (f: File[]) => void;
+  onToken: (token: string) => void;
+}) {
   const v = form.getValues();
   const yesNo = (x?: string) => (x ? t(`common.${x}`) : undefined);
   const tOpt = (group: string, value?: string) =>
@@ -705,6 +795,36 @@ function ReviewStep({ form, t }: { form: Form; t: T }) {
           <Row k={t("review.rHrdf")} v={yesNo(v.corporate?.hrdf_claimable)} />
         </div>
       )}
+
+      {v.tracks.includes("university") && (
+        <div className="mt-4 rounded-card border border-border-warm bg-paper px-5 py-4">
+          <SectionLabel>{t("upload.title")}</SectionLabel>
+          <p className="mb-4 text-sm text-ink-soft">{t("upload.sub")}</p>
+          <div className="flex flex-col gap-5">
+            <FileUpload
+              label={t("upload.passport")}
+              chooseLabel={t("upload.choose")}
+              removeLabel={t("upload.remove")}
+              hint={t("upload.hint")}
+              files={passport}
+              onChange={setPassport}
+            />
+            <FileUpload
+              label={t("upload.transcript")}
+              chooseLabel={t("upload.choose")}
+              removeLabel={t("upload.remove")}
+              hint={t("upload.hint")}
+              multiple
+              files={transcripts}
+              onChange={setTranscripts}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <Turnstile onToken={onToken} />
+      </div>
     </div>
   );
 }

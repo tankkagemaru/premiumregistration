@@ -135,8 +135,24 @@ export const zh: Dictionary = {
   confirm: {
     title: "谢谢您，{name}。",
     body: "我们已收到您的登记信息。我们的团队成员将尽快与您联系。",
-    note: "（提交功能将在第三阶段接入服务器——此处仅确认客户端流程。）",
+    note: "",
     back: "返回首页",
+  },
+
+  submit: {
+    sending: "提交中…",
+    error: "出现错误，请重试。",
+    verify: "请完成验证。",
+  },
+
+  upload: {
+    title: "文件",
+    sub: "现在可选填——您也可以稍后再提交。",
+    passport: "护照",
+    transcript: "成绩单",
+    hint: "PDF、JPG 或 PNG · 每个文件最大 5 MB。",
+    choose: "选择文件",
+    remove: "移除",
   },
   options: {
     programs: { general: "通用英语", business: "商务英语", exam_prep: "考试备考", corporate_other: "企业 / 其他" },

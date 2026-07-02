@@ -160,8 +160,24 @@ export const en = {
   confirm: {
     title: "Thank you, {name}.",
     body: "Your registration has been received. A member of our team will reach out to you shortly.",
-    note: "(Submission is wired to the server in Phase 3 — this confirms the client flow.)",
+    note: "",
     back: "Back to home",
+  },
+
+  submit: {
+    sending: "Submitting…",
+    error: "Something went wrong. Please try again.",
+    verify: "Please complete the verification.",
+  },
+
+  upload: {
+    title: "Documents",
+    sub: "Optional now — you can also send these later.",
+    passport: "Passport",
+    transcript: "Transcript(s)",
+    hint: "PDF, JPG, or PNG · max 5 MB each.",
+    choose: "Choose file",
+    remove: "Remove",
   },
 
   options: {
