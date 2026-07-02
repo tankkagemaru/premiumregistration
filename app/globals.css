@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* -----------------------------------------------------------------------
+   Design tokens — copied verbatim from the PECSB `qrattendance` app so the
+   two products feel like one family. Tailwind v4 @theme generates utilities
+   for each --color-* / --font-* / --radius-* (e.g. bg-cream, text-ink,
+   font-serif, rounded-card). Fonts are wired to next/font variables.
+----------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-cream: #f4ece3;
+  --color-cream-50: #faf4ea;
+  --color-paper: #fdf9f1;
+  --color-ink: #1b1612;
+  --color-ink-soft: #4a4239;
+  --color-ink-muted: #8a7e70;
+  --color-border-warm: #e8dfd2;
+  --color-border-soft: #efe7d9;
+
+  /* Brand accents */
+  --color-brand-red: #a8242e;
+  --color-brand-red-soft: #c84d56;
+  --color-brand-red-bg: #f5d8db;
+  --color-brand-gold: #b78850;
+  --color-brand-gold-soft: #d4b27a;
+
+  /* Status (warm-leaning to harmonise with cream) */
+  --color-status-present: #3f6e48;
+  --color-status-present-bg: #dceadf;
+  --color-status-late: #b78850;
+  --color-status-late-bg: #f1e3c9;
+  --color-status-absent: #a8242e;
+  --color-status-absent-bg: #f5d8db;
+
+  /* Type — families come from next/font variables set in layout.tsx */
+  --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Consolas, monospace;
+
+  /* Radii — softer than default for the editorial feel */
+  --radius-card: 0.625rem;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Editorial-style display heads */
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+/* Tabular figures so stat counters don't shift width. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
