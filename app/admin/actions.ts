@@ -41,6 +41,38 @@ export async function addLeadNote(id: string, body: string) {
   revalidatePath("/admin");
 }
 
+export async function assignLead(id: string, staffId: string | null) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  await supabase
+    .from("registrations")
+    .update({ assigned_to: staffId })
+    .eq("id", id);
+  await supabase.from("lead_events").insert({
+    registration_id: id,
+    actor_id: profile?.id,
+    type: "assignment",
+    body: staffId ? "Assigned" : "Unassigned",
+  });
+  revalidatePath("/admin", "layout");
+}
+
+export async function updateDocReview(
+  registrationId: string,
+  docId: string,
+  status: string,
+) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  await supabase
+    .from("registration_documents")
+    .update({ review_status: status })
+    .eq("id", docId);
+  revalidatePath("/admin", "layout");
+  void registrationId;
+}
+
 export async function setFollowUp(
   id: string,
   next_action: string,

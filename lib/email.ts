@@ -32,7 +32,7 @@ function shell(inner: string) {
 }
 
 function adminAlertHtml(lead: NewLead) {
-  const url = `${serverEnv.appUrl}/admin/leads/${lead.id}`;
+  const url = `${serverEnv.appUrl}/admin/leads?lead=${lead.id}`;
   const row = (k: string, v?: string) =>
     v
       ? `<tr><td style="padding:4px 0;color:${MUTED};font-size:13px">${k}</td><td style="padding:4px 0;text-align:right;font-size:13px">${v}</td></tr>`

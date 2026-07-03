@@ -5,9 +5,26 @@ import {
   type LeadEvent,
   type LeadDocument,
   type LeadFilters,
+  type Staff,
 } from "./leads-shared";
 
 export * from "./leads-shared";
+
+const MOCK_STAFF: Staff[] = [
+  { id: "s-waty", full_name: "Madam Waty" },
+  { id: "s-celia", full_name: "Celia" },
+  { id: "s-felix", full_name: "Felix" },
+];
+
+export async function listStaff(): Promise<Staff[]> {
+  if (!authConfigured) return MOCK_STAFF;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id,full_name")
+    .in("role", ["admin", "staff"]);
+  return (data as Staff[] | null) ?? [];
+}
 
 /* ------------------------------------------------------------- dev mock --- */
 
@@ -52,6 +69,9 @@ const MOCK_LEADS: Lead[] = [
     phone: "+60129998888",
     nationality: "my",
     utm_source: "google",
+    assigned_to: "s-celia",
+    next_action: "Send training proposal",
+    next_action_due: "2026-07-01",
     details: {
       corporate: {
         company_name: "Acme Sdn Bhd",

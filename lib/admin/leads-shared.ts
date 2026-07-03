@@ -27,8 +27,14 @@ export interface Lead {
   agent_code?: string | null;
   next_action?: string | null;
   next_action_due?: string | null;
+  assigned_to?: string | null;
   tags?: string[] | null;
   details: Record<string, unknown>;
+}
+
+export interface Staff {
+  id: string;
+  full_name: string;
 }
 
 export interface LeadEvent {

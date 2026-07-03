@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -48,6 +48,7 @@ import {
   SearchableSelect,
   SearchableMultiSelect,
 } from "@/components/form/Fields";
+import { captureAttribution, type Attribution } from "@/lib/attribution";
 import { Turnstile } from "@/components/form/Turnstile";
 import { FileUpload } from "@/components/form/FileUpload";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -84,6 +85,12 @@ export function RegisterForm() {
   const [token, setToken] = useState("");
   const [passport, setPassport] = useState<File[]>([]);
   const [transcripts, setTranscripts] = useState<File[]>([]);
+  const attribution = useRef<Attribution>({});
+
+  // Capture marketing attribution silently on mount (first-touch).
+  useEffect(() => {
+    attribution.current = captureAttribution();
+  }, []);
 
   const form = useForm<RegistrationValues>({
     resolver: zodResolver(registrationSchema),
@@ -152,7 +159,12 @@ export function RegisterForm() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ values, turnstileToken: token, documents }),
+        body: JSON.stringify({
+          values,
+          turnstileToken: token,
+          documents,
+          attribution: attribution.current,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error ?? "error");

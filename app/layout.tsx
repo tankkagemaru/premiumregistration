@@ -24,16 +24,48 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const DESCRIPTION =
+  "Register your interest in English programs, university placement in Malaysia, or corporate training with Premium Entrepreneur Consultant Sdn Bhd (PECSB).";
+
 export const metadata: Metadata = {
-  title: "Register — PECSB",
-  description:
-    "Register your interest in English programs, university placement in Malaysia, or corporate training with Premium Entrepreneur Consultant Sdn Bhd (PECSB).",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "Register — PECSB",
+    template: "%s — PECSB",
+  },
+  description: DESCRIPTION,
+  keywords: [
+    "English courses Malaysia",
+    "study in Malaysia",
+    "university placement Malaysia",
+    "IELTS preparation",
+    "corporate training HRDF",
+    "PECSB",
+    "Premium Language Centre",
+  ],
+  applicationName: "regist·er",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/pecsb-logo.png", type: "image/png" },
     ],
   },
+  openGraph: {
+    type: "website",
+    siteName: "PECSB · regist·er",
+    title: "Register — PECSB",
+    description: DESCRIPTION,
+    url: APP_URL,
+    images: [{ url: "/pecsb-logo.png", width: 1080, height: 1080, alt: "PECSB" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Register — PECSB",
+    description: DESCRIPTION,
+    images: ["/pecsb-logo.png"],
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

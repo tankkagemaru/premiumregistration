@@ -8,8 +8,15 @@ import {
   type Lead,
   type LeadEvent,
   type LeadDocument,
+  type Staff,
 } from "@/lib/admin/leads-shared";
-import { updateLeadStatus, addLeadNote, setFollowUp } from "@/app/admin/actions";
+import {
+  updateLeadStatus,
+  addLeadNote,
+  setFollowUp,
+  assignLead,
+  updateDocReview,
+} from "@/app/admin/actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { COUNTRIES } from "@/lib/config/countries";
@@ -46,9 +53,11 @@ function Row({ k, v }: { k: string; v?: React.ReactNode }) {
 
 export function LeadDrawer({
   data,
+  staff,
   onClose,
 }: {
   data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
+  staff: Staff[];
   onClose: () => void;
 }) {
   const { lead, events, documents } = data;
@@ -205,11 +214,60 @@ export function LeadDrawer({
           {documents.length > 0 && (
             <div>
               <SectionLabel>Documents</SectionLabel>
-              {documents.map((d) => (
-                <Row key={d.id} k={d.kind} v={d.review_status} />
-              ))}
+              <div className="flex flex-col gap-2">
+                {documents.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-2">
+                    <a
+                      href={`/api/admin/doc/${d.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-brand-red underline underline-offset-2"
+                    >
+                      {d.kind}
+                    </a>
+                    <select
+                      value={d.review_status}
+                      disabled={pending}
+                      onChange={(e) =>
+                        start(async () => {
+                          await updateDocReview(lead.id, d.id, e.target.value);
+                          refresh();
+                        })
+                      }
+                      className="rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none"
+                    >
+                      <option value="pending">pending</option>
+                      <option value="verified">verified</option>
+                      <option value="rejected">rejected</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Owner */}
+          <div>
+            <SectionLabel>Owner</SectionLabel>
+            <select
+              value={lead.assigned_to ?? ""}
+              disabled={pending}
+              onChange={(e) =>
+                start(async () => {
+                  await assignLead(lead.id, e.target.value || null);
+                  refresh();
+                })
+              }
+              className="w-full rounded-md border border-border-warm bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-brand-red"
+            >
+              <option value="">Unassigned</option>
+              {staff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Follow-up */}
           <div>

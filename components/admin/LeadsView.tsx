@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, Download } from "lucide-react";
 import {
   LEAD_STATUSES,
   type Lead,
   type LeadEvent,
   type LeadDocument,
+  type Staff,
 } from "@/lib/admin/leads-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
@@ -52,13 +53,16 @@ export function LeadsView({
   leads,
   selected,
   filters,
+  staff,
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
   filters: { status?: string; track?: string; q?: string };
+  staff: Staff[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
 
   function setParam(key: string, value?: string) {
@@ -66,7 +70,7 @@ export function LeadsView({
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete("lead");
-    router.push(`/admin?${next.toString()}`);
+    router.push(`${pathname}?${next.toString()}`);
   }
 
   // Debounced search → URL.
@@ -81,7 +85,7 @@ export function LeadsView({
   function openLead(id: string) {
     const next = new URLSearchParams(params.toString());
     next.set("lead", id);
-    router.push(`/admin?${next.toString()}`);
+    router.push(`${pathname}?${next.toString()}`);
   }
 
   function download() {
@@ -215,6 +219,7 @@ export function LeadsView({
       {selected && (
         <LeadDrawer
           data={selected}
+          staff={staff}
           onClose={() => setParam("lead", undefined)}
         />
       )}

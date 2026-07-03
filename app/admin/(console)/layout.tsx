@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ConsoleNav } from "@/components/admin/ConsoleNav";
+import { NotificationBell } from "@/components/admin/NotificationBell";
+import { listNotifications } from "@/lib/admin/notifications";
 import { signOut } from "../actions";
 
 export default async function ConsoleLayout({
@@ -10,6 +13,7 @@ export default async function ConsoleLayout({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/admin/login");
+  const notifications = await listNotifications(profile.id);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -22,6 +26,7 @@ export default async function ConsoleLayout({
             </span>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell items={notifications} />
             <span className="text-sm text-ink-soft">{profile.full_name}</span>
             <form action={signOut}>
               <button
@@ -34,6 +39,7 @@ export default async function ConsoleLayout({
           </div>
         </div>
       </header>
+      <ConsoleNav />
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</div>
     </div>
   );
