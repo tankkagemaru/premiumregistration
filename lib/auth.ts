@@ -4,9 +4,11 @@ import { authConfigured } from "@/lib/admin/leads-shared";
 
 export type Role =
   | "admin" // superadmin — full access incl. users + audit logs
-  | "admissions"
+  | "marketing" // campaigns + leads, hands qualified leads to admissions
+  | "admissions" // first in line — registration, review, offers
   | "visa"
   | "finance"
+  | "academic" // enrolment, class dates, attendance
   | "counsellor"
   | "staff"
   | "agent";

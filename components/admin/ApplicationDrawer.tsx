@@ -26,6 +26,8 @@ import {
   type Fee,
 } from "@/lib/admin/finance-shared";
 import { VISA_STAGE_LABEL, type VisaCase } from "@/lib/admin/visa-shared";
+import { TEAM_LABEL, type ActionRequest } from "@/lib/admin/requests-shared";
+import { RaiseRequest } from "@/components/admin/RequestControls";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 
@@ -43,10 +45,14 @@ export function ApplicationDrawer({
   data,
   fees = [],
   visa = null,
+  requests = [],
+  role = "staff",
 }: {
   data: { app: Application; events: ApplicationEvent[]; documents: ApplicationDoc[] };
   fees?: Fee[];
   visa?: VisaCase | null;
+  requests?: ActionRequest[];
+  role?: string;
 }) {
   const { app, events, documents } = data;
   const router = useRouter();
@@ -219,6 +225,39 @@ export function ApplicationDrawer({
               <Row k="Pass expiry" v={visa.student_pass_expiry} />
             </div>
           )}
+
+          {/* Cross-team requests */}
+          <div>
+            <SectionLabel>Team requests</SectionLabel>
+            {requests.filter((r) => r.status === "open").length > 0 && (
+              <div className="mb-3 flex flex-col gap-2">
+                {requests
+                  .filter((r) => r.status === "open")
+                  .map((r) => (
+                    <div
+                      key={r.id}
+                      className={`rounded-md border px-3 py-2 ${
+                        r.type === "blocker"
+                          ? "border-brand-red/50 bg-brand-red-bg/40"
+                          : "border-border-warm bg-paper"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-ink">{r.title}</p>
+                      <p className="text-[11px] text-ink-muted">
+                        {TEAM_LABEL[r.from_role] ?? r.from_role} →{" "}
+                        {TEAM_LABEL[r.to_role] ?? r.to_role}
+                        {r.due_date ? ` · due ${r.due_date}` : ""}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+            <RaiseRequest
+              applicationId={app.id}
+              subject={app.student_name}
+              fromRole={role}
+            />
+          </div>
 
           {/* Activity */}
           <div>

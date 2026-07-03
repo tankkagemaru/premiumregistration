@@ -75,6 +75,8 @@ export interface Application {
   flag?: Flag;
   next_action?: string | null;
   next_action_due?: string | null;
+  class_start?: string | null;
+  class_end?: string | null;
 }
 
 export interface ApplicationEvent {

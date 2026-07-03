@@ -56,6 +56,17 @@ const MOCK_FEES: Fee[] = [
     due_date: "2026-07-08",
     status: "unpaid",
   },
+  {
+    id: "f6",
+    application_id: "a-0004",
+    student_name: "Fatima Al-Zahra",
+    type: "tuition",
+    label: "Term 2",
+    amount: 4800,
+    currency: "MYR",
+    due_date: "2026-07-20",
+    status: "unpaid",
+  },
 ];
 
 const MOCK_PAYMENTS: Payment[] = [

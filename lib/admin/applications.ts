@@ -68,6 +68,8 @@ const MOCK: Application[] = [
     flag: "progress",
     next_action: "Issue acceptance letter",
     next_action_due: "2026-07-04",
+    class_start: "2026-07-14",
+    class_end: "2026-10-02",
   },
   {
     id: "a-0004",
@@ -84,6 +86,8 @@ const MOCK: Application[] = [
     flag: "ok",
     next_action: "Student pass renewal",
     next_action_due: "2026-07-15",
+    class_start: "2025-09-01",
+    class_end: "2026-08-28",
   },
 ];
 

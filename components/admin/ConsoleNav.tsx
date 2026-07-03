@@ -11,12 +11,14 @@ import { cn } from "@/lib/utils";
  */
 const TABS: { href: string; label: string; roles: string[] }[] = [
   { href: "/admin", label: "Dashboard", roles: ["*"] },
-  { href: "/admin/leads", label: "Leads", roles: ["admin", "admissions", "counsellor", "staff"] },
-  { href: "/admin/applications", label: "Applications", roles: ["admin", "admissions", "visa", "counsellor", "staff"] },
-  { href: "/admin/follow-ups", label: "Follow-ups", roles: ["admin", "admissions", "counsellor", "staff"] },
+  { href: "/admin/leads", label: "Leads", roles: ["admin", "marketing", "admissions", "counsellor", "staff"] },
+  { href: "/admin/applications", label: "Applications", roles: ["admin", "admissions", "visa", "academic", "counsellor", "staff"] },
+  { href: "/admin/requests", label: "Requests", roles: ["admin", "marketing", "admissions", "visa", "finance", "academic", "counsellor", "staff"] },
+  { href: "/admin/follow-ups", label: "Follow-ups", roles: ["admin", "marketing", "admissions", "counsellor", "staff"] },
+  { href: "/admin/academic", label: "Academic", roles: ["admin", "academic"] },
   { href: "/admin/finance", label: "Finance", roles: ["admin", "finance"] },
   { href: "/admin/visa", label: "Visa", roles: ["admin", "visa"] },
-  { href: "/admin/reports", label: "Reports", roles: ["admin", "admissions", "finance"] },
+  { href: "/admin/reports", label: "Reports", roles: ["admin", "marketing", "admissions", "finance"] },
   { href: "/admin/users", label: "Users", roles: ["admin"] },
   { href: "/admin/logs", label: "Logs", roles: ["admin"] },
   { href: "/admin/settings", label: "Settings", roles: ["admin"] },
