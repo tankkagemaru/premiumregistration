@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireRole } from "@/lib/auth";
 import {
   listFees,
   listPayments,
@@ -8,6 +9,7 @@ import {
   FEE_TYPE_LABEL,
   type FeeStatus,
 } from "@/lib/admin/finance";
+import { SearchBox } from "@/components/admin/SearchBox";
 import {
   FeeStatusSelect,
   CommissionStatusSelect,
@@ -31,12 +33,28 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function FinancePage() {
-  const [fees, payments, commissions] = await Promise.all([
+export default async function FinancePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requireRole(["admin", "finance"]);
+  const sp = await searchParams;
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
+
+  const [allFees, payments, allCommissions] = await Promise.all([
     listFees(),
     listPayments(),
     listCommissions(),
   ]);
+  const fees = q
+    ? allFees.filter((f) => f.student_name.toLowerCase().includes(q))
+    : allFees;
+  const commissions = q
+    ? allCommissions.filter((c) =>
+        `${c.student_name} ${c.agent_name ?? ""}`.toLowerCase().includes(q),
+      )
+    : allCommissions;
 
   const collected = payments.reduce((s, p) => s + p.amount, 0);
   const outstanding = fees
@@ -51,17 +69,20 @@ export default async function FinancePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Finance
-        </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">
-          Fees &amp; commission
-        </h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          Record-only in v1 — payments are logged here against each fee; no money
-          moves through the system.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            Finance
+          </p>
+          <h1 className="font-serif text-3xl font-medium text-ink">
+            Fees &amp; commission
+          </h1>
+          <p className="mt-2 text-sm text-ink-soft">
+            Record-only in v1 — payments are logged here against each fee; no money
+            moves through the system.
+          </p>
+        </div>
+        <SearchBox placeholder="Search student or partner…" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

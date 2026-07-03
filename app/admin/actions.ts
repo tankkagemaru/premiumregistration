@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/leads-shared";
 import { getProfile } from "@/lib/auth";
+import { logAudit } from "@/lib/admin/audit";
 
 export async function signOut() {
   if (authConfigured) {
@@ -25,6 +26,7 @@ export async function updateLeadStatus(id: string, status: string) {
     type: "status_change",
     body: `Status changed to ${status}`,
   });
+  await logAudit({ action: "lead_status_changed", target_type: "lead", target_id: id, detail: status });
   revalidatePath("/admin");
 }
 
@@ -55,6 +57,7 @@ export async function assignLead(id: string, staffId: string | null) {
     type: "assignment",
     body: staffId ? "Assigned" : "Unassigned",
   });
+  await logAudit({ action: "lead_assigned", target_type: "lead", target_id: id, detail: staffId ?? "unassigned" });
   revalidatePath("/admin", "layout");
 }
 
@@ -69,6 +72,7 @@ export async function updateDocReview(
     .from("registration_documents")
     .update({ review_status: status })
     .eq("id", docId);
+  await logAudit({ action: "doc_review_changed", target_type: "document", target_id: docId, detail: status });
   revalidatePath("/admin", "layout");
   void registrationId;
 }

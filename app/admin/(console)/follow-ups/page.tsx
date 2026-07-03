@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getProfile } from "@/lib/auth";
 import { listLeads, listStaff } from "@/lib/admin/leads";
 import type { Lead } from "@/lib/admin/leads-shared";
 
@@ -50,14 +51,28 @@ function Group({
   );
 }
 
-export default async function FollowUpsPage() {
-  const [leads, staff] = await Promise.all([listLeads(), listStaff()]);
+export default async function FollowUpsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const scope = (Array.isArray(sp.scope) ? sp.scope[0] : sp.scope) ?? "mine";
+  const [profile, leads, staff] = await Promise.all([
+    getProfile(),
+    listLeads(),
+    listStaff(),
+  ]);
   const staffName = (id?: string | null) =>
     id ? staff.find((s) => s.id === id)?.full_name ?? "—" : "Unassigned";
   const today = new Date().toISOString().slice(0, 10);
 
   const withDue = leads.filter(
-    (l) => l.next_action_due && l.status !== "enrolled" && l.status !== "dropped",
+    (l) =>
+      l.next_action_due &&
+      l.status !== "enrolled" &&
+      l.status !== "dropped" &&
+      (scope === "all" || l.assigned_to === profile?.id),
   );
   const overdue = withDue.filter((l) => l.next_action_due! < today);
   const dueToday = withDue.filter((l) => l.next_action_due === today);
@@ -65,11 +80,28 @@ export default async function FollowUpsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Follow-ups
-        </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">My follow-ups</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            Follow-ups
+          </p>
+          <h1 className="font-serif text-3xl font-medium text-ink">
+            {scope === "all" ? "All follow-ups" : "My follow-ups"}
+          </h1>
+        </div>
+        <div className="flex gap-1 rounded-md border border-border-warm bg-paper p-1">
+          {(["mine", "all"] as const).map((s) => (
+            <Link
+              key={s}
+              href={`/admin/follow-ups${s === "all" ? "?scope=all" : ""}`}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                scope === s ? "bg-ink text-cream" : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {s === "mine" ? "Mine" : "Everyone"}
+            </Link>
+          ))}
+        </div>
       </div>
       <Group title="Overdue" leads={overdue} staffName={staffName} tone="danger" />
       <Group title="Due today" leads={dueToday} staffName={staffName} />

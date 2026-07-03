@@ -39,7 +39,7 @@ export default async function ConsoleLayout({
           </div>
         </div>
       </header>
-      <ConsoleNav />
+      <ConsoleNav role={profile.role} />
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</div>
     </div>
   );

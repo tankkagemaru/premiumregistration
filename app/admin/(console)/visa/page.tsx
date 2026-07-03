@@ -1,22 +1,41 @@
 import Link from "next/link";
+import { requireRole } from "@/lib/auth";
 import { listVisaCases, VISA_STAGE_LABEL, expiryFlag } from "@/lib/admin/visa";
 import { VisaStageSelect } from "@/components/admin/VisaStageSelect";
+import { SearchBox } from "@/components/admin/SearchBox";
 
-export default async function VisaPage() {
-  const cases = await listVisaCases();
+export default async function VisaPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requireRole(["admin", "visa"]);
+  const sp = await searchParams;
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
+  const all = await listVisaCases();
+  const cases = q
+    ? all.filter((c) =>
+        `${c.student_name} ${c.target ?? ""} ${c.emgs_ref ?? ""}`
+          .toLowerCase()
+          .includes(q),
+      )
+    : all;
   const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Visa / EMGS
-        </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">Visa cases</h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          PECSB prepares every pack. Private universities file their own EMGS
-          submission; PECSB files for public universities and PLC courses.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            Visa / EMGS
+          </p>
+          <h1 className="font-serif text-3xl font-medium text-ink">Visa cases</h1>
+          <p className="mt-2 text-sm text-ink-soft">
+            PECSB prepares every pack. Private universities file their own EMGS
+            submission; PECSB files for public universities and PLC courses.
+          </p>
+        </div>
+        <SearchBox placeholder="Search student or EMGS ref…" />
       </div>
 
       <div className="overflow-x-auto rounded-card border border-border-warm">

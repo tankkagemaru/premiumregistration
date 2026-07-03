@@ -95,6 +95,23 @@ export function RegisterForm() {
     attribution.current = captureAttribution();
   }, []);
 
+  // Draft persistence — an accidental refresh no longer wipes the form.
+  // (Files can't be persisted; the applicant re-attaches those.)
+  const DRAFT_KEY = "pecsb-register-draft";
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem(DRAFT_KEY);
+      if (saved) form.reset(JSON.parse(saved));
+    } catch {
+      /* corrupt draft — start fresh */
+    }
+    const sub = form.watch((values) => {
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+    });
+    return () => sub.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const form = useForm<RegistrationValues>({
     resolver: zodResolver(registrationSchema),
     mode: "onTouched",
@@ -195,6 +212,7 @@ export function RegisterForm() {
         tracks: values.tracks.join(","),
         source: attribution.current.utm_source ?? "direct",
       });
+      window.sessionStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
     } catch {
       setSubmitError(t("submit.error"));

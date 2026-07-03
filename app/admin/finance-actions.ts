@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
+import { logAudit } from "@/lib/admin/audit";
 
 export async function recordPayment(input: {
   applicationId: string;
@@ -40,6 +41,7 @@ export async function recordPayment(input: {
     fee && received >= Number(fee.amount) ? "paid" : received > 0 ? "partial" : "unpaid";
   await supabase.from("fees").update({ status }).eq("id", input.feeId);
 
+  await logAudit({ action: "payment_recorded", target_type: "fee", target_id: input.feeId, detail: `MYR ${input.amount}${input.reference ? " · " + input.reference : ""}` });
   revalidatePath("/admin", "layout");
 }
 
@@ -47,6 +49,7 @@ export async function setFeeStatus(feeId: string, status: string) {
   if (!authConfigured) return;
   const supabase = await createClient();
   await supabase.from("fees").update({ status }).eq("id", feeId);
+  await logAudit({ action: "fee_status_changed", target_type: "fee", target_id: feeId, detail: status });
   revalidatePath("/admin", "layout");
 }
 
@@ -57,5 +60,6 @@ export async function setCommissionStatus(id: string, status: string) {
     .from("commissions")
     .update({ status, ...(status === "paid" ? { paid_at: new Date().toISOString().slice(0, 10) } : {}) })
     .eq("id", id);
+  await logAudit({ action: "commission_status_changed", target_type: "commission", target_id: id, detail: status });
   revalidatePath("/admin", "layout");
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { authConfigured } from "@/lib/admin/leads-shared";
+import { logAudit } from "@/lib/admin/audit";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,14 @@ export async function GET(
     .from(BUCKET)
     .createSignedUrl(doc.storage_path, 60);
   if (!signed) return NextResponse.json({ error: "sign_failed" }, { status: 500 });
+
+  // PII access trail — every passport/transcript view is recorded.
+  await logAudit({
+    action: "doc_downloaded",
+    target_type: "document",
+    target_id: id,
+    detail: doc.storage_path,
+  });
 
   return NextResponse.redirect(signed.signedUrl);
 }

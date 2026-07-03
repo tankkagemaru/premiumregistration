@@ -46,6 +46,14 @@ export async function GET(request: Request) {
     logoSrc: path.join(process.cwd(), "public", "pecsb-logo.png"),
   };
 
+  const { logAudit } = await import("@/lib/admin/audit");
+  await logAudit({
+    action: "offer_generated",
+    target_type: "application",
+    target_id: app.id,
+    detail: `${data.program} — ${app.student_name}`,
+  });
+
   const buffer = await renderToBuffer(EnglishOfferLetter({ data }));
 
   return new NextResponse(new Uint8Array(buffer), {

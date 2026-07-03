@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useMemo, useState } from "react";
+import { forwardRef, useId, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -192,6 +192,7 @@ export function SearchableMultiSelect({
   groupLabels,
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
 
   const byValue = useMemo(
     () => new Map(options.map((o) => [o.value, o])),
@@ -215,6 +216,22 @@ export function SearchableMultiSelect({
 
   const toggle = (v: string) =>
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+
+  // Flat list of visible options, for keyboard navigation across groups.
+  const flat = useMemo(() => filtered.flatMap(([, items]) => items), [filtered]);
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => {
+        const next = e.key === "ArrowDown" ? i + 1 : i - 1;
+        return Math.max(0, Math.min(flat.length - 1, next));
+      });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (flat[active]) toggle(flat[active].value);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -245,8 +262,13 @@ export function SearchableMultiSelect({
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActive(0);
+            }}
+            onKeyDown={onKeyDown}
             placeholder={placeholder}
+            aria-label={placeholder}
             className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted/70"
           />
         </div>
@@ -262,7 +284,8 @@ export function SearchableMultiSelect({
                 </p>
               )}
               {items.map((o) => {
-                const active = value.includes(o.value);
+                const checked = value.includes(o.value);
+                const focused = flat[active] === o;
                 return (
                   <button
                     key={o.value}
@@ -270,18 +293,19 @@ export function SearchableMultiSelect({
                     onClick={() => toggle(o.value)}
                     className={cn(
                       "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-cream-50",
-                      active ? "text-ink" : "text-ink-soft",
+                      focused && "bg-cream-50",
+                      checked ? "text-ink" : "text-ink-soft",
                     )}
                   >
                     <span
                       className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                        active
+                        checked
                           ? "border-brand-red bg-brand-red text-cream"
                           : "border-border-warm",
                       )}
                     >
-                      {active && <Check className="h-3 w-3" aria-hidden />}
+                      {checked && <Check className="h-3 w-3" aria-hidden />}
                     </span>
                     {o.label}
                   </button>
@@ -303,7 +327,8 @@ interface SearchableSelectProps {
   error?: string;
 }
 
-/** Single-select searchable dropdown (nationality, home country). */
+/** Single-select searchable dropdown (nationality, home country).
+ *  Keyboard: arrows move, Enter selects, Escape closes. */
 export function SearchableSelect({
   options,
   value,
@@ -313,6 +338,8 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const listId = useId();
 
   const selected = options.find((o) => o.value === value);
   const filtered = useMemo(() => {
@@ -320,41 +347,81 @@ export function SearchableSelect({
     return q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
   }, [options, query]);
 
+  function pick(v: string) {
+    onChange(v);
+    setQuery("");
+    setOpen(false);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) return setOpen(true);
+      setActive((i) => {
+        const next = e.key === "ArrowDown" ? i + 1 : i - 1;
+        return Math.max(0, Math.min(filtered.length - 1, next));
+      });
+    } else if (e.key === "Enter") {
+      if (open && filtered[active]) {
+        e.preventDefault();
+        pick(filtered[active].value);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
   return (
     <div className="relative">
       <input
         type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={
+          open && filtered[active] ? `${listId}-${filtered[active].value}` : undefined
+        }
         value={open ? query : selected?.label ?? ""}
         placeholder={placeholder}
         onChange={(e) => {
           setQuery(e.target.value);
+          setActive(0);
           if (!open) setOpen(true);
         }}
         onFocus={() => {
           setOpen(true);
           setQuery("");
+          setActive(0);
         }}
         onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        onKeyDown={onKeyDown}
         className={cn(controlBase, borderFor(error))}
         aria-invalid={!!error}
       />
       {open && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border-warm bg-paper py-1 shadow-sm">
+        <div
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-border-warm bg-paper py-1 shadow-sm"
+        >
           {filtered.length === 0 && (
             <p className="px-3 py-2 text-sm text-ink-muted">No matches.</p>
           )}
-          {filtered.map((o) => (
+          {filtered.map((o, i) => (
             <button
               key={o.value}
+              id={`${listId}-${o.value}`}
               type="button"
+              role="option"
+              aria-selected={o.value === value}
               onMouseDown={(e) => {
                 e.preventDefault();
-                onChange(o.value);
-                setQuery("");
-                setOpen(false);
+                pick(o.value);
               }}
+              onMouseEnter={() => setActive(i)}
               className={cn(
-                "flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-cream-50",
+                "flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors",
+                i === active && "bg-cream-50",
                 o.value === value ? "text-ink" : "text-ink-soft",
               )}
             >

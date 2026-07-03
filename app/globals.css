@@ -13,7 +13,9 @@
   --color-paper: #fdf9f1;
   --color-ink: #1b1612;
   --color-ink-soft: #4a4239;
-  --color-ink-muted: #8a7e70;
+  /* Darkened from qrattendance's #8a7e70 — that value was 3.4:1 on cream,
+     below WCAG AA (4.5:1) for the small labels that use it. */
+  --color-ink-muted: #6e655c;
   --color-border-warm: #e8dfd2;
   --color-border-soft: #efe7d9;
 

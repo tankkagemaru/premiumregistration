@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
+import { logAudit } from "@/lib/admin/audit";
 
 export async function advanceApplicationStage(id: string, stage: string) {
   if (!authConfigured) return;
@@ -23,6 +24,7 @@ export async function advanceApplicationStage(id: string, stage: string) {
     to_stage: stage,
     body: `Moved to ${stage}`,
   });
+  await logAudit({ action: "stage_change", target_type: "application", target_id: id, detail: `${prev?.stage ?? "?"} → ${stage}` });
   revalidatePath("/admin", "layout");
 }
 

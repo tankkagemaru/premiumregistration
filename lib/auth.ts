@@ -1,7 +1,15 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/leads-shared";
 
-export type Role = "admin" | "staff" | "agent";
+export type Role =
+  | "admin" // superadmin — full access incl. users + audit logs
+  | "admissions"
+  | "visa"
+  | "finance"
+  | "counsellor"
+  | "staff"
+  | "agent";
 
 export interface Profile {
   id: string;
@@ -17,7 +25,13 @@ export interface Profile {
  */
 export async function getProfile(): Promise<Profile | null> {
   if (!authConfigured) {
-    return { id: "dev", full_name: "Dev Admin", email: "dev@local", role: "admin" };
+    // Dev bypass — id matches the mock data's admin so "mine" filters work.
+    return {
+      id: "s-waty",
+      full_name: "Madam Waty (dev)",
+      email: "dev@local",
+      role: "admin",
+    };
   }
 
   const supabase = await createClient();
@@ -40,4 +54,12 @@ export async function getProfile(): Promise<Profile | null> {
       role: "staff",
     }
   );
+}
+
+/** Server-side page gate: returns the profile or redirects away. */
+export async function requireRole(roles: Role[]): Promise<Profile> {
+  const profile = await getProfile();
+  if (!profile) redirect("/admin/login");
+  if (!roles.includes(profile.role)) redirect("/admin");
+  return profile;
 }
