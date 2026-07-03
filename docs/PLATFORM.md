@@ -18,10 +18,17 @@ network and a public status portal.
 
 ## The pipeline
 Enquiry → Application (student or agent) → Admissions review → Conditional
-offer → Final offer → Accept + fees → Visa/EMGS (medical, VAL, single-entry
-visa) → arrival + post-arrival medical → registration/start class → active
-student (monitoring) → visa renewal (annual) → completion. English-only,
-corporate, and local students take a short lane (no visa/medical).
+offer → Final offer / acceptance letter → Accept + fees → Visa/EMGS (medical,
+VAL, single-entry visa) → arrival + post-arrival medical → registration/start
+class → active student (monitoring) → visa renewal (annual) → completion.
+
+**The lane is gated by residency, not track.** Any **international** student —
+English *or* university — gets an offer/acceptance letter and runs the full
+visa/medical lane (`students.is_international`). Only **local (Malaysian)**
+students and non-visa corporate trainees take the short lane. For visa
+submission: private universities submit their own EMGS; PECSB submits for public
+universities and for PLC's own English courses; PECSB prepares the documents
+either way (`visa_cases.submitted_by`).
 
 ## Data model
 `supabase/schema.sql` + `storage.sql` (lead-capture) and

@@ -30,6 +30,10 @@ create table if not exists students (
   passport_no   text,
   date_of_birth date,
   gender        text,
+  -- Residency drives the pipeline lane, NOT the track: any international student
+  -- (English or university) needs a student pass and runs the full visa/medical
+  -- lane; local (Malaysian) students take the short lane.
+  is_international boolean not null default true,
   agent_code    text,
   agent_id      uuid references profiles(id)
 );
