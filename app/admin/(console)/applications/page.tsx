@@ -1,4 +1,6 @@
 import { listApplications, getApplication } from "@/lib/admin/applications";
+import { listFeesForApp } from "@/lib/admin/finance";
+import { getVisaCaseForApp } from "@/lib/admin/visa";
 import { ApplicationsBoard } from "@/components/admin/ApplicationsBoard";
 import { ApplicationDrawer } from "@/components/admin/ApplicationDrawer";
 
@@ -13,6 +15,9 @@ export default async function ApplicationsPage({
   const apps = await listApplications();
   const appParam = one(sp.app);
   const selected = appParam ? await getApplication(appParam) : null;
+  const [fees, visa] = selected
+    ? await Promise.all([listFeesForApp(appParam!), getVisaCaseForApp(appParam!)])
+    : [[], null];
 
   return (
     <div>
@@ -25,7 +30,7 @@ export default async function ApplicationsPage({
         </h1>
       </div>
       <ApplicationsBoard apps={apps} />
-      {selected && <ApplicationDrawer data={selected} />}
+      {selected && <ApplicationDrawer data={selected} fees={fees} visa={visa} />}
     </div>
   );
 }

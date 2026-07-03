@@ -1,0 +1,97 @@
+import Link from "next/link";
+import { listVisaCases, VISA_STAGE_LABEL, expiryFlag } from "@/lib/admin/visa";
+import { VisaStageSelect } from "@/components/admin/VisaStageSelect";
+
+export default async function VisaPage() {
+  const cases = await listVisaCases();
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+          Visa / EMGS
+        </p>
+        <h1 className="font-serif text-3xl font-medium text-ink">Visa cases</h1>
+        <p className="mt-2 text-sm text-ink-soft">
+          PECSB prepares every pack. Private universities file their own EMGS
+          submission; PECSB files for public universities and PLC courses.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto rounded-card border border-border-warm">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+              <th className="px-4 py-2.5 font-medium">Student</th>
+              <th className="px-4 py-2.5 font-medium">Programme</th>
+              <th className="px-4 py-2.5 font-medium">Filed by</th>
+              <th className="px-4 py-2.5 font-medium">EMGS ref</th>
+              <th className="px-4 py-2.5 font-medium">Stage</th>
+              <th className="px-4 py-2.5 font-medium">Pass expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cases.map((c) => {
+              const flag = expiryFlag(c.student_pass_expiry, today);
+              return (
+                <tr key={c.id} className="border-b border-border-warm/60 bg-paper last:border-0">
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/applications?app=${c.application_id}`}
+                      className="font-medium text-ink hover:text-brand-red"
+                    >
+                      {c.student_name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-ink-soft">{c.target ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
+                        c.submitted_by === "pecsb"
+                          ? "bg-brand-red-bg text-brand-red"
+                          : "bg-cream-50 text-ink-soft border border-border-warm"
+                      }`}
+                    >
+                      {c.submitted_by === "pecsb" ? "PECSB" : "University"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-muted">
+                    {c.emgs_ref ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-ink">
+                        {VISA_STAGE_LABEL[c.stage] ?? c.stage}
+                      </span>
+                      <VisaStageSelect id={c.id} stage={c.stage} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.student_pass_expiry ? (
+                      <span
+                        className={`font-mono text-xs ${
+                          flag === "expired"
+                            ? "font-medium text-brand-red"
+                            : flag === "soon"
+                              ? "font-medium text-brand-gold"
+                              : "text-ink-muted"
+                        }`}
+                      >
+                        {c.student_pass_expiry}
+                        {flag === "soon" && " · renew soon"}
+                        {flag === "expired" && " · expired"}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-ink-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

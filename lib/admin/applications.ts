@@ -69,6 +69,22 @@ const MOCK: Application[] = [
     next_action: "Issue acceptance letter",
     next_action_due: "2026-07-04",
   },
+  {
+    id: "a-0004",
+    created_at: "2025-08-10T08:00:00Z",
+    student_id: "st-4",
+    student_name: "Fatima Al-Zahra",
+    student_email: "fatima@example.sa",
+    is_international: true,
+    track: "english",
+    program_name: "IELTS Preparation (PLC)",
+    submitted_by: "student",
+    stage: "active",
+    status: "active",
+    flag: "ok",
+    next_action: "Student pass renewal",
+    next_action_due: "2026-07-15",
+  },
 ];
 
 const MOCK_EVENTS: ApplicationEvent[] = [

@@ -15,16 +15,16 @@ Font.register({
   family: "Playfair",
   fonts: [
     { src: path.join(FONT_DIR, "PlayfairDisplay.ttf"), fontWeight: 400 },
-    { src: path.join(FONT_DIR, "PlayfairDisplay.ttf"), fontWeight: 600 },
-    { src: path.join(FONT_DIR, "PlayfairDisplay.ttf"), fontWeight: 700 },
+    { src: path.join(FONT_DIR, "PlayfairDisplay-SemiBold.ttf"), fontWeight: 600 },
+    { src: path.join(FONT_DIR, "PlayfairDisplay-Bold.ttf"), fontWeight: 700 },
   ],
 });
 Font.register({
   family: "Inter",
   fonts: [
     { src: path.join(FONT_DIR, "Inter.ttf"), fontWeight: 400 },
-    { src: path.join(FONT_DIR, "Inter.ttf"), fontWeight: 500 },
-    { src: path.join(FONT_DIR, "Inter.ttf"), fontWeight: 700 },
+    { src: path.join(FONT_DIR, "Inter-Medium.ttf"), fontWeight: 500 },
+    { src: path.join(FONT_DIR, "Inter-Bold.ttf"), fontWeight: 700 },
   ],
 });
 // Keep long words (emails, references) from being hyphenated.

@@ -10,13 +10,16 @@ const TABS = [
   { href: "/admin/applications", label: "Applications" },
   { href: "/admin/pipeline", label: "Pipeline" },
   { href: "/admin/follow-ups", label: "Follow-ups" },
+  { href: "/admin/finance", label: "Finance" },
+  { href: "/admin/visa", label: "Visa" },
+  { href: "/admin/reports", label: "Reports" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
 export function ConsoleNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex gap-6 border-b border-border-warm px-6">
+    <nav className="flex gap-6 overflow-x-auto border-b border-border-warm px-6">
       <div className="mx-auto flex w-full max-w-6xl gap-6">
         {TABS.map((t) => {
           const active =

@@ -1,4 +1,5 @@
 import { getAgentPortal } from "@/lib/agent/portal";
+import { formatMoney } from "@/lib/admin/finance-shared";
 import { STAGE_LABEL, stagePercent } from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
@@ -8,11 +9,14 @@ const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export default async function AgentHome() {
-  const { agent, apps } = await getAgentPortal();
+  const { agent, apps, commissions } = await getAgentPortal();
   const referral = `${APP_URL}/register?agent=${agent.code}`;
   const enrolled = apps.filter((a) =>
     ["enrolled", "active", "completed"].includes(a.stage),
   ).length;
+  const commissionTotal = commissions
+    .filter((c) => c.direction === "payable")
+    .reduce((s, c) => s + c.amount, 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -28,7 +32,10 @@ export default async function AgentHome() {
         {[
           { label: "Referred", value: apps.length },
           { label: "Enrolled", value: enrolled },
-          { label: "Commission", value: "—" },
+          {
+            label: "Commission",
+            value: commissionTotal ? formatMoney(commissionTotal) : "—",
+          },
         ].map((s) => (
           <div key={s.label} className="rounded-card border border-border-warm bg-paper px-4 py-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">

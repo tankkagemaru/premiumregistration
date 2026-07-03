@@ -1,6 +1,8 @@
 import { getProfile } from "@/lib/auth";
 import { listApplications } from "@/lib/admin/applications";
+import { listCommissions } from "@/lib/admin/finance";
 import type { Application } from "@/lib/admin/applications-shared";
+import type { Commission } from "@/lib/admin/finance-shared";
 
 export interface AgentContext {
   id: string;
@@ -15,6 +17,7 @@ export interface AgentContext {
 export async function getAgentPortal(): Promise<{
   agent: AgentContext;
   apps: Application[];
+  commissions: Commission[];
 }> {
   const profile = await getProfile();
   const agent: AgentContext =
@@ -22,6 +25,9 @@ export async function getAgentPortal(): Promise<{
       ? { id: profile.id, code: profile.agent_code ?? "", name: profile.full_name }
       : { id: "s-celia", code: "CELIA", name: "Celia (demo)" };
 
-  const apps = await listApplications({ agentId: agent.id });
-  return { agent, apps };
+  const [apps, commissions] = await Promise.all([
+    listApplications({ agentId: agent.id }),
+    listCommissions(agent.id),
+  ]);
+  return { agent, apps, commissions };
 }

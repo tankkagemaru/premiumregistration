@@ -20,6 +20,12 @@ import {
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { TRACKS } from "@/lib/config/tracks";
+import {
+  formatMoney,
+  FEE_TYPE_LABEL,
+  type Fee,
+} from "@/lib/admin/finance-shared";
+import { VISA_STAGE_LABEL, type VisaCase } from "@/lib/admin/visa-shared";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 
@@ -35,8 +41,12 @@ function Row({ k, v }: { k: string; v?: React.ReactNode }) {
 
 export function ApplicationDrawer({
   data,
+  fees = [],
+  visa = null,
 }: {
   data: { app: Application; events: ApplicationEvent[]; documents: ApplicationDoc[] };
+  fees?: Fee[];
+  visa?: VisaCase | null;
 }) {
   const { app, events, documents } = data;
   const router = useRouter();
@@ -165,18 +175,50 @@ export function ApplicationDrawer({
             </a>
           )}
 
-          {/* Module summaries (built out in Phases C–E) */}
-          <div className="grid grid-cols-2 gap-2">
-            {["Fees", "Visa"].map((m) => (
-              <div
-                key={m}
-                className="rounded-md border border-dashed border-border-warm bg-paper px-3 py-2.5 text-center"
-              >
-                <p className="text-xs font-medium text-ink">{m}</p>
-                <p className="text-[10px] text-ink-muted">soon</p>
+          {/* Fees */}
+          {fees.length > 0 && (
+            <div>
+              <SectionLabel>Fees</SectionLabel>
+              <div className="flex flex-col gap-1.5">
+                {fees.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between text-sm">
+                    <span className="text-ink-muted">
+                      {FEE_TYPE_LABEL[f.type]}
+                      {f.label ? ` · ${f.label}` : ""}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-ink tabular">
+                        {formatMoney(f.amount, f.currency)}
+                      </span>
+                      <span
+                        className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          f.status === "paid"
+                            ? "bg-status-present-bg text-status-present"
+                            : f.status === "partial"
+                              ? "bg-status-late-bg text-brand-gold"
+                              : "bg-brand-red-bg text-brand-red"
+                        }`}
+                      >
+                        {f.status}
+                      </span>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Visa */}
+          {visa && (
+            <div>
+              <SectionLabel>Visa / EMGS</SectionLabel>
+              <Row k="Stage" v={VISA_STAGE_LABEL[visa.stage] ?? visa.stage} />
+              <Row k="Filed by" v={visa.submitted_by === "pecsb" ? "PECSB" : "University"} />
+              <Row k="EMGS ref" v={visa.emgs_ref} />
+              <Row k="Medical" v={visa.medical_status} />
+              <Row k="Pass expiry" v={visa.student_pass_expiry} />
+            </div>
+          )}
 
           {/* Activity */}
           <div>
