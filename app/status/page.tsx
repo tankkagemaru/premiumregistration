@@ -53,6 +53,10 @@ export default function StatusPage() {
   const currentIdx = status
     ? stages.findIndex((s) => s.id === status.stage)
     : -1;
+  const percent = status
+    ? Math.round(((currentIdx + 1) / stages.length) * 100)
+    : 0;
+  const RING = 2 * Math.PI * 52; // circumference for r=52
 
   return (
     <main className="flex min-h-full flex-col">
@@ -119,6 +123,53 @@ export default function StatusPage() {
             <p className="mt-1 text-sm text-ink-soft">
               {status.program ?? status.track}
             </p>
+
+            {/* Progress ring */}
+            <div className="mt-6 flex items-center gap-6">
+              <div className="relative h-32 w-32 shrink-0">
+                <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke="var(--color-border-warm)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    fill="none"
+                    stroke="var(--color-brand-red)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={RING}
+                    strokeDashoffset={RING * (1 - percent / 100)}
+                    style={{ transition: "stroke-dashoffset 700ms ease" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-serif text-3xl font-medium leading-none text-ink tabular">
+                    {percent}%
+                  </span>
+                  <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">
+                    Complete
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+                  Current stage
+                </p>
+                <p className="font-serif text-2xl font-medium text-ink">
+                  {stages[currentIdx]?.label ?? "—"}
+                </p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Step {currentIdx + 1} of {stages.length}
+                </p>
+              </div>
+            </div>
 
             {/* Stepper */}
             <div className="mt-6 flex flex-wrap gap-x-2 gap-y-3">
