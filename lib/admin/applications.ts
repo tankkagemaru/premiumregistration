@@ -81,10 +81,12 @@ const MOCK_DOCS: ApplicationDoc[] = [
 export async function listApplications(filters: {
   stage?: string;
   q?: string;
+  agentId?: string;
 } = {}): Promise<Application[]> {
   if (!authConfigured) {
     return MOCK.filter((a) => {
       if (filters.stage && a.stage !== filters.stage) return false;
+      if (filters.agentId && a.agent_id !== filters.agentId) return false;
       if (filters.q) {
         const q = filters.q.toLowerCase();
         if (!`${a.student_name} ${a.student_email}`.toLowerCase().includes(q))
@@ -99,6 +101,7 @@ export async function listApplications(filters: {
     .select("*, students!inner(full_name,email,is_international)")
     .order("created_at", { ascending: false });
   if (filters.stage) query = query.eq("stage", filters.stage);
+  if (filters.agentId) query = query.eq("agent_id", filters.agentId);
   const { data } = await query;
   // NOTE: shape-mapping from the joined row happens here once live.
   return (data as unknown as Application[] | null) ?? [];
