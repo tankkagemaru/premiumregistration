@@ -133,5 +133,18 @@ export async function POST(request: Request) {
     uploads.push({ kind: doc.kind, path, token: signed.token });
   }
 
+  // Instant admin alert + applicant auto-reply (no-op if Resend unconfigured).
+  const { sendNewLeadEmails } = await import("@/lib/email");
+  await sendNewLeadEmails({
+    id: row.id,
+    fullName: values.full_name,
+    email: values.email,
+    phone: values.phone,
+    whatsapp: values.whatsapp,
+    tracks: values.tracks,
+    nationality: values.nationality,
+    source: attribution?.utm_source ?? attribution?.agent_code ?? undefined,
+  });
+
   return NextResponse.json({ ok: true, id: row.id, uploads });
 }

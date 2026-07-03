@@ -1,0 +1,60 @@
+/**
+ * Pure types + constants shared by client and server. No server-only imports
+ * here, so client components can use it safely.
+ */
+export type LeadStatus = "new" | "contacted" | "enrolled" | "dropped";
+export const LEAD_STATUSES: LeadStatus[] = [
+  "new",
+  "contacted",
+  "enrolled",
+  "dropped",
+];
+
+export interface Lead {
+  id: string;
+  created_at: string;
+  tracks: string[];
+  status: LeadStatus;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  whatsapp?: string | null;
+  nationality?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  referrer?: string | null;
+  agent_code?: string | null;
+  next_action?: string | null;
+  next_action_due?: string | null;
+  tags?: string[] | null;
+  details: Record<string, unknown>;
+}
+
+export interface LeadEvent {
+  id: string;
+  type: string;
+  body?: string | null;
+  created_at: string;
+}
+
+export interface LeadDocument {
+  id: string;
+  kind: string;
+  storage_path: string;
+  drive_url?: string | null;
+  review_status: string;
+  created_at: string;
+}
+
+export interface LeadFilters {
+  status?: string;
+  track?: string;
+  q?: string;
+}
+
+/** Auth/data are backed by Supabase once URL + anon key are set. */
+export const authConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);

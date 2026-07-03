@@ -1,0 +1,287 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { X, MessageCircle, Mail } from "lucide-react";
+import {
+  LEAD_STATUSES,
+  type Lead,
+  type LeadEvent,
+  type LeadDocument,
+} from "@/lib/admin/leads-shared";
+import { updateLeadStatus, addLeadNote, setFollowUp } from "@/app/admin/actions";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { COUNTRIES } from "@/lib/config/countries";
+import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
+import {
+  ENGLISH_PROGRAMS,
+  ENGLISH_PURPOSES,
+  CEFR_LEVELS,
+  ENGLISH_SCHEDULES,
+  ENGLISH_EXAMS,
+  HEADCOUNT_RANGES,
+  TIMELINES,
+} from "@/lib/config/programs";
+import {
+  QUALIFICATION_LEVELS,
+  STUDY_MODES,
+  EDUCATION_LEVELS,
+  INTAKE_PREFERENCES,
+} from "@/lib/config/universities";
+
+type List = readonly { value: string; label: string }[];
+const lbl = (list: List, v?: string) =>
+  v ? list.find((o) => o.value === v)?.label ?? v : undefined;
+
+function Row({ k, v }: { k: string; v?: React.ReactNode }) {
+  if (v === undefined || v === null || v === "") return null;
+  return (
+    <div className="flex justify-between gap-4 py-1.5 text-sm">
+      <span className="text-ink-muted">{k}</span>
+      <span className="text-right font-medium text-ink">{v}</span>
+    </div>
+  );
+}
+
+export function LeadDrawer({
+  data,
+  onClose,
+}: {
+  data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
+  onClose: () => void;
+}) {
+  const { lead, events, documents } = data;
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [note, setNote] = useState("");
+  const [action, setAction] = useState(lead.next_action ?? "");
+  const [due, setDue] = useState(lead.next_action_due ?? "");
+
+  const en = (lead.details?.english ?? {}) as Record<string, string>;
+  const uni = (lead.details?.university ?? {}) as Record<string, string | string[]>;
+  const co = (lead.details?.corporate ?? {}) as Record<string, string>;
+
+  const waNumber = (lead.whatsapp || lead.phone || "").replace(/\D/g, "");
+  const waText = encodeURIComponent(
+    `Hi ${lead.full_name.split(" ")[0]}, thank you for registering with Premium Language Centre.`,
+  );
+
+  const refresh = () => router.refresh();
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end">
+      <div
+        className="absolute inset-0 bg-ink/30"
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
+        <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
+          <div>
+            <h2 className="font-serif text-2xl font-medium text-ink">
+              {lead.full_name}
+            </h2>
+            <p className="text-xs text-ink-muted">
+              {new Date(lead.created_at).toISOString().slice(0, 10)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 text-ink-muted hover:bg-cream-50 hover:text-ink"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-6 px-6 py-5">
+          {/* Status + quick actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={lead.status} />
+            <select
+              value={lead.status}
+              disabled={pending}
+              onChange={(e) =>
+                start(async () => {
+                  await updateLeadStatus(lead.id, e.target.value);
+                  refresh();
+                })
+              }
+              className="rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs text-ink outline-none"
+            >
+              {LEAD_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            {waNumber && (
+              <a
+                href={`https://wa.me/${waNumber}?text=${waText}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
+              >
+                <MessageCircle className="h-3.5 w-3.5 text-status-present" aria-hidden />
+                WhatsApp
+              </a>
+            )}
+            <a
+              href={`mailto:${lead.email}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
+            >
+              <Mail className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+              Email
+            </a>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <SectionLabel>Contact</SectionLabel>
+            <Row k="Email" v={lead.email} />
+            <Row k="Phone" v={lead.phone} />
+            <Row k="WhatsApp" v={lead.whatsapp} />
+            <Row k="Nationality" v={lbl(COUNTRIES, lead.nationality ?? undefined)} />
+            <Row k="Interested in" v={lead.tracks.join(", ")} />
+          </div>
+
+          {/* Track details */}
+          {lead.tracks.includes("english") && (
+            <div>
+              <SectionLabel>English</SectionLabel>
+              <Row k="Program" v={lbl(ENGLISH_PROGRAMS, en.program)} />
+              <Row k="Purpose" v={lbl(ENGLISH_PURPOSES, en.learning_purpose)} />
+              <Row
+                k="Exams"
+                v={(en.exam_interest as unknown as string[] | undefined)
+                  ?.map((x) => lbl(ENGLISH_EXAMS, x))
+                  .join(", ")}
+              />
+              <Row k="Level" v={lbl(CEFR_LEVELS, en.current_level)} />
+              <Row k="Schedule" v={lbl(ENGLISH_SCHEDULES, en.preferred_schedule)} />
+            </div>
+          )}
+          {lead.tracks.includes("university") && (
+            <div>
+              <SectionLabel>University</SectionLabel>
+              <Row k="Home country" v={lbl(COUNTRIES, uni.home_country as string)} />
+              <Row k="Current level" v={lbl(EDUCATION_LEVELS, uni.current_education_level as string)} />
+              <Row k="Wants" v={lbl(QUALIFICATION_LEVELS, uni.intended_qualification as string)} />
+              <Row k="Study mode" v={lbl(STUDY_MODES, uni.study_mode as string)} />
+              <Row k="Field" v={uni.intended_field as string} />
+              <Row
+                k="Institutions"
+                v={(uni.preferred_universities as string[] | undefined)
+                  ?.map((u) => lbl(MALAYSIAN_INSTITUTIONS, u))
+                  .join(", ")}
+              />
+              <Row k="Intake" v={lbl(INTAKE_PREFERENCES, uni.intake_preference as string)} />
+            </div>
+          )}
+          {lead.tracks.includes("corporate") && (
+            <div>
+              <SectionLabel>Corporate</SectionLabel>
+              <Row k="Company" v={co.company_name} />
+              <Row k="Role" v={co.contact_role} />
+              <Row k="Team size" v={lbl(HEADCOUNT_RANGES, co.headcount)} />
+              <Row k="Need" v={co.training_need} />
+              <Row k="Timeline" v={lbl(TIMELINES, co.preferred_timeline)} />
+              <Row k="HRDF" v={co.hrdf_claimable} />
+            </div>
+          )}
+
+          {/* Attribution */}
+          <div>
+            <SectionLabel>Source</SectionLabel>
+            <Row k="UTM source" v={lead.utm_source} />
+            <Row k="UTM medium" v={lead.utm_medium} />
+            <Row k="Campaign" v={lead.utm_campaign} />
+            <Row k="Referrer" v={lead.referrer} />
+            <Row k="Agent" v={lead.agent_code} />
+          </div>
+
+          {/* Documents */}
+          {documents.length > 0 && (
+            <div>
+              <SectionLabel>Documents</SectionLabel>
+              {documents.map((d) => (
+                <Row key={d.id} k={d.kind} v={d.review_status} />
+              ))}
+            </div>
+          )}
+
+          {/* Follow-up */}
+          <div>
+            <SectionLabel>Follow-up</SectionLabel>
+            <div className="flex flex-col gap-2">
+              <input
+                value={action}
+                onChange={(e) => setAction(e.target.value)}
+                placeholder="Next action"
+                className="w-full rounded-md border border-border-warm bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-brand-red"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  className="flex-1 rounded-md border border-border-warm bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-brand-red"
+                />
+                <button
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      await setFollowUp(lead.id, action, due || null);
+                      refresh();
+                    })
+                  }
+                  className="rounded-md border border-border-warm bg-paper px-3 py-2 text-sm font-medium text-ink hover:bg-cream-50 disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes + timeline */}
+          <div>
+            <SectionLabel>Activity</SectionLabel>
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                placeholder="Add an internal note…"
+                className="w-full rounded-md border border-border-warm bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-brand-red"
+              />
+              <button
+                disabled={pending || !note.trim()}
+                onClick={() =>
+                  start(async () => {
+                    await addLeadNote(lead.id, note);
+                    setNote("");
+                    refresh();
+                  })
+                }
+                className="self-start rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+              >
+                Add note
+              </button>
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              {events.map((ev) => (
+                <div key={ev.id} className="border-l-2 border-border-warm pl-3">
+                  <p className="text-sm text-ink">{ev.body ?? ev.type}</p>
+                  <p className="text-[11px] text-ink-muted">
+                    {ev.type} · {new Date(ev.created_at).toISOString().slice(0, 10)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
