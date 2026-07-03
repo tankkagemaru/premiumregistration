@@ -30,6 +30,21 @@ export function stagesFor(isInternational: boolean): Stage[] {
   return STAGES.filter((s) => isInternational || !s.internationalOnly);
 }
 
+/** Percent complete over the stages that apply to this student. */
+export function stagePercent(stage: string, isInternational: boolean): number {
+  const list = stagesFor(isInternational);
+  const idx = list.findIndex((s) => s.id === stage);
+  return idx < 0 ? 0 : Math.round(((idx + 1) / list.length) * 100);
+}
+
+/**
+ * Health flag driving the ring colour:
+ *  action  → red    (something is needed from the applicant/agent)
+ *  progress→ amber  (being worked on, nothing outstanding)
+ *  ok      → green  (nothing flagged / enrolled / complete)
+ */
+export type Flag = "ok" | "progress" | "action";
+
 /** Documents expected by the time a stage is reached (for the checklist). */
 export const STAGE_DOCS: Record<string, string[]> = {
   application: ["passport", "transcript", "photo"],
@@ -57,6 +72,7 @@ export interface Application {
   assigned_to?: string | null;
   stage: string;
   status: ApplicationStatus;
+  flag?: Flag;
   next_action?: string | null;
   next_action_due?: string | null;
 }

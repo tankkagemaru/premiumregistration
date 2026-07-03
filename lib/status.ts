@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseConfigured } from "@/lib/env";
-import { STAGE_LABEL } from "@/lib/admin/applications-shared";
+import { STAGE_LABEL, type Flag } from "@/lib/admin/applications-shared";
 
 export interface PublicStatus {
   name: string;
@@ -9,6 +9,7 @@ export interface PublicStatus {
   program?: string;
   is_international: boolean;
   stage: string;
+  flag: Flag;
   timeline: { label: string; date: string }[];
   next_step?: string;
 }
@@ -21,6 +22,7 @@ const MOCK: PublicStatus = {
   program: "General English (PLC)",
   is_international: true,
   stage: "offer",
+  flag: "progress",
   timeline: [
     { label: "Application received", date: "2026-06-25" },
     { label: "Under review", date: "2026-06-27" },
@@ -69,6 +71,9 @@ export async function lookupStatus(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const student = (app as any).students;
+  const flag: Flag = ["enrolled", "active", "completed"].includes(app.stage)
+    ? "ok"
+    : "progress";
   return {
     name: (student?.full_name ?? "").split(" ")[0],
     reference: app.id.slice(0, 8).toUpperCase(),
@@ -76,6 +81,7 @@ export async function lookupStatus(
     program: app.program_name ?? undefined,
     is_international: Boolean(student?.is_international),
     stage: app.stage,
+    flag,
     timeline: (events ?? []).map((e) => ({
       label: e.to_stage ? STAGE_LABEL[e.to_stage] ?? e.to_stage : e.body ?? "Update",
       date: String(e.created_at).slice(0, 10),

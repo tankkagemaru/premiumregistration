@@ -8,6 +8,7 @@ import {
   STAGE_DOCS,
   STAGE_LABEL,
   stagesFor,
+  stagePercent,
   type Application,
   type ApplicationEvent,
   type ApplicationDoc,
@@ -17,6 +18,7 @@ import {
   addApplicationNote,
 } from "@/app/admin/application-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { ProgressRing } from "@/components/ui/ProgressRing";
 import { TRACKS } from "@/lib/config/tracks";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -104,6 +106,16 @@ export function ApplicationDrawer({
             </select>
           </div>
 
+          {/* Progress ring */}
+          <div className="flex justify-center py-2">
+            <ProgressRing
+              percent={stagePercent(app.stage, app.is_international)}
+              flag={app.flag ?? "progress"}
+              size={120}
+              sublabel={STAGE_LABEL[app.stage]}
+            />
+          </div>
+
           {/* Application */}
           <div>
             <SectionLabel>Application</SectionLabel>
@@ -141,9 +153,21 @@ export function ApplicationDrawer({
             )}
           </div>
 
-          {/* Module summaries (built out in Phases B–E) */}
-          <div className="grid grid-cols-3 gap-2">
-            {["Offer", "Fees", "Visa"].map((m) => (
+          {/* Offer letter (English) */}
+          {app.track === "english" && (
+            <a
+              href={`/api/offer?app=${app.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+            >
+              Generate offer letter →
+            </a>
+          )}
+
+          {/* Module summaries (built out in Phases C–E) */}
+          <div className="grid grid-cols-2 gap-2">
+            {["Fees", "Visa"].map((m) => (
               <div
                 key={m}
                 className="rounded-md border border-dashed border-border-warm bg-paper px-3 py-2.5 text-center"

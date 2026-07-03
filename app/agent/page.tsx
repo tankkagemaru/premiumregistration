@@ -1,7 +1,8 @@
 import { getAgentPortal } from "@/lib/agent/portal";
-import { STAGE_LABEL } from "@/lib/admin/applications-shared";
+import { STAGE_LABEL, stagePercent } from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
+import { ProgressRing } from "@/components/ui/ProgressRing";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -58,6 +59,7 @@ export default async function AgentHome() {
               <th className="px-4 py-2.5 font-medium">Student</th>
               <th className="px-4 py-2.5 font-medium">Track</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
+              <th className="px-4 py-2.5 text-center font-medium">Progress</th>
             </tr>
           </thead>
           <tbody>
@@ -83,6 +85,16 @@ export default async function AgentHome() {
                   <span className="inline-flex rounded-md bg-brand-red-bg px-2.5 py-1 text-xs font-medium text-brand-red">
                     {STAGE_LABEL[a.stage] ?? a.stage}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-center">
+                    <ProgressRing
+                      percent={stagePercent(a.stage, a.is_international)}
+                      flag={a.flag ?? "progress"}
+                      size={44}
+                      thickness={5}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { STAGES, stagesFor } from "@/lib/admin/applications-shared";
+import { ProgressRing } from "@/components/ui/ProgressRing";
+import { STAGES, stagesFor, type Flag } from "@/lib/admin/applications-shared";
 import { cn } from "@/lib/utils";
 
 interface Status {
@@ -14,6 +15,7 @@ interface Status {
   program?: string;
   is_international: boolean;
   stage: string;
+  flag: Flag;
   timeline: { label: string; date: string }[];
   next_step?: string;
 }
@@ -56,7 +58,6 @@ export default function StatusPage() {
   const percent = status
     ? Math.round(((currentIdx + 1) / stages.length) * 100)
     : 0;
-  const RING = 2 * Math.PI * 52; // circumference for r=52
 
   return (
     <main className="flex min-h-full flex-col">
@@ -124,40 +125,14 @@ export default function StatusPage() {
               {status.program ?? status.track}
             </p>
 
-            {/* Progress ring */}
-            <div className="mt-6 flex items-center gap-6">
-              <div className="relative h-32 w-32 shrink-0">
-                <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    fill="none"
-                    stroke="var(--color-border-warm)"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    fill="none"
-                    stroke="var(--color-brand-red)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={RING}
-                    strokeDashoffset={RING * (1 - percent / 100)}
-                    style={{ transition: "stroke-dashoffset 700ms ease" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-serif text-3xl font-medium leading-none text-ink tabular">
-                    {percent}%
-                  </span>
-                  <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">
-                    Complete
-                  </span>
-                </div>
-              </div>
+            {/* Progress ring — centered, coloured by health flag */}
+            <div className="mt-6 flex flex-col items-center gap-3 text-center">
+              <ProgressRing
+                percent={percent}
+                flag={status.flag}
+                size={144}
+                sublabel="Complete"
+              />
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
                   Current stage
@@ -172,7 +147,7 @@ export default function StatusPage() {
             </div>
 
             {/* Stepper */}
-            <div className="mt-6 flex flex-wrap gap-x-2 gap-y-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-x-2 gap-y-3">
               {stages.map((s, i) => {
                 const done = i < currentIdx;
                 const current = i === currentIdx;
