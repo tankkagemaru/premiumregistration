@@ -2,7 +2,14 @@ import type { Dictionary } from "./en";
 export const ar: Dictionary = {
   langName: "العربية",
   company: "PECSB",
-  nav: { home: "الرئيسية", back: "رجوع", continue: "متابعة" },
+  nav: {
+    home: "الرئيسية",
+    back: "رجوع",
+    continue: "متابعة",
+    checkStatus: "التحقق من الحالة",
+    staff: "دخول الموظفين",
+    agent: "بوابة الوكلاء",
+  },
   common: { optional: "اختياري", yes: "نعم", no: "لا", search: "بحث…" },
   landing: {
     kicker: "من أين نبدأ",

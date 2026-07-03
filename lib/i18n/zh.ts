@@ -2,7 +2,14 @@ import type { Dictionary } from "./en";
 export const zh: Dictionary = {
   langName: "中文",
   company: "PECSB",
-  nav: { home: "首页", back: "返回", continue: "继续" },
+  nav: {
+    home: "首页",
+    back: "返回",
+    continue: "继续",
+    checkStatus: "查询进度",
+    staff: "员工登录",
+    agent: "代理门户",
+  },
   common: { optional: "选填", yes: "是", no: "否", search: "搜索…" },
   landing: {
     kicker: "从这里开始",

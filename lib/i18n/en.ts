@@ -8,7 +8,14 @@ export const en = {
   langName: "English",
   company: "PECSB",
 
-  nav: { home: "Home", back: "Back", continue: "Continue" },
+  nav: {
+    home: "Home",
+    back: "Back",
+    continue: "Continue",
+    checkStatus: "Check status",
+    staff: "Staff login",
+    agent: "Agent portal",
+  },
   common: { optional: "Optional", yes: "Yes", no: "No", search: "Search…" },
 
   landing: {

@@ -2,7 +2,14 @@ import type { Dictionary } from "./en";
 export const ja: Dictionary = {
   langName: "日本語",
   company: "PECSB",
-  nav: { home: "ホーム", back: "戻る", continue: "次へ" },
+  nav: {
+    home: "ホーム",
+    back: "戻る",
+    continue: "次へ",
+    checkStatus: "申請状況の確認",
+    staff: "スタッフログイン",
+    agent: "エージェントポータル",
+  },
   common: { optional: "任意", yes: "はい", no: "いいえ", search: "検索…" },
   landing: {
     kicker: "はじめに",

@@ -70,11 +70,24 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-border-warm">
-        <div className="mx-auto flex max-w-3xl flex-col gap-1 px-6 py-8 text-xs text-ink-muted">
-          <span className="font-medium text-ink">
-            {t("landing.footerCompany")}
-          </span>
-          <span>{t("landing.footerLocation")}</span>
+        <div className="mx-auto flex max-w-3xl flex-col gap-5 px-6 py-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-1 text-xs text-ink-muted">
+            <span className="font-medium text-ink">
+              {t("landing.footerCompany")}
+            </span>
+            <span>{t("landing.footerLocation")}</span>
+          </div>
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
+            <Link href="/status" className="text-ink-soft transition-colors hover:text-brand-red">
+              {t("nav.checkStatus")}
+            </Link>
+            <Link href="/agent" className="text-ink-soft transition-colors hover:text-brand-red">
+              {t("nav.agent")}
+            </Link>
+            <Link href="/admin/login" className="text-ink-soft transition-colors hover:text-brand-red">
+              {t("nav.staff")}
+            </Link>
+          </nav>
         </div>
       </footer>
     </main>

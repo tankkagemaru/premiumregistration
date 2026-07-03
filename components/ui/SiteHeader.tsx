@@ -24,10 +24,13 @@ export function SiteHeader() {
           />
           <Wordmark size="md" />
         </Link>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted sm:inline">
-            {t("company")}
-          </span>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/status"
+            className="text-xs font-medium text-ink-soft transition-colors hover:text-brand-red"
+          >
+            {t("nav.checkStatus")}
+          </Link>
           <LanguageSwitcher />
         </div>
       </div>
