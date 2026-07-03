@@ -17,8 +17,10 @@ import {
   assignLead,
   updateDocReview,
 } from "@/app/admin/actions";
+import { createApplicationFromLead } from "@/app/admin/application-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { toWhatsAppNumber } from "@/lib/phone";
 import { COUNTRIES } from "@/lib/config/countries";
 import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
 import {
@@ -71,7 +73,7 @@ export function LeadDrawer({
   const uni = (lead.details?.university ?? {}) as Record<string, string | string[]>;
   const co = (lead.details?.corporate ?? {}) as Record<string, string>;
 
-  const waNumber = (lead.whatsapp || lead.phone || "").replace(/\D/g, "");
+  const waNumber = toWhatsAppNumber(lead.whatsapp || lead.phone);
   const waText = encodeURIComponent(
     `Hi ${lead.full_name.split(" ")[0]}, thank you for registering with Premium Language Centre.`,
   );
@@ -144,6 +146,21 @@ export function LeadDrawer({
               Email
             </a>
           </div>
+
+          {/* Convert to application */}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                await createApplicationFromLead(lead.id);
+                router.push("/admin/applications");
+              })
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-ink-soft disabled:opacity-50"
+          >
+            Create application →
+          </button>
 
           {/* Contact */}
           <div>

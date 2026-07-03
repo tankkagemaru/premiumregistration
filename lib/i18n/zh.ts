@@ -154,6 +154,12 @@ export const zh: Dictionary = {
     choose: "选择文件",
     remove: "移除",
   },
+
+  consent: {
+    text: "我同意 PECSB 为办理我的登记而处理我的个人资料和文件，并遵循",
+    link: "隐私声明",
+    error: "请接受隐私声明以继续。",
+  },
   options: {
     programs: { general: "通用英语", business: "商务英语", exam_prep: "考试备考", corporate_other: "企业 / 其他" },
     purposes: { daily: "日常使用", academic: "学术", immigration: "移民", business: "商务 / 工作" },

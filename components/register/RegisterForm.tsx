@@ -49,6 +49,8 @@ import {
   SearchableMultiSelect,
 } from "@/components/form/Fields";
 import { captureAttribution, type Attribution } from "@/lib/attribution";
+import { trackEvent } from "@/lib/analytics";
+import { PRIVACY_URL } from "@/lib/config/site";
 import { Turnstile } from "@/components/form/Turnstile";
 import { FileUpload } from "@/components/form/FileUpload";
 import { SectionLabel } from "@/components/ui/SectionLabel";
@@ -85,6 +87,7 @@ export function RegisterForm() {
   const [token, setToken] = useState("");
   const [passport, setPassport] = useState<File[]>([]);
   const [transcripts, setTranscripts] = useState<File[]>([]);
+  const [consent, setConsent] = useState(false);
   const attribution = useRef<Attribution>({});
 
   // Capture marketing attribution silently on mount (first-touch).
@@ -135,6 +138,10 @@ export function RegisterForm() {
   }
 
   async function onSubmit(values: RegistrationValues) {
+    if (!consent) {
+      setSubmitError(t("consent.error"));
+      return;
+    }
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (siteKey && !token) {
       setSubmitError(t("submit.verify"));
@@ -184,6 +191,10 @@ export function RegisterForm() {
           ),
         );
       }
+      trackEvent("registration_complete", {
+        tracks: values.tracks.join(","),
+        source: attribution.current.utm_source ?? "direct",
+      });
       setSubmitted(true);
     } catch {
       setSubmitError(t("submit.error"));
@@ -224,6 +235,8 @@ export function RegisterForm() {
             transcripts={transcripts}
             setTranscripts={setTranscripts}
             onToken={setToken}
+            consent={consent}
+            setConsent={setConsent}
           />
         )}
 
@@ -732,6 +745,8 @@ function ReviewStep({
   transcripts,
   setTranscripts,
   onToken,
+  consent,
+  setConsent,
 }: {
   form: Form;
   t: T;
@@ -740,6 +755,8 @@ function ReviewStep({
   transcripts: File[];
   setTranscripts: (f: File[]) => void;
   onToken: (token: string) => void;
+  consent: boolean;
+  setConsent: (v: boolean) => void;
 }) {
   const v = form.getValues();
   const yesNo = (x?: string) => (x ? t(`common.${x}`) : undefined);
@@ -833,6 +850,28 @@ function ReviewStep({
           </div>
         </div>
       )}
+
+      {/* PDPA consent */}
+      <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm text-ink-soft">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-brand-red"
+        />
+        <span>
+          {t("consent.text")}{" "}
+          <a
+            href={PRIVACY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-red underline underline-offset-2"
+          >
+            {t("consent.link")}
+          </a>
+          .
+        </span>
+      </label>
 
       <div className="mt-6">
         <Turnstile onToken={onToken} />

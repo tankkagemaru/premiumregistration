@@ -154,6 +154,12 @@ export const ar: Dictionary = {
     choose: "اختر ملفًا",
     remove: "إزالة",
   },
+
+  consent: {
+    text: "أوافق على معالجة PECSB لبياناتي الشخصية ومستنداتي لمعالجة تسجيلي، وفقًا لـ",
+    link: "إشعار الخصوصية",
+    error: "يرجى قبول إشعار الخصوصية للمتابعة.",
+  },
   options: {
     programs: { general: "اللغة الإنجليزية العامة", business: "اللغة الإنجليزية للأعمال", exam_prep: "الإعداد للاختبارات", corporate_other: "مؤسسي / أخرى" },
     purposes: { daily: "الاستخدام اليومي", academic: "أكاديمي", immigration: "الهجرة", business: "الأعمال / العمل" },

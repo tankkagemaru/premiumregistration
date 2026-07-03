@@ -154,6 +154,12 @@ export const ja: Dictionary = {
     choose: "ファイルを選択",
     remove: "削除",
   },
+
+  consent: {
+    text: "登録手続きのため、PECSBが私の個人データおよび書類を処理することに同意します。以下に従います：",
+    link: "プライバシー通知",
+    error: "続行するにはプライバシー通知に同意してください。",
+  },
   options: {
     programs: { general: "一般英語", business: "ビジネス英語", exam_prep: "試験対策", corporate_other: "法人／その他" },
     purposes: { daily: "日常での使用", academic: "学術", immigration: "移住", business: "ビジネス／仕事" },

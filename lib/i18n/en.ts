@@ -180,6 +180,12 @@ export const en = {
     remove: "Remove",
   },
 
+  consent: {
+    text: "I consent to PECSB processing my personal data and documents to handle my registration, in line with the",
+    link: "privacy notice",
+    error: "Please accept the privacy notice to continue.",
+  },
+
   options: {
     programs: {
       general: "General English",
