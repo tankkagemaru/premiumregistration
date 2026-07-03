@@ -118,9 +118,9 @@ export async function listFees(): Promise<Fee[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("fees")
-    .select("*, applications!inner(students!inner(full_name))")
+    .select("*")
     .order("due_date", { ascending: true });
-  return (data as unknown as Fee[] | null) ?? [];
+  return (data as Fee[] | null) ?? [];
 }
 
 export async function listPayments(): Promise<Payment[]> {
@@ -142,11 +142,11 @@ export async function listCommissions(agentId?: string): Promise<Commission[]> {
   const supabase = await createClient();
   let query = supabase
     .from("commissions")
-    .select("*, applications!inner(students!inner(full_name))")
+    .select("*")
     .order("created_at", { ascending: false });
   if (agentId) query = query.eq("agent_id", agentId);
   const { data } = await query;
-  return (data as unknown as Commission[] | null) ?? [];
+  return (data as Commission[] | null) ?? [];
 }
 
 export async function listFeesForApp(applicationId: string): Promise<Fee[]> {

@@ -1,0 +1,11 @@
+# Normalise line endings — repo is LF; Windows checkouts stop warning on commit.
+* text=auto eol=lf
+
+# Binary assets — never touch.
+*.png binary
+*.jpg binary
+*.ico binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

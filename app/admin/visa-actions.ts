@@ -30,10 +30,17 @@ export async function createVisaCase(
 ) {
   if (!authConfigured) return;
   const supabase = await createClient();
+  const { data: app } = await supabase
+    .from("applications")
+    .select("student_name, target_institution, program_name")
+    .eq("id", applicationId)
+    .single();
   await supabase.from("visa_cases").insert({
     application_id: applicationId,
     submitted_by: submittedBy,
     stage: "docs_prep",
+    student_name: app?.student_name ?? null,
+    target: app?.target_institution ?? app?.program_name ?? null,
   });
   await logAudit({ action: "visa_case_created", target_type: "application", target_id: applicationId, detail: `filed by ${submittedBy}` });
   revalidatePath("/admin", "layout");

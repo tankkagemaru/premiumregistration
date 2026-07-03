@@ -70,8 +70,9 @@ export default function StatusPage() {
           Track your application.
         </h1>
         <p className="mt-3 text-base leading-relaxed text-ink-soft">
-          Enter the passport number on your application and the reference code we
-          sent you. Agents can check any of their students the same way.
+          Enter your passport number (or the email on your application) and the
+          reference code we sent you. Agents can check any of their students the
+          same way.
         </p>
 
         <form
@@ -79,7 +80,7 @@ export default function StatusPage() {
           className="mt-7 flex flex-col gap-3 rounded-card border border-border-warm bg-paper p-5 sm:flex-row sm:items-end"
         >
           <label className="flex-1 text-sm font-medium text-ink">
-            Passport number
+            Passport or email
             <input
               value={passport}
               onChange={(e) => setPassport(e.target.value)}

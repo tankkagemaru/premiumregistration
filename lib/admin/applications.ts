@@ -121,13 +121,16 @@ export async function listApplications(filters: {
   const supabase = await createClient();
   let query = supabase
     .from("applications")
-    .select("*, students!inner(full_name,email,is_international)")
+    .select("*")
     .order("created_at", { ascending: false });
   if (filters.stage) query = query.eq("stage", filters.stage);
   if (filters.agentId) query = query.eq("agent_id", filters.agentId);
+  if (filters.q) {
+    const q = filters.q.replace(/[%,]/g, "");
+    query = query.or(`student_name.ilike.%${q}%,student_email.ilike.%${q}%`);
+  }
   const { data } = await query;
-  // NOTE: shape-mapping from the joined row happens here once live.
-  return (data as unknown as Application[] | null) ?? [];
+  return (data as Application[] | null) ?? [];
 }
 
 export async function getApplication(id: string): Promise<{
@@ -142,7 +145,7 @@ export async function getApplication(id: string): Promise<{
   const supabase = await createClient();
   const { data: app } = await supabase
     .from("applications")
-    .select("*, students!inner(full_name,email,is_international)")
+    .select("*")
     .eq("id", id)
     .single();
   if (!app) return null;
@@ -156,7 +159,7 @@ export async function getApplication(id: string): Promise<{
     .select("id,kind,review_status")
     .eq("application_id", id);
   return {
-    app: app as unknown as Application,
+    app: app as Application,
     events: (events as ApplicationEvent[]) ?? [],
     documents: (documents as ApplicationDoc[]) ?? [],
   };

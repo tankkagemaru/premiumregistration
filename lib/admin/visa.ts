@@ -41,11 +41,9 @@ export async function listVisaCases(): Promise<VisaCase[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("visa_cases")
-    .select(
-      "*, applications!inner(target_institution, students!inner(full_name))",
-    )
+    .select("*")
     .order("created_at", { ascending: false });
-  return (data as unknown as VisaCase[] | null) ?? [];
+  return (data as VisaCase[] | null) ?? [];
 }
 
 export async function getVisaCaseForApp(

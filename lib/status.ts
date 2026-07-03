@@ -32,35 +32,39 @@ const MOCK: PublicStatus = {
 };
 
 /**
- * Public application status lookup by passport + access code. Returns a redacted,
- * read-only view — no contact details, notes, or documents. Uses the
- * service-role client (no user session); dev returns a demo record.
+ * Public application status lookup by access code + a second factor (the
+ * passport number OR the email on file). Returns a redacted, read-only view —
+ * no contact details, notes, or documents. Uses the service-role client (no
+ * user session); dev returns a demo record.
  */
 export async function lookupStatus(
-  passport: string,
+  verify: string,
   code: string,
 ): Promise<PublicStatus | null> {
-  const p = passport.trim();
+  const v = verify.trim().toLowerCase();
   const c = code.trim();
-  if (!p || !c) return null;
+  if (!v || !c) return null;
 
   if (!supabaseConfigured) {
-    return p.toUpperCase() === "A1234567" && c.toUpperCase() === "PECSB2026"
-      ? MOCK
-      : null;
+    return v === "a1234567" && c.toUpperCase() === "PECSB2026" ? MOCK : null;
   }
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
+  // Fetch by the high-entropy code, then check the second factor in code to
+  // avoid building a query from user input.
   const { data: app } = await admin
     .from("applications")
     .select(
-      "id, track, program_name, stage, access_code, students!inner(full_name, passport_no, is_international)",
+      "id, track, program_name, stage, student_name, passport_no, student_email, is_international",
     )
     .eq("access_code", c)
-    .eq("students.passport_no", p)
-    .single();
+    .maybeSingle();
   if (!app) return null;
+  const matches =
+    (app.passport_no && app.passport_no.toLowerCase() === v) ||
+    (app.student_email && app.student_email.toLowerCase() === v);
+  if (!matches) return null;
 
   const { data: events } = await admin
     .from("application_events")
@@ -69,17 +73,15 @@ export async function lookupStatus(
     .eq("type", "stage_change")
     .order("created_at", { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const student = (app as any).students;
   const flag: Flag = ["enrolled", "active", "completed"].includes(app.stage)
     ? "ok"
     : "progress";
   return {
-    name: (student?.full_name ?? "").split(" ")[0],
+    name: (app.student_name ?? "").split(" ")[0],
     reference: app.id.slice(0, 8).toUpperCase(),
     track: app.track,
     program: app.program_name ?? undefined,
-    is_international: Boolean(student?.is_international),
+    is_international: Boolean(app.is_international),
     stage: app.stage,
     flag,
     timeline: (events ?? []).map((e) => ({

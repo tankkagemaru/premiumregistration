@@ -61,9 +61,19 @@ create table if not exists applications (
   assigned_to        uuid references profiles(id),
   next_action        text,
   next_action_due    date,
-  access_code        text,                           -- for the public status portal
+  -- Public status portal: a random code, auto-generated, given to the student.
+  access_code        text not null default upper(substr(md5(gen_random_uuid()::text) from 1 for 10)),
+  -- Denormalised display fields (populated on creation) so list reads are a
+  -- plain `select *` — the app types are flat, so we avoid fragile join-shape
+  -- mapping. Keep in sync when the student/agent changes.
+  student_name       text,
+  student_email      text,
+  passport_no        text,        -- second factor for the status portal
+  is_international    boolean,
+  agent_name         text,
   meta               jsonb not null default '{}'::jsonb
 );
+create index if not exists applications_access_code_idx on applications (access_code);
 create index if not exists applications_student_idx on applications (student_id);
 create index if not exists applications_stage_idx on applications (stage);
 create index if not exists applications_agent_idx on applications (agent_id);
@@ -114,6 +124,7 @@ create index if not exists offers_application_idx on offers (application_id);
 create table if not exists fees (
   id             uuid primary key default gen_random_uuid(),
   application_id uuid not null references applications(id) on delete cascade,
+  student_name   text,            -- denormalised for list reads
   type           text not null,   -- application | registration | visa_emgs | medical | insurance | tuition | other
   label          text,
   amount         numeric(12,2) not null,
@@ -143,6 +154,8 @@ create table if not exists commissions (
   id             uuid primary key default gen_random_uuid(),
   application_id uuid not null references applications(id) on delete cascade,
   agent_id       uuid references profiles(id),
+  student_name   text,            -- denormalised for list reads
+  agent_name     text,            -- partner name (or the payer, for receivable)
   direction      text not null default 'payable',  -- payable | receivable
   basis          text not null default 'percent',  -- percent | fixed
   rate           numeric(12,2),
@@ -160,6 +173,8 @@ create index if not exists commissions_application_idx on commissions (applicati
 create table if not exists visa_cases (
   id                  uuid primary key default gen_random_uuid(),
   application_id      uuid not null references applications(id) on delete cascade,
+  student_name        text,            -- denormalised for list reads
+  target              text,            -- programme / institution
   submitted_by        text,            -- university | pecsb
   emgs_ref            text,
   eval_status         text,            -- not_started | submitted | approved | rejected
@@ -210,21 +225,21 @@ $$;
 
 -- students / applications: staff read all; agents read their own.
 create policy "students staff read" on students for select to authenticated
-  using (has_role(array['admin','admissions','visa','finance','counsellor'])
+  using (has_role(array['admin','admissions','visa','finance','academic','counsellor','staff'])
          or agent_id = auth.uid());
 create policy "applications staff read" on applications for select to authenticated
-  using (has_role(array['admin','admissions','visa','finance','counsellor'])
+  using (has_role(array['admin','admissions','visa','finance','academic','counsellor','staff'])
          or agent_id = auth.uid());
 create policy "applications staff write" on applications for update to authenticated
-  using (has_role(array['admin','admissions','visa','counsellor']))
-  with check (has_role(array['admin','admissions','visa','counsellor']));
+  using (has_role(array['admin','admissions','visa','academic','counsellor']))
+  with check (has_role(array['admin','admissions','visa','academic','counsellor']));
 
 -- events / documents / offers: readable by staff + owning agent; staff insert.
 create policy "events read" on application_events for select to authenticated
-  using (has_role(array['admin','admissions','visa','finance','counsellor'])
+  using (has_role(array['admin','admissions','visa','finance','academic','counsellor','staff'])
          or owns_application(application_id));
 create policy "events staff insert" on application_events for insert to authenticated
-  with check (has_role(array['admin','admissions','visa','finance','counsellor'])
+  with check (has_role(array['admin','admissions','visa','finance','academic','counsellor','staff'])
               and actor_id = auth.uid());
 create policy "docs read" on application_documents for select to authenticated
   using (has_role(array['admin','admissions','visa','finance','counsellor'])
@@ -239,7 +254,7 @@ create policy "offers staff write" on offers for all to authenticated
 
 -- finance: finance/admin manage; owning agent may read fees/commissions on their apps.
 create policy "fees read" on fees for select to authenticated
-  using (has_role(array['admin','finance','admissions'])
+  using (has_role(array['admin','finance','admissions','academic'])
          or owns_application(application_id));
 create policy "fees finance write" on fees for all to authenticated
   using (has_role(array['admin','finance'])) with check (has_role(array['admin','finance']));
