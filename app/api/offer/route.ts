@@ -42,6 +42,7 @@ export async function GET(request: Request) {
       app.intake ??
       undefined,
     validUntil: fmt(valid),
+    isInternational: app.is_international,
     logoSrc: path.join(process.cwd(), "public", "pecsb-logo.png"),
   };
 
