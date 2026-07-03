@@ -3,6 +3,63 @@
 End-to-end steps to take the platform from "runs on mock data" to live. Roughly
 in order; the whole thing is ~an afternoon plus DNS propagation.
 
+---
+
+## Fast path: MCP-assisted (recommended)
+
+Connect the Supabase + Vercel MCP servers to Claude Code and the assistant can
+run the SQL, bootstrap the admin, set env vars, deploy, and smoke-test the live
+paths for you. What only **you** can do: create the accounts/projects and
+generate the tokens.
+
+### Connect the MCP servers (you, once)
+
+**Supabase** — get a Personal Access Token: Supabase dashboard → account menu →
+**Access Tokens** → generate. Then, in this repo's folder:
+
+```bash
+# omit --read-only while the assistant applies the schema; add it back after
+claude mcp add supabase -e SUPABASE_ACCESS_TOKEN=YOUR_PAT \
+  -- npx -y @supabase/mcp-server-supabase@latest --project-ref=YOUR_PROJECT_REF
+```
+
+**Vercel** — hosted, uses OAuth (approve in the browser when prompted):
+
+```bash
+claude mcp add --transport http vercel https://mcp.vercel.com
+```
+
+Restart Claude Code so the new tools load, then tell the assistant "the MCPs are
+connected." (Flags evolve — check each project's README if a command errors.)
+
+### Who does what
+
+| Step | You | Assistant (via MCP) |
+|------|-----|---------------------|
+| Create Supabase project (region, billing) | ✅ | |
+| Run the 5 SQL files in order | | ✅ |
+| Bootstrap the first admin | | ✅ (you give the email) |
+| Create Vercel project + connect GitHub repo | ✅ | |
+| Set env vars on Vercel | | ✅ (needs the keys below) |
+| Trigger deploy + read logs to debug | | ✅ |
+| Turnstile keys · Resend key + verify domain | ✅ | (no MCP) |
+| Walk the live smoke-test checklist | | ✅ |
+
+### Security notes
+
+- The Supabase PAT can write to your projects — use it only for this setup, and
+  **revoke it afterwards** (or scope it). It's a brand-new project with no real
+  data yet, so the blast radius is nil.
+- Treat MCP tool calls like any automation: review what the assistant proposes
+  before confirming destructive actions. Supabase's own guidance is to prefer
+  `--read-only` and project-scoping for day-to-day use.
+
+---
+
+## Manual path
+
+If you'd rather click through it yourself, the full manual steps follow.
+
 ## 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com) (region: Singapore
