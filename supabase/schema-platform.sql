@@ -62,7 +62,7 @@ create table if not exists applications (
   next_action        text,
   next_action_due    date,
   -- Public status portal: a random code, auto-generated, given to the student.
-  access_code        text not null default upper(substr(md5(gen_random_uuid()::text) from 1 for 10)),
+  access_code        text not null default upper(substr(md5(gen_random_uuid()::text), 1, 10)),
   -- Denormalised display fields (populated on creation) so list reads are a
   -- plain `select *` — the app types are flat, so we avoid fragile join-shape
   -- mapping. Keep in sync when the student/agent changes.
@@ -245,7 +245,8 @@ create policy "docs read" on application_documents for select to authenticated
   using (has_role(array['admin','admissions','visa','finance','counsellor'])
          or owns_application(application_id));
 create policy "docs staff update" on application_documents for update to authenticated
-  using (has_role(array['admin','admissions','visa'])) with check (true);
+  using (has_role(array['admin','admissions','visa']))
+  with check (has_role(array['admin','admissions','visa']));
 create policy "offers read" on offers for select to authenticated
   using (has_role(array['admin','admissions','finance','counsellor'])
          or owns_application(application_id));
