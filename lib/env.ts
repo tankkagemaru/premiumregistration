@@ -15,7 +15,13 @@ export const serverEnv = {
   adminAlertEmail: process.env.ADMIN_ALERT_EMAIL,
   // From address for transactional email — must be on a Resend-verified domain.
   emailFrom: process.env.EMAIL_FROM ?? "PECSB <noreply@premium.edu.my>",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // Public base URL for links in emails. Explicit override first, else Vercel's
+  // production domain (auto-provided), else localhost for dev.
+  appUrl:
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000"),
 };
 
 /** True once a Supabase project + service-role key are configured. */
