@@ -66,20 +66,37 @@ type StepId = "intent" | "contact" | TrackId | "review";
 type Form = UseFormReturn<RegistrationValues>;
 type T = (path: string, params?: Record<string, string | number>) => string;
 
-/** Translate a config option list's labels via options.<group>.<value>. */
+/** Translate an option list's labels via options.<group>.<value>. Falls back to
+ *  the option's own label (then value) when there's no translation — so
+ *  DB-managed options without an i18n key still render sensibly. */
 function tOptions(
   t: T,
   group: string,
-  list: readonly { value: string }[],
+  list: readonly { value: string; label?: string }[],
 ) {
-  return list.map((o) => ({ value: o.value, label: t(`options.${group}.${o.value}`) }));
+  return list.map((o) => {
+    const key = `options.${group}.${o.value}`;
+    const translated = t(key);
+    return { value: o.value, label: translated === key ? o.label ?? o.value : translated };
+  });
 }
 
 function findLabel(list: readonly { value: string; label: string }[], value?: string) {
   return value ? list.find((o) => o.value === value)?.label ?? value : undefined;
 }
 
-export function RegisterForm() {
+// Catalog options — passed in from the DB by the page, defaulting to the config
+// arrays so the form still works standalone (and in tests / dev).
+export type InstitutionOption = { value: string; label: string; category: string };
+export type ProgramOption = { value: string; label: string };
+
+export function RegisterForm({
+  institutions = MALAYSIAN_INSTITUTIONS,
+  programs = [...ENGLISH_PROGRAMS],
+}: {
+  institutions?: InstitutionOption[];
+  programs?: ProgramOption[];
+} = {}) {
   const { t } = useI18n();
   const [stepIndex, setStepIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -258,13 +275,17 @@ export function RegisterForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
         {current === "intent" && <IntentStep form={form} t={t} />}
         {current === "contact" && <ContactStep form={form} t={t} />}
-        {current === "english" && <EnglishStep form={form} t={t} />}
-        {current === "university" && <UniversityStep form={form} t={t} />}
+        {current === "english" && <EnglishStep form={form} t={t} programs={programs} />}
+        {current === "university" && (
+          <UniversityStep form={form} t={t} institutions={institutions} />
+        )}
         {current === "corporate" && <CorporateStep form={form} t={t} />}
         {current === "review" && (
           <ReviewStep
             form={form}
             t={t}
+            institutions={institutions}
+            programs={programs}
             passport={passport}
             setPassport={setPassport}
             transcripts={transcripts}
@@ -571,7 +592,15 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
   );
 }
 
-function EnglishStep({ form, t }: { form: Form; t: T }) {
+function EnglishStep({
+  form,
+  t,
+  programs,
+}: {
+  form: Form;
+  t: T;
+  programs: ProgramOption[];
+}) {
   const { register, control, formState } = form;
   const { locale } = useI18n();
   const e = formState.errors.english ?? {};
@@ -583,7 +612,7 @@ function EnglishStep({ form, t }: { form: Form; t: T }) {
           <Select
             id="en_program"
             placeholder={t("english.programPh")}
-            options={tOptions(t, "programs", ENGLISH_PROGRAMS)}
+            options={tOptions(t, "programs", programs)}
             error={e.program?.message}
             {...register("english.program")}
           />
@@ -663,7 +692,15 @@ function EnglishStep({ form, t }: { form: Form; t: T }) {
   );
 }
 
-function UniversityStep({ form, t }: { form: Form; t: T }) {
+function UniversityStep({
+  form,
+  t,
+  institutions,
+}: {
+  form: Form;
+  t: T;
+  institutions: InstitutionOption[];
+}) {
   const { register, control, formState, watch, setValue } = form;
   const e = formState.errors.university ?? {};
   const recommend = watch("university.recommend_institution") === "yes";
@@ -740,7 +777,7 @@ function UniversityStep({ form, t }: { form: Form; t: T }) {
               name="university.preferred_universities"
               render={({ field }) => (
                 <SearchableMultiSelect
-                  options={MALAYSIAN_INSTITUTIONS}
+                  options={institutions}
                   value={field.value ?? []}
                   onChange={field.onChange}
                   placeholder={t("university.institutionsPh")}
@@ -880,6 +917,8 @@ function Row({ k, v }: { k: string; v?: React.ReactNode }) {
 function ReviewStep({
   form,
   t,
+  institutions,
+  programs,
   passport,
   setPassport,
   transcripts,
@@ -890,6 +929,8 @@ function ReviewStep({
 }: {
   form: Form;
   t: T;
+  institutions: InstitutionOption[];
+  programs: ProgramOption[];
   passport: File[];
   setPassport: (f: File[]) => void;
   transcripts: File[];
@@ -904,6 +945,13 @@ function ReviewStep({
   const yesNo = (x?: string) => (x ? t(`common.${x}`) : undefined);
   const tOpt = (group: string, value?: string) =>
     value ? t(`options.${group}.${value}`) : undefined;
+  // Program label with DB fallback (no i18n key for admin-added programs).
+  const progLabel = (value?: string) => {
+    if (!value) return undefined;
+    const key = `options.programs.${value}`;
+    const s = t(key);
+    return s === key ? findLabel(programs, value) : s;
+  };
   const rel = v.guardian?.relationship;
   const relLabel = rel
     ? t(`guardian.rel${rel.charAt(0).toUpperCase()}${rel.slice(1)}`)
@@ -939,7 +987,7 @@ function ReviewStep({
       {v.tracks.includes("english") && (
         <div className="mt-4 rounded-card border border-border-warm bg-paper px-5 py-4">
           <SectionLabel>{t("tracks.english.title")}</SectionLabel>
-          <Row k={t("review.rProgram")} v={tOpt("programs", v.english?.program)} />
+          <Row k={t("review.rProgram")} v={progLabel(v.english?.program)} />
           <Row k={t("review.rPurpose")} v={tOpt("purposes", v.english?.learning_purpose)} />
           {v.english?.exam_interest?.length ? (
             <Row
@@ -967,7 +1015,7 @@ function ReviewStep({
               v.university?.recommend_institution === "yes"
                 ? t("university.recommendMe")
                 : v.university?.preferred_universities
-                    ?.map((u) => findLabel(MALAYSIAN_INSTITUTIONS, u))
+                    ?.map((u) => findLabel(institutions, u))
                     .join(", ")
             }
           />

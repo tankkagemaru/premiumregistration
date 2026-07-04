@@ -1,8 +1,9 @@
 import { TRACKS } from "@/lib/config/tracks";
-import { ENGLISH_PROGRAMS } from "@/lib/config/programs";
-import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
 import { STALENESS_RULES } from "@/lib/config/staleness";
 import { LOCALES } from "@/lib/i18n/config";
+import { requireRole } from "@/lib/auth";
+import { listInstitutions, listPrograms } from "@/lib/admin/catalog";
+import { CatalogManager } from "@/components/admin/CatalogManager";
 
 function Card({
   title,
@@ -21,7 +22,13 @@ function Card({
   );
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireRole(["admin"]);
+  const [institutions, programs] = await Promise.all([
+    listInstitutions(true),
+    listPrograms(true),
+  ]);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -29,11 +36,17 @@ export default function SettingsPage() {
           Settings
         </p>
         <h1 className="font-serif text-3xl font-medium text-ink">Configuration</h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          These are driven by config today. Editing UI (partner list, templates,
-          agent codes, track toggles) is the next settings iteration.
+        <p className="mt-2 max-w-2xl text-sm text-ink-soft">
+          Programs and institutions are managed here and drive the public
+          registration form. Tracks, languages and stale-record thresholds are
+          config-driven for now.
         </p>
       </div>
+
+      {/* Editable catalog — programs + institutions */}
+      <section className="rounded-card border border-border-warm bg-paper p-5">
+        <CatalogManager institutions={institutions} programs={programs} />
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card title="Tracks">
@@ -47,23 +60,6 @@ export default function SettingsPage() {
               </li>
             ))}
           </ul>
-        </Card>
-
-        <Card title="English programs">
-          <ul className="flex flex-col gap-1 text-sm text-ink">
-            {ENGLISH_PROGRAMS.map((p) => (
-              <li key={p.value}>{p.label}</li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Partner institutions">
-          <p className="font-serif text-3xl text-ink tabular">
-            {MALAYSIAN_INSTITUTIONS.length}
-          </p>
-          <p className="mt-1 text-sm text-ink-soft">
-            universities and university colleges in the picker.
-          </p>
         </Card>
 
         <Card title="Languages">
