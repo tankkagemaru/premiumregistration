@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { Clock } from "@/components/ui/Clock";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NotificationBell } from "@/components/admin/NotificationBell";
 import { signOut } from "@/app/admin/actions";
@@ -22,6 +23,7 @@ const TABS: { href: string; label: string; roles: string[] }[] = [
   { href: "/admin/finance", label: "Finance", roles: ["admin", "finance"] },
   { href: "/admin/visa", label: "Visa", roles: ["admin", "visa"] },
   { href: "/admin/reports", label: "Reports", roles: ["admin", "marketing", "admissions", "finance"] },
+  { href: "/admin/agent-codes", label: "Agent codes", roles: ["admin", "finance", "marketing"] },
   { href: "/admin/users", label: "Users", roles: ["admin"] },
   { href: "/admin/logs", label: "Logs", roles: ["admin"] },
   { href: "/admin/settings", label: "Settings", roles: ["admin"] },
@@ -108,6 +110,7 @@ export function ConsoleShell({
             Staff console
           </span>
           <div className="ml-auto flex items-center gap-3 sm:gap-4">
+            <Clock />
             <ThemeToggle />
             <NotificationBell items={notifications} userId={userId} />
             <span className="hidden text-sm text-ink-soft sm:inline">{userName}</span>

@@ -19,12 +19,12 @@ export function SiteHeader() {
           <Image
             src="/pecsb-logo.png"
             alt={t("company")}
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0"
+            width={52}
+            height={52}
+            className="h-11 w-11 shrink-0 sm:h-13 sm:w-13"
             priority
           />
-          <Wordmark size="md" />
+          <Wordmark size="lg" className="text-4xl sm:text-5xl" />
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
           <Link
