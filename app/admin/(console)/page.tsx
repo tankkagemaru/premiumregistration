@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getProfile } from "@/lib/auth";
 import { listLeads } from "@/lib/admin/leads";
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
@@ -18,6 +20,9 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export default async function Dashboard() {
+  // Boss sees aggregates only — their landing screen is the executive view.
+  const profile = await getProfile();
+  if (profile?.role === "boss") redirect("/admin/exec");
   const leads = await listLeads();
   const total = leads.length;
   const by = (s: string) => leads.filter((l) => l.status === s).length;

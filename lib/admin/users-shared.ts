@@ -13,6 +13,7 @@ export interface StaffUser {
 
 export const ASSIGNABLE_ROLES: Role[] = [
   "admin",
+  "boss",
   "marketing",
   "admissions",
   "visa",

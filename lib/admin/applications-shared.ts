@@ -128,6 +128,17 @@ export interface Application {
   next_action_due?: string | null;
   class_start?: string | null;
   class_end?: string | null;
+  offer_acknowledged_at?: string | null;
+  plan?: StudyPlan | null;
+}
+
+/** Study plan drafted by admissions/academic and shared with the student —
+ *  e.g. "English intensive → September university intake". */
+export interface StudyPlan {
+  intake?: string; // target intake, free text (e.g. "September 2026")
+  summary?: string;
+  steps: { title: string; start?: string; end?: string; note?: string }[];
+  updated_at?: string;
 }
 
 export interface ApplicationEvent {

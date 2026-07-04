@@ -5,6 +5,7 @@ import { authConfigured } from "@/lib/admin/leads-shared";
 
 export type Role =
   | "admin" // superadmin — full access incl. users + audit logs
+  | "boss" // executive — aggregate dashboards only, no record details
   | "marketing" // campaigns + leads, hands qualified leads to admissions
   | "admissions" // first in line — registration, review, offers
   | "visa"

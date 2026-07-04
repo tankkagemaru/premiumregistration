@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import {
@@ -263,6 +264,14 @@ export function ApplicationDrawer({
             <Row k="Submitted by" v={app.submitted_by} />
             <Row k="Agent" v={app.agent_name} />
             <Row k="Stage" v={STAGE_LABEL[app.stage]} />
+            {app.student_id && (
+              <Link
+                href={`/admin/students/${app.student_id}`}
+                className="mt-1 inline-block text-xs font-medium text-brand-red hover:underline"
+              >
+                Full student record →
+              </Link>
+            )}
           </div>
 
           {/* Documents — upload, review, download */}
