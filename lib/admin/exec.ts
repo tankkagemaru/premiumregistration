@@ -36,7 +36,6 @@ export async function getExecOverview(): Promise<ExecOverview> {
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
   const now = Date.now();
-  const since = (days: number) => new Date(now - days * DAY).toISOString();
 
   const [
     { data: leads },
@@ -120,7 +119,7 @@ export async function getExecOverview(): Promise<ExecOverview> {
   return {
     leads: {
       total: L.length,
-      new7d: L.filter((l) => l.created_at >= since(7)).length,
+      new7d: L.filter((l) => now - new Date(l.created_at).getTime() < 7 * DAY).length,
       uncontacted3d,
     },
     funnel: {

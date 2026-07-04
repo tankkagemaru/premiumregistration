@@ -68,6 +68,46 @@ export async function setClassDates(
   revalidatePath("/admin", "layout");
 }
 
+/**
+ * Save the study plan on an application. Admissions + academic use this to
+ * plan pathways (e.g. English intensive → September university intake); the
+ * student sees the saved plan on the status portal.
+ */
+export async function saveStudyPlan(
+  id: string,
+  plan: {
+    intake?: string;
+    summary?: string;
+    steps: { title: string; start?: string; end?: string; note?: string }[];
+  },
+) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  const clean = {
+    intake: plan.intake?.trim() || undefined,
+    summary: plan.summary?.trim() || undefined,
+    steps: plan.steps
+      .filter((s) => s.title.trim())
+      .map((s) => ({
+        title: s.title.trim(),
+        start: s.start || undefined,
+        end: s.end || undefined,
+        note: s.note?.trim() || undefined,
+      })),
+    updated_at: new Date().toISOString(),
+  };
+  await supabase.from("applications").update({ plan: clean }).eq("id", id);
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile?.id,
+    type: "note",
+    body: `Study plan updated (${clean.steps.length} steps${clean.intake ? `, intake ${clean.intake}` : ""})`,
+  });
+  await logAudit({ action: "plan_saved", target_type: "application", target_id: id, detail: clean.intake ?? "" });
+  revalidatePath("/admin", "layout");
+}
+
 export async function addApplicationNote(id: string, body: string) {
   if (!authConfigured || !body.trim()) return;
   const supabase = await createClient();

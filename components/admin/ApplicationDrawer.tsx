@@ -26,6 +26,7 @@ import {
 } from "@/app/admin/doc-request-actions";
 import { createVisaCase } from "@/app/admin/visa-actions";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
+import { PlanEditor } from "@/components/admin/PlanEditor";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -284,6 +285,18 @@ export function ApplicationDrawer({
             />
             <DocRequestControl applicationId={app.id} requests={docRequests} />
           </div>
+
+          {/* Study plan — pathway planning shared with the student */}
+          {app.track !== "corporate" && (
+            <div>
+              <SectionLabel>Study plan</SectionLabel>
+              <PlanEditor
+                applicationId={app.id}
+                studentName={app.student_name}
+                plan={app.plan}
+              />
+            </div>
+          )}
 
           {/* Offer letter (English) */}
           {app.track === "english" && (

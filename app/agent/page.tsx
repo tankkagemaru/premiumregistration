@@ -157,6 +157,11 @@ export default async function AgentHome() {
                           {a.status}
                         </div>
                       )}
+                      {a.offer_acknowledged_at && (
+                        <div className="mt-1 text-[11px] text-status-present">
+                          Offer acknowledged {String(a.offer_acknowledged_at).slice(0, 10)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${PAY_TONE[pay.tone]}`}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Upload, Loader2 } from "lucide-react";
+import { Check, Upload, Loader2, Download } from "lucide-react";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -23,6 +23,12 @@ interface Status {
   next_step?: string;
   documents: { kind: string; review_status: string }[];
   requirements: DocRequirement[];
+  offer?: { available: boolean; acknowledgedAt: string | null };
+  plan?: {
+    intake?: string;
+    summary?: string;
+    steps: { title: string; start?: string; end?: string; note?: string }[];
+  } | null;
   isLead?: boolean;
 }
 
@@ -34,6 +40,24 @@ export default function StatusPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [offerBusy, setOfferBusy] = useState(false);
+
+  async function offerAction(action: "sign" | "ack") {
+    setOfferBusy(true);
+    try {
+      const res = await fetch("/api/status/offer", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ passport, code, action }),
+      });
+      const data = await res.json();
+      if (!data.ok) return;
+      if (action === "sign" && data.url) window.open(data.url, "_blank");
+      if (action === "ack") await load(false);
+    } finally {
+      setOfferBusy(false);
+    }
+  }
 
   async function load(clear: boolean) {
     if (clear) {
@@ -228,6 +252,75 @@ export default function StatusPage() {
             {status.next_step && (
               <div className="mt-6 rounded-md bg-cream-50 px-4 py-3 text-sm text-ink-soft">
                 {status.next_step}
+              </div>
+            )}
+
+            {/* Offer letter — download + acknowledge */}
+            {status.offer?.available && (
+              <div className="mt-6 rounded-md border border-brand-red/30 bg-brand-red/5 p-4">
+                <SectionLabel>{t("status.offerTitle")}</SectionLabel>
+                <p className="mb-3 text-sm text-ink-soft">{t("status.offerSub")}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => offerAction("sign")}
+                    disabled={offerBusy}
+                    className="inline-flex items-center gap-2 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-60"
+                  >
+                    {offerBusy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Download className="h-4 w-4" aria-hidden />
+                    )}
+                    {t("status.offerDownload")}
+                  </button>
+                  {status.offer.acknowledgedAt ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-status-present">
+                      <Check className="h-4 w-4" aria-hidden />
+                      {t("status.offerAcked", {
+                        date: status.offer.acknowledgedAt.slice(0, 10),
+                      })}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => offerAction("ack")}
+                      disabled={offerBusy}
+                      className="rounded-md border border-border-warm bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-cream-50 disabled:opacity-60"
+                    >
+                      {t("status.offerAck")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Study plan */}
+            {status.plan && status.plan.steps.length > 0 && (
+              <div className="mt-6">
+                <SectionLabel>{t("status.planTitle")}</SectionLabel>
+                {status.plan.intake && (
+                  <p className="mb-2 text-sm text-ink-soft">
+                    {t("status.planIntake", { intake: status.plan.intake })}
+                  </p>
+                )}
+                {status.plan.summary && (
+                  <p className="mb-3 text-sm text-ink-soft">{status.plan.summary}</p>
+                )}
+                <ol className="flex flex-col gap-2">
+                  {status.plan.steps.map((sp, i) => (
+                    <li key={i} className="flex gap-3 text-sm">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-red text-[11px] font-medium text-oncolor">
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p className="font-medium text-ink">{sp.title}</p>
+                        <p className="text-xs text-ink-muted">
+                          {[sp.start, sp.end].filter(Boolean).join(" → ")}
+                          {sp.note ? ` · ${sp.note}` : ""}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
             )}
 

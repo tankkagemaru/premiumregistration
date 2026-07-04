@@ -49,6 +49,12 @@ export default async function ApplicationsPage({
       note: r.note ?? undefined,
       optional: r.optional,
     })),
+    // Staff-side slot for the university's offer letter — uploaded here, then
+    // surfaced to the student on the status page for download + acknowledgement.
+    ...(selected?.app.track === "university" &&
+    !ruleReqs.some((r) => r.kind === "offer_letter")
+      ? [{ kind: "offer_letter", label: "Offer letter (from university)", optional: true }]
+      : []),
   ];
 
   return (

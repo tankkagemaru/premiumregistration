@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseConfigured } from "@/lib/env";
-import { STAGE_LABEL, type Flag } from "@/lib/admin/applications-shared";
+import { STAGE_LABEL, type Flag, type StudyPlan } from "@/lib/admin/applications-shared";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import type { DocRequirement } from "@/lib/config/documents";
 
@@ -17,6 +17,8 @@ export interface PublicStatus {
   next_step?: string;
   documents: { kind: string; review_status: string }[];
   requirements: DocRequirement[]; // resolved from the editable rules
+  offer?: { available: boolean; acknowledgedAt: string | null };
+  plan?: StudyPlan | null;
   isLead?: boolean; // matched a registration (not yet an application)
 }
 
@@ -91,7 +93,7 @@ export async function lookupStatus(
   const { data: app } = await admin
     .from("applications")
     .select(
-      "id, track, program_name, qualification_level, stage, student_name, passport_no, student_email, is_international, student_id",
+      "id, track, program_name, qualification_level, stage, student_name, passport_no, student_email, is_international, student_id, offer_acknowledged_at, plan",
     )
     .eq("access_code", c)
     .maybeSingle();
@@ -196,5 +198,12 @@ export async function lookupStatus(
     })),
     documents: (docs as { kind: string; review_status: string }[] | null) ?? [],
     requirements,
+    offer: {
+      available: ((docs as { kind: string }[] | null) ?? []).some(
+        (x) => x.kind === "offer_letter",
+      ),
+      acknowledgedAt: (app.offer_acknowledged_at as string | null) ?? null,
+    },
+    plan: (app.plan as StudyPlan | null) ?? null,
   };
 }
