@@ -25,6 +25,8 @@ export interface Lead {
   utm_campaign?: string | null;
   referrer?: string | null;
   agent_code?: string | null;
+  access_code?: string | null; // student tracking / reference code
+  passport_no?: string | null;
   next_action?: string | null;
   next_action_due?: string | null;
   assigned_to?: string | null;

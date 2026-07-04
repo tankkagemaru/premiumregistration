@@ -101,10 +101,15 @@ export async function lookupStatus(
   if (!app) {
     const { data: reg } = await admin
       .from("registrations")
-      .select("id, tracks, full_name, email, status, created_at, nationality")
+      .select("id, tracks, full_name, email, status, created_at, nationality, passport_no")
       .eq("access_code", c)
       .maybeSingle();
-    if (!reg || !reg.email || reg.email.toLowerCase() !== v) return null;
+    // Second factor: the email on file OR the passport/ID given at registration.
+    const regMatches =
+      !!reg &&
+      ((reg.email && reg.email.toLowerCase() === v) ||
+        (reg.passport_no && String(reg.passport_no).toLowerCase() === v));
+    if (!reg || !regMatches) return null;
     const leadStage: Record<string, string> =
       { new: "application", contacted: "review", enrolled: "enrolled", dropped: "review" };
     const track = (reg.tracks?.[0] as string) ?? "english";
@@ -137,28 +142,41 @@ export async function lookupStatus(
     (app.student_email && app.student_email.toLowerCase() === v);
   if (!matches) return null;
 
-  const [{ data: events }, { data: docs }, { data: student }] = await Promise.all([
-    admin
-      .from("application_events")
-      .select("to_stage, body, created_at")
-      .eq("application_id", app.id)
-      .eq("type", "stage_change")
-      .order("created_at", { ascending: true }),
-    admin
-      .from("application_documents")
-      .select("kind, review_status")
-      .eq("application_id", app.id),
-    app.student_id
-      ? admin.from("students").select("nationality").eq("id", app.student_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [{ data: events }, { data: docs }, { data: student }, { data: adhoc }] =
+    await Promise.all([
+      admin
+        .from("application_events")
+        .select("to_stage, body, created_at")
+        .eq("application_id", app.id)
+        .eq("type", "stage_change")
+        .order("created_at", { ascending: true }),
+      admin
+        .from("application_documents")
+        .select("kind, review_status")
+        .eq("application_id", app.id),
+      app.student_id
+        ? admin.from("students").select("nationality").eq("id", app.student_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      admin
+        .from("app_doc_requests")
+        .select("kind, label, note, optional")
+        .eq("application_id", app.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
-  const requirements = await getDocRequirements({
+  const ruleReqs = await getDocRequirements({
     track: app.track,
     qualification: app.qualification_level,
     isInternational: Boolean(app.is_international),
     nationality: (student as { nationality?: string } | null)?.nationality ?? null,
   });
+  // One-off staff requests join the student's checklist.
+  const requirements = [
+    ...ruleReqs,
+    ...((adhoc as { kind: string; label: string; note?: string | null; optional: boolean }[] | null) ?? []).map(
+      (r) => ({ kind: r.kind, label: r.label, note: r.note ?? undefined, optional: r.optional }),
+    ),
+  ];
 
   const flag: Flag = ["enrolled", "active", "completed"].includes(app.stage)
     ? "ok"

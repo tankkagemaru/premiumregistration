@@ -145,6 +145,17 @@ export interface AppContact {
   nationality?: string | null;
 }
 
+/** One-off per-application document request (e.g. an unusual EMGS ask). */
+export interface AppDocRequest {
+  id: string;
+  application_id: string;
+  kind: string;
+  label: string;
+  note?: string | null;
+  optional: boolean;
+  created_at: string;
+}
+
 export interface ApplicationDoc {
   id: string;
   kind: string;

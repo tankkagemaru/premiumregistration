@@ -13,13 +13,19 @@ import {
 const F =
   "rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
 
-export function AgentCodesManager({ codes }: { codes: AgentCode[] }) {
+export function AgentCodesManager({
+  codes,
+  agents = [],
+}: {
+  codes: AgentCode[];
+  agents?: { id: string; full_name: string }[];
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ agent_name: "", contact: "", code: "", notes: "" });
+  const [form, setForm] = useState({ agent_name: "", contact: "", code: "", notes: "", profile_id: "" });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   function submit() {
@@ -30,6 +36,7 @@ export function AgentCodesManager({ codes }: { codes: AgentCode[] }) {
         contact: form.contact || undefined,
         code: form.code || undefined,
         notes: form.notes || undefined,
+        profile_id: form.profile_id || undefined,
       });
       if (!res.ok) {
         setError(
@@ -43,7 +50,7 @@ export function AgentCodesManager({ codes }: { codes: AgentCode[] }) {
         );
         return;
       }
-      setForm({ agent_name: "", contact: "", code: "", notes: "" });
+      setForm({ agent_name: "", contact: "", code: "", notes: "", profile_id: "" });
       setOpen(false);
       router.refresh();
     });
@@ -93,6 +100,17 @@ export function AgentCodesManager({ codes }: { codes: AgentCode[] }) {
               Notes
               <input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="optional" className={`mt-1 w-full ${F}`} />
             </label>
+            <label className="col-span-2 text-xs font-medium text-ink-soft sm:col-span-2">
+              Link to agent login
+              <select value={form.profile_id} onChange={(e) => set("profile_id", e.target.value)} className={`mt-1 w-full ${F}`}>
+                <option value="">No login — track by code only</option>
+                {agents.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+              <span className="mt-1 block text-[11px] font-normal text-ink-muted">
+                Linking sets this code on the agent&apos;s account, so their portal
+                shows every lead that used it.
+              </span>
+            </label>
           </div>
           {error && <p className="mt-2 text-xs text-brand-red">{error}</p>}
           <button
@@ -133,6 +151,7 @@ export function AgentCodesManager({ codes }: { codes: AgentCode[] }) {
                 </div>
                 <p className="truncate text-xs text-ink-muted">
                   {c.agent_name}
+                  {c.profile_name ? ` · login: ${c.profile_name}` : " · no login"}
                   {c.contact ? ` · ${c.contact}` : ""}
                   {c.issued_by_name ? ` · by ${c.issued_by_name}` : ""}
                 </p>

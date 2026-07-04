@@ -18,6 +18,7 @@ export async function createAgentCode(input: {
   contact?: string;
   notes?: string;
   code?: string; // optional custom code; otherwise auto-generated
+  profile_id?: string; // optional link to an agent login
 }): Promise<{ ok: boolean; code?: string; error?: string }> {
   if (!authConfigured) return { ok: true, code: generateAgentCode(randomUUID()) };
   if (!(await permitted())) return { ok: false, error: "forbidden" };
@@ -36,12 +37,22 @@ export async function createAgentCode(input: {
       contact: input.contact?.trim() || null,
       notes: input.notes?.trim() || null,
       issued_by: profile?.id ?? null,
+      profile_id: input.profile_id || null,
     });
     if (!error) {
+      // Sync the code onto the linked agent's profile — the agent portal
+      // filters leads by profiles.agent_code, so this is what ties the two.
+      if (input.profile_id) {
+        await supabase
+          .from("profiles")
+          .update({ agent_code: code })
+          .eq("id", input.profile_id)
+          .eq("role", "agent");
+      }
       await logAudit({
         action: "agent_code_issued",
         target_type: "agent_code",
-        detail: `${code} · ${input.agent_name.trim()}`,
+        detail: `${code} · ${input.agent_name.trim()}${input.profile_id ? " (linked)" : ""}`,
       });
       revalidatePath("/admin/agent-codes");
       return { ok: true, code };

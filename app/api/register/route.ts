@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       whatsapp: values.whatsapp || null,
       nationality: values.nationality,
       dob: values.dob || null,
+      passport_no: values.passport_no || null,
       utm_source: attribution?.utm_source ?? null,
       utm_medium: attribution?.utm_medium ?? null,
       utm_campaign: attribution?.utm_campaign ?? null,

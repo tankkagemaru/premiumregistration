@@ -72,6 +72,9 @@ export const registrationSchema = z
     // Date of birth — required for student tracks (english/university) so we can
     // check age; a minor (<18) must add a guardian declaration. See superRefine.
     dob: z.string().optional(),
+    // Passport / national ID number — optional, used as the second factor when
+    // checking status and carried onto the student record on conversion.
+    passport_no: z.string().trim().optional(),
     guardian: guardianSchema.optional(),
     // attribution (captured silently — Phase 6 fills these from the URL)
     agent_code: z.string().optional(),

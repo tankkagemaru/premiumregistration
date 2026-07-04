@@ -52,6 +52,8 @@ export const ar: Dictionary = {
     dob: "تاريخ الميلاد",
     agentCode: "رمز الوكيل / الإحالة",
     agentCodePh: "إذا أحالك أحد وكلاء Premium",
+    passport: "رقم جواز السفر / الهوية",
+    passportPh: "يُستخدم لاحقًا للتحقق من حالتك",
     errName: "أدخل اسمك الكامل.",
     errEmail: "أدخل بريدًا إلكترونيًا صحيحًا.",
     errPhone: "أدخل رقم هاتف يمكن التواصل عبره.",

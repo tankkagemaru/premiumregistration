@@ -19,7 +19,11 @@ export async function listAgentCodes(): Promise<AgentCode[]> {
     .order("created_at", { ascending: false });
   const codes = (data as AgentCode[] | null) ?? [];
 
-  const ids = [...new Set(codes.map((c) => c.issued_by).filter(Boolean))] as string[];
+  const ids = [
+    ...new Set(
+      codes.flatMap((c) => [c.issued_by, c.profile_id]).filter(Boolean),
+    ),
+  ] as string[];
   if (ids.length) {
     const { data: profs } = await supabase
       .from("profiles")
@@ -28,7 +32,10 @@ export async function listAgentCodes(): Promise<AgentCode[]> {
     const nameById = Object.fromEntries(
       (profs as { id: string; full_name: string }[] | null ?? []).map((p) => [p.id, p.full_name]),
     );
-    for (const c of codes) if (c.issued_by) c.issued_by_name = nameById[c.issued_by] ?? null;
+    for (const c of codes) {
+      if (c.issued_by) c.issued_by_name = nameById[c.issued_by] ?? null;
+      if (c.profile_id) c.profile_name = nameById[c.profile_id] ?? null;
+    }
   }
   return codes;
 }

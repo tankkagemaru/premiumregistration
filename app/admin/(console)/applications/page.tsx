@@ -1,6 +1,7 @@
 import { getProfile } from "@/lib/auth";
 import { listApplications, getApplication } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
+import { listAppDocRequests } from "@/lib/admin/doc-requests";
 import { listFeesForApp } from "@/lib/admin/finance";
 import { getVisaCaseForApp } from "@/lib/admin/visa";
 import { listRequests } from "@/lib/admin/requests";
@@ -28,15 +29,27 @@ export default async function ApplicationsPage({
       ])
     : [[], null, [], null];
   // Document requirements resolved from the editable rules (track / level /
-  // residency / nationality). Computed server-side; passed into the drawer.
-  const docRequirements = selected
-    ? await getDocRequirements({
-        track: selected.app.track,
-        qualification: selected.app.qualification_level,
-        isInternational: selected.app.is_international,
-        nationality: selected.contact.nationality,
-      })
-    : [];
+  // residency / nationality) plus any one-off requests for this application.
+  const [ruleReqs, docRequests] = selected
+    ? await Promise.all([
+        getDocRequirements({
+          track: selected.app.track,
+          qualification: selected.app.qualification_level,
+          isInternational: selected.app.is_international,
+          nationality: selected.contact.nationality,
+        }),
+        listAppDocRequests(appParam!),
+      ])
+    : [[], []];
+  const docRequirements = [
+    ...ruleReqs,
+    ...docRequests.map((r) => ({
+      kind: r.kind,
+      label: r.label,
+      note: r.note ?? undefined,
+      optional: r.optional,
+    })),
+  ];
 
   return (
     <div>
@@ -59,6 +72,7 @@ export default async function ApplicationsPage({
           visa={visa}
           requests={requests}
           docRequirements={docRequirements}
+          docRequests={docRequests}
           role={profile?.role ?? "staff"}
           officerName={profile?.full_name}
         />

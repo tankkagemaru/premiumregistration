@@ -72,6 +72,8 @@ export const en = {
     dob: "Date of birth",
     agentCode: "Agent / referral code",
     agentCodePh: "If a Premium agent referred you",
+    passport: "Passport / ID number",
+    passportPh: "Used to check your status later",
     errName: "Enter your full name.",
     errEmail: "Enter a valid email address.",
     errPhone: "Enter a contactable phone number.",

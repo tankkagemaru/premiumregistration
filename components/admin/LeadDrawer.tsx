@@ -189,6 +189,15 @@ export function LeadDrawer({
             <SectionLabel>Contact</SectionLabel>
             <Row k="Email" v={lead.email} />
             <Row k="Phone" v={lead.phone} />
+            <Row
+              k="Tracking code"
+              v={
+                lead.access_code ? (
+                  <span className="font-mono">{lead.access_code}</span>
+                ) : undefined
+              }
+            />
+            <Row k="Passport / ID" v={lead.passport_no} />
             <Row k="WhatsApp" v={lead.whatsapp} />
             <Row k="Nationality" v={lbl(COUNTRIES, lead.nationality ?? undefined)} />
             <Row k="Interested in" v={lead.tracks.join(", ")} />

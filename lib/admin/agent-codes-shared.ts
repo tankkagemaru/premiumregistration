@@ -10,6 +10,8 @@ export interface AgentCode {
   active: boolean;
   issued_by?: string | null;
   issued_by_name?: string | null; // resolved for display
+  profile_id?: string | null; // linked agent login (ties portal access to the code)
+  profile_name?: string | null; // resolved for display
 }
 
 /** Roles allowed to issue / manage agent codes. */

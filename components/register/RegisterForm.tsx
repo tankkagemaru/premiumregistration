@@ -529,14 +529,27 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
         </Field>
 
         {isStudent && (
-          <Field label={t("contact.dob")} htmlFor="dob" error={e.dob && t("contact.errDob")}>
-            <TextInput
-              id="dob"
-              type="date"
-              error={e.dob?.message}
-              {...register("dob")}
-            />
-          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label={t("contact.dob")} htmlFor="dob" error={e.dob && t("contact.errDob")}>
+              <TextInput
+                id="dob"
+                type="date"
+                error={e.dob?.message}
+                {...register("dob")}
+              />
+            </Field>
+            <Field
+              label={t("contact.passport")}
+              htmlFor="passport_no"
+              optionalLabel={t("common.optional")}
+            >
+              <TextInput
+                id="passport_no"
+                placeholder={t("contact.passportPh")}
+                {...register("passport_no")}
+              />
+            </Field>
+          </div>
         )}
 
         {isStudent && isMinor && (
@@ -968,6 +981,7 @@ function ReviewStep({
         {v.whatsapp && <Row k={t("review.rWhatsapp")} v={v.whatsapp} />}
         <Row k={t("review.rNationality")} v={findLabel(COUNTRIES, v.nationality)} />
         {isStudent && <Row k={t("review.rDob")} v={v.dob} />}
+        {isStudent && <Row k={t("contact.passport")} v={v.passport_no} />}
         {isStudent && v.guardian?.full_name && (
           <>
             <Row k={t("review.rGuardian")} v={v.guardian.full_name} />

@@ -136,6 +136,7 @@ export async function createApplicationFromLead(leadId: string) {
         whatsapp: reg.whatsapp,
         nationality: reg.nationality,
         date_of_birth: reg.dob ?? null,
+        passport_no: reg.passport_no ?? null,
         guardian: reg.details?.guardian ?? null,
         is_international: isInternational,
         agent_code: reg.agent_code,
