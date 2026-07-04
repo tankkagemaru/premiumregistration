@@ -2,12 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X, Check, Circle } from "lucide-react";
+import { X } from "lucide-react";
 import {
-  STAGES,
-  STAGE_DOCS,
   STAGE_LABEL,
-  DOC_LABEL,
   stagesFor,
   stagePercent,
   type Application,
@@ -15,12 +12,14 @@ import {
   type ApplicationDoc,
   type AppContact,
 } from "@/lib/admin/applications-shared";
+import { requiredDocuments } from "@/lib/config/documents";
 import {
   advanceApplicationStage,
   addApplicationNote,
   logApplicationMessage,
 } from "@/app/admin/application-actions";
 import { createVisaCase } from "@/app/admin/visa-actions";
+import { DocumentUploader } from "@/components/admin/DocumentUploader";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -73,14 +72,15 @@ export function ApplicationDrawer({
 
   const close = () => router.push("/admin/applications");
   const applicable = stagesFor(app.is_international);
-  const stageIdx = STAGES.findIndex((s) => s.id === app.stage);
 
-  // Required documents up to and including the current stage.
-  const required = STAGES.slice(0, stageIdx + 1).flatMap(
-    (s) => STAGE_DOCS[s.id] ?? [],
-  );
+  // Required documents from the requirements matrix (track / level / residency).
+  const docRequirements = requiredDocuments({
+    track: app.track,
+    qualification: app.qualification_level,
+    isInternational: app.is_international,
+  });
   const have = new Set(documents.map((d) => d.kind));
-  const missing = [...new Set(required)].filter((k) => !have.has(k));
+  const missing = docRequirements.filter((r) => !r.optional && !have.has(r.kind));
 
   const messageVars: Record<string, string> = {
     full_name: app.student_name,
@@ -88,7 +88,7 @@ export function ApplicationDrawer({
     institution: app.target_institution ?? "",
     stage: STAGE_LABEL[app.stage] ?? app.stage,
     ref: app.access_code ?? "",
-    missing_docs: missing.map((k) => `• ${DOC_LABEL[k] ?? k}`).join("\n"),
+    missing_docs: missing.map((r) => `• ${r.label}`).join("\n"),
     officer: officerName ?? "the Premium team",
     company: "Premium",
   };
@@ -167,30 +167,14 @@ export function ApplicationDrawer({
             <Row k="Stage" v={STAGE_LABEL[app.stage]} />
           </div>
 
-          {/* Document checklist */}
+          {/* Documents — upload, review, download */}
           <div>
             <SectionLabel>Documents</SectionLabel>
-            {required.length === 0 ? (
-              <p className="text-sm text-ink-muted">None required yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {[...new Set(required)].map((kind) => {
-                  const ok = have.has(kind);
-                  return (
-                    <li key={kind} className="flex items-center gap-2 text-sm">
-                      {ok ? (
-                        <Check className="h-4 w-4 text-status-present" aria-hidden />
-                      ) : (
-                        <Circle className="h-4 w-4 text-ink-muted" aria-hidden />
-                      )}
-                      <span className={ok ? "text-ink" : "text-ink-muted"}>
-                        {kind}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <DocumentUploader
+              applicationId={app.id}
+              requirements={docRequirements}
+              docs={documents}
+            />
           </div>
 
           {/* Offer letter (English) */}
