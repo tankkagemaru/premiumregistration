@@ -170,6 +170,14 @@ export function RegisterForm() {
     setSubmitting(true);
     setSubmitError(null);
 
+    // DOB/guardian only apply to the student tracks; drop any leftover draft
+    // values so a corporate-only enquiry never carries a stray date of birth.
+    const isStudentReg =
+      values.tracks.includes("english") || values.tracks.includes("university");
+    const payload: RegistrationValues = isStudentReg
+      ? values
+      : { ...values, dob: "", guardian: {} };
+
     // Documents (university track). Order here == order of returned uploads.
     const files = [
       ...passport.map((file) => ({ kind: "passport" as const, file })),
@@ -187,7 +195,7 @@ export function RegisterForm() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          values,
+          values: payload,
           turnstileToken: token,
           documents,
           attribution: attribution.current,
@@ -853,6 +861,8 @@ function ReviewStep({
   setConsent: (v: boolean) => void;
 }) {
   const v = form.getValues();
+  const isStudent =
+    v.tracks.includes("english") || v.tracks.includes("university");
   const yesNo = (x?: string) => (x ? t(`common.${x}`) : undefined);
   const tOpt = (group: string, value?: string) =>
     value ? t(`options.${group}.${value}`) : undefined;
@@ -871,8 +881,8 @@ function ReviewStep({
         <Row k={t("review.rPhone")} v={v.phone} />
         {v.whatsapp && <Row k={t("review.rWhatsapp")} v={v.whatsapp} />}
         <Row k={t("review.rNationality")} v={findLabel(COUNTRIES, v.nationality)} />
-        <Row k={t("review.rDob")} v={v.dob} />
-        {v.guardian?.full_name && (
+        {isStudent && <Row k={t("review.rDob")} v={v.dob} />}
+        {isStudent && v.guardian?.full_name && (
           <>
             <Row k={t("review.rGuardian")} v={v.guardian.full_name} />
             <Row k={t("review.rGuardianRel")} v={relLabel} />
