@@ -31,6 +31,14 @@ export interface Lead {
   next_action_due?: string | null;
   assigned_to?: string | null;
   tags?: string[] | null;
+  /** Study plan drafted pre-conversion (same shape as applications.plan). */
+  plan?: {
+    intake?: string;
+    summary?: string;
+    steps: { title: string; start?: string; end?: string; note?: string }[];
+  } | null;
+  /** Stale-flag snooze (dismissed with a recorded reason until this date). */
+  stale_snoozed_until?: string | null;
   details: Record<string, unknown>;
 }
 

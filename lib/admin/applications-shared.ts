@@ -21,18 +21,41 @@ export const STAGES: Stage[] = [
   { id: "completed", label: "Completed" },
 ];
 
-export const STAGE_LABEL: Record<string, string> = Object.fromEntries(
-  STAGES.map((s) => [s.id, s.label]),
-);
+/**
+ * Corporate deals don't follow the student lane — they run
+ * proposal → quote → HRDF approval → delivery → completed.
+ * "application" doubles as the entry stage so lead conversion still lands
+ * every track on a valid first stage.
+ */
+export const CORPORATE_STAGES: Stage[] = [
+  { id: "application", label: "Enquiry" },
+  { id: "proposal", label: "Proposal" },
+  { id: "quote", label: "Quotation" },
+  { id: "hrdf", label: "HRDF approval" },
+  { id: "delivery", label: "Delivery" },
+  { id: "completed", label: "Completed" },
+];
 
-/** Stages that apply to a given student, dropping visa for local students. */
-export function stagesFor(isInternational: boolean): Stage[] {
+export const STAGE_LABEL: Record<string, string> = {
+  ...Object.fromEntries(STAGES.map((s) => [s.id, s.label])),
+  ...Object.fromEntries(CORPORATE_STAGES.map((s) => [s.id, s.label])),
+};
+
+/** Stages that apply — corporate gets its own lane; students drop the visa
+ *  stage when local. Track is optional so existing student-path callers keep
+ *  working unchanged. */
+export function stagesFor(isInternational: boolean, track?: string): Stage[] {
+  if (track === "corporate") return CORPORATE_STAGES;
   return STAGES.filter((s) => isInternational || !s.internationalOnly);
 }
 
-/** Percent complete over the stages that apply to this student. */
-export function stagePercent(stage: string, isInternational: boolean): number {
-  const list = stagesFor(isInternational);
+/** Percent complete over the stages that apply. */
+export function stagePercent(
+  stage: string,
+  isInternational: boolean,
+  track?: string,
+): number {
+  const list = stagesFor(isInternational, track);
   const idx = list.findIndex((s) => s.id === stage);
   return idx < 0 ? 0 : Math.round(((idx + 1) / list.length) * 100);
 }

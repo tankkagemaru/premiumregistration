@@ -31,6 +31,7 @@ export default async function LeadsPage({
       staff={staff}
       officerName={profile?.full_name}
       stalenessDays={stalenessDays}
+      initialAttention={one(sp.attn) === "1"}
     />
   );
 }

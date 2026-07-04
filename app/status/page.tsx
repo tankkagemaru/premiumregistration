@@ -5,7 +5,7 @@ import { Check, Upload, Loader2, Download } from "lucide-react";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
-import { STAGES, stagesFor, type Flag } from "@/lib/admin/applications-shared";
+import { STAGES, STAGE_LABEL, stagesFor, type Flag } from "@/lib/admin/applications-shared";
 import type { DocRequirement } from "@/lib/config/documents";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
@@ -116,10 +116,15 @@ export default function StatusPage() {
     }
   }
 
-  const stageLabel = (id?: string) =>
-    id ? t(`statusStages.${id}`) : "—";
+  // Corporate stages have no i18n keys yet — fall back to the built-in label.
+  const stageLabel = (id?: string) => {
+    if (!id) return "—";
+    const key = `statusStages.${id}`;
+    const s = t(key);
+    return s === key ? STAGE_LABEL[id] ?? id : s;
+  };
 
-  const stages = status ? stagesFor(status.is_international) : STAGES;
+  const stages = status ? stagesFor(status.is_international, status.track) : STAGES;
   const currentIdx = status
     ? stages.findIndex((s) => s.id === status.stage)
     : -1;

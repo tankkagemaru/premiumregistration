@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Copy, Check, Printer } from "lucide-react";
 import type { StudyPlan } from "@/lib/admin/applications-shared";
 import { saveStudyPlan } from "@/app/admin/application-actions";
+import { saveLeadPlan } from "@/app/admin/actions";
 
 const F =
   "rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
@@ -34,10 +35,12 @@ export function PlanEditor({
   applicationId,
   studentName,
   plan,
+  target = "application", // "lead" saves onto the enquiry instead
 }: {
   applicationId: string;
   studentName: string;
   plan?: StudyPlan | null;
+  target?: "application" | "lead";
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -56,7 +59,9 @@ export function PlanEditor({
 
   function save() {
     start(async () => {
-      await saveStudyPlan(applicationId, { intake, summary, steps });
+      const payload = { intake, summary, steps };
+      if (target === "lead") await saveLeadPlan(applicationId, payload);
+      else await saveStudyPlan(applicationId, payload);
       setOpen(false);
       router.refresh();
     });
@@ -93,15 +98,17 @@ export function PlanEditor({
                 {copied ? <Check className="h-3.5 w-3.5 text-status-present" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
                 Copy as message
               </button>
-              <a
-                href={`/admin/applications/${applicationId}/plan`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border border-border-warm bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
-              >
-                <Printer className="h-3.5 w-3.5" aria-hidden />
-                Printable / PDF
-              </a>
+              {target === "application" && (
+                <a
+                  href={`/admin/applications/${applicationId}/plan`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-border-warm bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
+                >
+                  <Printer className="h-3.5 w-3.5" aria-hidden />
+                  Printable / PDF
+                </a>
+              )}
             </>
           )}
         </div>

@@ -12,6 +12,7 @@ export async function recordPayment(input: {
   amount: number;
   method?: string;
   reference?: string;
+  receiptDocId?: string; // QuickBooks receipt uploaded as an application doc
 }) {
   if (!authConfigured || input.amount <= 0) return;
   const supabase = await createClient();
@@ -24,6 +25,7 @@ export async function recordPayment(input: {
     method: input.method ?? null,
     reference: input.reference ?? null,
     recorded_by: profile?.id,
+    receipt_doc_id: input.receiptDocId ?? null,
   });
 
   // Recompute the fee's status from total received.

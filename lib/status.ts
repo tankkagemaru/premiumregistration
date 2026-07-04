@@ -103,7 +103,7 @@ export async function lookupStatus(
   if (!app) {
     const { data: reg } = await admin
       .from("registrations")
-      .select("id, tracks, full_name, email, status, created_at, nationality, passport_no")
+      .select("id, tracks, full_name, email, status, created_at, nationality, passport_no, plan")
       .eq("access_code", c)
       .maybeSingle();
     // Second factor: the email on file OR the passport/ID given at registration.
@@ -135,6 +135,7 @@ export async function lookupStatus(
       ],
       documents: [],
       requirements,
+      plan: (reg.plan as StudyPlan | null) ?? null,
       isLead: true,
     };
   }

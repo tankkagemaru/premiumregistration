@@ -8,7 +8,8 @@ import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 
 const BUCKET = "registration-docs";
-const UPLOAD_ROLES = ["admin", "admissions", "visa", "counsellor", "staff"];
+// finance included so receipts can be attached to payments.
+const UPLOAD_ROLES = ["admin", "admissions", "visa", "finance", "counsellor", "staff"];
 
 async function permitted() {
   const p = await getProfile();
@@ -40,18 +41,22 @@ export async function recordApplicationDoc(
   applicationId: string,
   kind: string,
   storagePath: string,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; id?: string }> {
   const profile = await permitted();
   if (!authConfigured || !profile) return { ok: false };
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
-  await admin.from("application_documents").insert({
-    application_id: applicationId,
-    kind,
-    storage_path: storagePath,
-    uploaded_by: profile.id,
-    review_status: "pending",
-  });
+  const { data: inserted } = await admin
+    .from("application_documents")
+    .insert({
+      application_id: applicationId,
+      kind,
+      storage_path: storagePath,
+      uploaded_by: profile.id,
+      review_status: "pending",
+    })
+    .select("id")
+    .single();
   await logAudit({
     action: "document_uploaded",
     target_type: "application",
@@ -59,7 +64,7 @@ export async function recordApplicationDoc(
     detail: kind,
   });
   revalidatePath("/admin", "layout");
-  return { ok: true };
+  return { ok: true, id: (inserted?.id as string) ?? undefined };
 }
 
 export async function setAppDocReview(docId: string, status: string) {

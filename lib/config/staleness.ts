@@ -66,6 +66,7 @@ export interface StalenessInput {
   status: string;
   created_at: string;
   next_action_due?: string | null;
+  stale_snoozed_until?: string | null; // dismissed-with-reason until this date
 }
 
 export function leadStaleness(
@@ -75,6 +76,13 @@ export function leadStaleness(
 ): StalenessResult {
   // Closed leads are done — never nag about them.
   if (lead.status === "enrolled" || lead.status === "dropped") {
+    return { level: "ok", reasons: [] };
+  }
+  // Dismissed with a recorded reason — stay quiet until the snooze expires.
+  if (
+    lead.stale_snoozed_until &&
+    new Date(lead.stale_snoozed_until).getTime() >= now.getTime() - 86_400_000
+  ) {
     return { level: "ok", reasons: [] };
   }
   const rules = rulesWithDays(days);

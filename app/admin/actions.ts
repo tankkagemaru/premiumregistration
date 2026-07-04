@@ -15,6 +15,70 @@ export async function signOut() {
   redirect("/admin/login");
 }
 
+/** Save a study plan on a LEAD (pre-conversion) — same shape as applications. */
+export async function saveLeadPlan(
+  id: string,
+  plan: {
+    intake?: string;
+    summary?: string;
+    steps: { title: string; start?: string; end?: string; note?: string }[];
+  },
+) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  const clean = {
+    intake: plan.intake?.trim() || undefined,
+    summary: plan.summary?.trim() || undefined,
+    steps: plan.steps
+      .filter((s) => s.title.trim())
+      .map((s) => ({
+        title: s.title.trim(),
+        start: s.start || undefined,
+        end: s.end || undefined,
+        note: s.note?.trim() || undefined,
+      })),
+    updated_at: new Date().toISOString(),
+  };
+  await supabase.from("registrations").update({ plan: clean }).eq("id", id);
+  await supabase.from("lead_events").insert({
+    registration_id: id,
+    actor_id: profile?.id,
+    type: "note",
+    body: `Study plan updated (${clean.steps.length} steps${clean.intake ? `, intake ${clean.intake}` : ""})`,
+  });
+  await logAudit({ action: "plan_saved", target_type: "lead", target_id: id, detail: clean.intake ?? "" });
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * Dismiss the stale-flag on a lead — requires a reason, which is recorded on
+ * the lead's timeline. Snoozes the warning for `days` (default a week).
+ */
+export async function dismissStaleFlag(id: string, reason: string, days = 7) {
+  if (!authConfigured || !reason.trim()) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  const until = new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  await supabase
+    .from("registrations")
+    .update({ stale_snoozed_until: until })
+    .eq("id", id);
+  await supabase.from("lead_events").insert({
+    registration_id: id,
+    actor_id: profile?.id,
+    type: "note",
+    body: `Stale flag dismissed until ${until} — ${reason.trim()}`,
+  });
+  await logAudit({
+    action: "stale_dismissed",
+    target_type: "lead",
+    target_id: id,
+    detail: `until ${until}: ${reason.trim()}`,
+  });
+  revalidatePath("/admin", "layout");
+}
+
 export async function logLeadMessage(id: string, channel: string, label: string) {
   if (!authConfigured || channel === "copy") return;
   const supabase = await createClient();

@@ -17,9 +17,11 @@ import {
   assignLead,
   updateDocReview,
   logLeadMessage,
+  dismissStaleFlag,
 } from "@/app/admin/actions";
 import { createApplicationFromLead } from "@/app/admin/application-actions";
 import { MessageComposer } from "@/components/admin/MessageComposer";
+import { PlanEditor } from "@/components/admin/PlanEditor";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
@@ -52,6 +54,78 @@ function Row({ k, v }: { k: string; v?: React.ReactNode }) {
     <div className="flex justify-between gap-4 py-1.5 text-sm">
       <span className="text-ink-muted">{k}</span>
       <span className="text-right font-medium text-ink">{v}</span>
+    </div>
+  );
+}
+
+/**
+ * Stale-record banner. Dismissing is deliberate: the officer must record WHY
+ * (logged on the lead's timeline) and the flag snoozes for a week.
+ */
+function StaleBanner({
+  lead,
+  stalenessDays,
+}: {
+  lead: Lead;
+  stalenessDays?: StalenessDays;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [dismissing, setDismissing] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const s = leadStaleness(lead, new Date(), stalenessDays);
+  if (s.level === "ok") return null;
+
+  return (
+    <div
+      className={`rounded-md border px-3 py-2 text-sm ${
+        s.level === "alert"
+          ? "border-brand-red/40 bg-brand-red-bg text-brand-red"
+          : "border-brand-gold/40 bg-status-late-bg text-brand-gold"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span>Needs attention — {s.reasons.join(" · ")}</span>
+        {!dismissing && (
+          <button
+            onClick={() => setDismissing(true)}
+            className="shrink-0 text-xs font-medium underline-offset-2 hover:underline"
+          >
+            Dismiss…
+          </button>
+        )}
+      </div>
+      {dismissing && (
+        <div className="mt-2 flex flex-col gap-2">
+          <input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Why is this OK? (required — recorded on the timeline)"
+            className="rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red"
+          />
+          <div className="flex gap-2">
+            <button
+              disabled={pending || !reason.trim()}
+              onClick={() =>
+                start(async () => {
+                  await dismissStaleFlag(lead.id, reason);
+                  router.refresh();
+                })
+              }
+              className="rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
+            >
+              {pending ? "Recording…" : "Dismiss for 7 days"}
+            </button>
+            <button
+              onClick={() => setDismissing(false)}
+              className="rounded-md border border-border-warm px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -114,22 +188,8 @@ export function LeadDrawer({
         </div>
 
         <div className="flex flex-col gap-6 px-6 py-5">
-          {/* Stale-record warning (thresholds in config/staleness) */}
-          {(() => {
-            const s = leadStaleness(lead, new Date(), stalenessDays);
-            if (s.level === "ok") return null;
-            return (
-              <div
-                className={`rounded-md border px-3 py-2 text-sm ${
-                  s.level === "alert"
-                    ? "border-brand-red/40 bg-brand-red-bg text-brand-red"
-                    : "border-brand-gold/40 bg-status-late-bg text-brand-gold"
-                }`}
-              >
-                Needs attention — {s.reasons.join(" · ")}
-              </div>
-            );
-          })()}
+          {/* Stale-record warning — dismissing requires a recorded reason */}
+          <StaleBanner lead={lead} stalenessDays={stalenessDays} />
 
           {/* Status + quick actions */}
           <div className="flex flex-wrap items-center gap-2">
@@ -346,6 +406,19 @@ export function LeadDrawer({
               ))}
             </select>
           </div>
+
+          {/* Study plan — drafted pre-conversion, carried onto the application */}
+          {(lead.tracks.includes("english") || lead.tracks.includes("university")) && (
+            <div>
+              <SectionLabel>Study plan</SectionLabel>
+              <PlanEditor
+                applicationId={lead.id}
+                studentName={lead.full_name}
+                plan={lead.plan}
+                target="lead"
+              />
+            </div>
+          )}
 
           {/* Follow-up */}
           <div>

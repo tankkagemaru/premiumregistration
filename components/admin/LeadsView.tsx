@@ -58,6 +58,7 @@ export function LeadsView({
   staff,
   officerName,
   stalenessDays,
+  initialAttention = false,
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
@@ -65,13 +66,14 @@ export function LeadsView({
   staff: Staff[];
   officerName?: string;
   stalenessDays?: StalenessDays;
+  initialAttention?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
   const [addMode, setAddMode] = useState<AddMode | null>(null);
-  const [attnOnly, setAttnOnly] = useState(false);
+  const [attnOnly, setAttnOnly] = useState(initialAttention);
   const staffName = Object.fromEntries(staff.map((s) => [s.id, s.full_name]));
 
   // Staleness is derived client-side from the loaded rows (day-granularity, so

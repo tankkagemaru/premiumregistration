@@ -80,7 +80,7 @@ export function ApplicationDrawer({
   const [note, setNote] = useState("");
 
   const close = () => router.push("/admin/applications");
-  const applicable = stagesFor(app.is_international);
+  const applicable = stagesFor(app.is_international, app.track);
 
   // Required documents come pre-resolved from the editable rules (server-side).
   const have = new Set(documents.map((d) => d.kind));
@@ -158,7 +158,7 @@ export function ApplicationDrawer({
           {/* Progress ring */}
           <div className="flex justify-center py-2">
             <ProgressRing
-              percent={stagePercent(app.stage, app.is_international)}
+              percent={stagePercent(app.stage, app.is_international, app.track)}
               flag={app.flag ?? "progress"}
               size={120}
               sublabel={STAGE_LABEL[app.stage]}

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { listLeads } from "@/lib/admin/leads";
+import { getStalenessDays } from "@/lib/admin/settings";
+import { leadStaleness } from "@/lib/config/staleness";
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
@@ -42,6 +44,13 @@ export default async function Dashboard() {
   ).sort((a, b) => b[1] - a[1]);
   const maxSource = Math.max(1, ...sources.map(([, n]) => n));
 
+  // Stale leads (console-configured thresholds) — surfaced loudly up top.
+  const stalenessDays = await getStalenessDays();
+  const now = new Date();
+  const staleLeads = leads.filter(
+    (l) => leadStaleness(l, now, stalenessDays).level !== "ok",
+  );
+
   const today = new Date().toISOString().slice(0, 10);
   const unassigned = leads.filter((l) => !l.assigned_to && l.status === "new");
   const overdue = leads.filter(
@@ -53,6 +62,26 @@ export default async function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8">
+      {staleLeads.length > 0 && (
+        <Link
+          href="/admin/leads?attn=1"
+          className="flex items-center justify-between gap-3 rounded-card border border-brand-red/40 bg-brand-red-bg px-5 py-4 transition-colors hover:border-brand-red"
+        >
+          <div>
+            <p className="font-serif text-lg font-medium text-brand-red">
+              {staleLeads.length} lead{staleLeads.length === 1 ? "" : "s"} need
+              attention
+            </p>
+            <p className="text-sm text-ink-soft">
+              Going cold — uncontacted, overdue, or missing a follow-up. Dismissing
+              one requires recording why.
+            </p>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-brand-red">
+            Review →
+          </span>
+        </Link>
+      )}
       {total === 0 && (
         <div className="rounded-card border border-border-warm bg-paper p-6">
           <p className="font-serif text-xl text-ink">Welcome — let&apos;s get started.</p>

@@ -56,6 +56,29 @@ export async function GET(request: Request) {
 
   const buffer = await renderToBuffer(EnglishOfferLetter({ data }));
 
+  // Auto-attach the generated letter as an offer_letter document, so the
+  // student can download + acknowledge it on the status portal (same flow as
+  // university offers). Best-effort — a storage hiccup must not block the PDF.
+  try {
+    const { randomUUID } = await import("node:crypto");
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const path = `applications/${app.id}/offer_letter/${randomUUID()}-offer-${data.ref}.pdf`;
+    const { error: upErr } = await admin.storage
+      .from("registration-docs")
+      .upload(path, new Uint8Array(buffer), { contentType: "application/pdf" });
+    if (!upErr) {
+      await admin.from("application_documents").insert({
+        application_id: app.id,
+        kind: "offer_letter",
+        storage_path: path,
+        review_status: "verified", // we issued it ourselves
+      });
+    }
+  } catch (err) {
+    console.error("[offer] attach failed:", err);
+  }
+
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "content-type": "application/pdf",

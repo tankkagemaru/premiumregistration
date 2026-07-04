@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { STAGES, type Application } from "@/lib/admin/applications-shared";
+import { STAGES, CORPORATE_STAGES, type Application } from "@/lib/admin/applications-shared";
 import { advanceApplicationStage } from "@/app/admin/application-actions";
 import { TRACKS } from "@/lib/config/tracks";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,18 @@ export function ApplicationsBoard({ apps }: { apps: Application[] }) {
     });
   }
 
+  // Student columns, plus the corporate-only lanes when a corporate deal exists
+  // (so proposal/quote/HRDF/delivery cards never disappear from the board).
+  const hasCorporate = apps.some((a) => a.track === "corporate");
+  const studentIds = new Set(STAGES.map((s) => s.id));
+  const columns = hasCorporate
+    ? [...STAGES, ...CORPORATE_STAGES.filter((s) => !studentIds.has(s.id))]
+    : STAGES;
+
   return (
     <div className="overflow-x-auto pb-2">
       <div className="flex min-w-max gap-3">
-        {STAGES.map((stage) => {
+        {columns.map((stage) => {
           const cards = apps.filter((a) => a.stage === stage.id);
           return (
             <div

@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
+import { AgentReferForm } from "@/components/agent/AgentReferForm";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -71,11 +72,14 @@ export default async function AgentHome() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          {agent.name} · {agent.code}
-        </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">Your students</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            {agent.name} · {agent.code}
+          </p>
+          <h1 className="font-serif text-3xl font-medium text-ink">Your students</h1>
+        </div>
+        <AgentReferForm />
       </div>
 
       {/* Stat row */}
@@ -185,7 +189,7 @@ export default async function AgentHome() {
                     <td className="px-4 py-3">
                       <div className="flex justify-center">
                         <ProgressRing
-                          percent={stagePercent(a.stage, a.is_international)}
+                          percent={stagePercent(a.stage, a.is_international, a.track)}
                           flag={a.flag ?? "progress"}
                           size={44}
                           thickness={5}
