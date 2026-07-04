@@ -53,6 +53,7 @@ export interface Commission {
   /** payable = PECSB pays the recruitment partner; receivable = a university pays PECSB. */
   direction: "payable" | "receivable";
   amount: number;
+  base_amount?: number | null; // the fee the rate was applied to (settable per deal)
   currency: string;
   milestone: string; // on_offer | on_enrolment | on_payment
   status: CommissionStatus;

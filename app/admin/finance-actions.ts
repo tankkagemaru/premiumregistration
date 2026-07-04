@@ -53,6 +53,31 @@ export async function setFeeStatus(feeId: string, status: string) {
   revalidatePath("/admin", "layout");
 }
 
+/**
+ * Set a commission's payable/receivable amount, optionally recording the base
+ * fee it was computed from (base × rate). Lets finance price a single deal up or
+ * down for promotions without touching the underlying rule.
+ */
+export async function setCommissionAmount(
+  id: string,
+  amount: number,
+  baseAmount?: number | null,
+) {
+  if (!authConfigured || !Number.isFinite(amount) || amount < 0) return;
+  const supabase = await createClient();
+  await supabase
+    .from("commissions")
+    .update({ amount, base_amount: baseAmount ?? null })
+    .eq("id", id);
+  await logAudit({
+    action: "commission_amount_set",
+    target_type: "commission",
+    target_id: id,
+    detail: `MYR ${amount}${baseAmount != null ? ` (base ${baseAmount})` : ""}`,
+  });
+  revalidatePath("/admin", "layout");
+}
+
 export async function setCommissionStatus(id: string, status: string) {
   if (!authConfigured) return;
   const supabase = await createClient();

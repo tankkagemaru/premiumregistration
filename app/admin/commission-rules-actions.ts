@@ -19,6 +19,8 @@ export interface RuleInput {
   rate?: number | null;
   our_share_pct?: number | null;
   min_students?: number | null;
+  base_amount?: number | null;
+  base_fee_type?: string | null;
 }
 
 async function permitted() {
@@ -43,6 +45,8 @@ export async function createCommissionRule(
     rate: input.rate ?? null,
     our_share_pct: input.our_share_pct ?? null,
     min_students: input.min_students ?? null,
+    base_amount: input.base_amount ?? null,
+    base_fee_type: input.base_fee_type || null,
   });
   await logAudit({
     action: "commission_rule_created",

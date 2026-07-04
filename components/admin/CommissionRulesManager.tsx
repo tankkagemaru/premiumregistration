@@ -11,6 +11,8 @@ import {
   RULE_TRACKS,
   RULE_CATEGORIES,
   CATEGORY_LABEL,
+  BASE_FEE_TYPES,
+  BASE_FEE_TYPE_LABEL,
   ruleValue,
   ruleTarget,
   type CommissionRule,
@@ -45,6 +47,8 @@ export function CommissionRulesManager({
     rate: "",
     our_share_pct: "",
     min_students: "",
+    base_amount: "",
+    base_fee_type: "",
   });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -65,8 +69,11 @@ export function CommissionRulesManager({
         rate: form.rate ? Number(form.rate) : null,
         our_share_pct: form.our_share_pct ? Number(form.our_share_pct) : null,
         min_students: form.min_students ? Number(form.min_students) : null,
+        base_amount: form.base_amount ? Number(form.base_amount) : null,
+        base_fee_type:
+          form.base_fee_type || (form.track === "english" ? "tuition" : undefined),
       });
-      setForm({ ...form, label: "", rate: "", our_share_pct: "", min_students: "", university: "", subject_id: "" });
+      setForm({ ...form, label: "", rate: "", our_share_pct: "", min_students: "", base_amount: "", university: "", subject_id: "" });
       setOpen(false);
       router.refresh();
     });
@@ -154,6 +161,21 @@ export function CommissionRulesManager({
                 <input type="number" value={form.rate} onChange={(e) => set("rate", e.target.value)} placeholder={form.basis === "fixed" ? "500" : "15"} className={`mt-1 w-full ${F}`} />
               </label>
             )}
+            {form.basis === "percent" && (
+              <>
+                <label className="text-xs font-medium text-ink-soft">
+                  Base fee (MYR)
+                  <input type="number" value={form.base_amount} onChange={(e) => set("base_amount", e.target.value)} placeholder="e.g. 6000" className={`mt-1 w-full ${F}`} />
+                </label>
+                <label className="text-xs font-medium text-ink-soft">
+                  Base is
+                  <select value={form.base_fee_type} onChange={(e) => set("base_fee_type", e.target.value)} className={`mt-1 w-full ${F}`}>
+                    <option value="">{form.track === "english" ? "Tuition only (default)" : "Any / full fee"}</option>
+                    {BASE_FEE_TYPES.map((b) => <option key={b} value={b}>{BASE_FEE_TYPE_LABEL[b]}</option>)}
+                  </select>
+                </label>
+              </>
+            )}
             {usesSubject && (
               <label className="text-xs font-medium text-ink-soft">
                 Tier: from N students
@@ -161,6 +183,12 @@ export function CommissionRulesManager({
               </label>
             )}
           </div>
+          {form.track === "english" && form.basis === "percent" && (
+            <p className="mt-2 text-xs text-ink-muted">
+              English commission is paid on tuition only. The base fee is settable —
+              adjust it for promotions or a lower/higher agent price.
+            </p>
+          )}
           <button
             onClick={submit}
             disabled={pending}

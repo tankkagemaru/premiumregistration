@@ -15,6 +15,7 @@ import { SearchBox } from "@/components/admin/SearchBox";
 import {
   FeeStatusSelect,
   CommissionStatusSelect,
+  CommissionAmountControl,
 } from "@/components/admin/FinanceControls";
 import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
 import { PaymentControl } from "@/components/admin/PaymentControl";
@@ -191,8 +192,13 @@ export default async function FinancePage({
                       {c.direction === "payable" ? "We pay" : "We receive"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-ink tabular">
-                    {formatMoney(c.amount, c.currency)}
+                  <td className="px-4 py-3 text-right">
+                    <CommissionAmountControl
+                      id={c.id}
+                      amount={c.amount}
+                      base={c.base_amount}
+                      currency={c.currency}
+                    />
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-muted">
                     {c.milestone.replace(/_/g, " ")}
