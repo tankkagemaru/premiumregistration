@@ -45,7 +45,7 @@ const PAY_TONE: Record<"paid" | "due" | "none", string> = {
 };
 
 export default async function AgentHome() {
-  const { agent, apps, commissions, fees } = await getAgentPortal();
+  const { agent, apps, commissions, fees, docs } = await getAgentPortal();
   const referral = `${APP_URL}/register?agent=${agent.code}`;
   const enrolled = apps.filter((a) =>
     ["enrolled", "active", "completed"].includes(a.stage),
