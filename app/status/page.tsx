@@ -103,7 +103,7 @@ export default function StatusPage() {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
+            className="rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft disabled:opacity-60"
           >
             {busy ? t("status.checking") : t("status.check")}
           </button>
@@ -163,8 +163,8 @@ export default function StatusPage() {
                     <span
                       className={cn(
                         "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium",
-                        done && "bg-status-present text-cream",
-                        current && "bg-brand-red text-cream",
+                        done && "bg-status-present text-oncolor",
+                        current && "bg-brand-red text-oncolor",
                         !done && !current && "border border-border-warm text-ink-muted",
                       )}
                     >

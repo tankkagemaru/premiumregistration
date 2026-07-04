@@ -95,7 +95,7 @@ export default async function FollowUpsPage({
               key={s}
               href={`/admin/follow-ups${s === "all" ? "?scope=all" : ""}`}
               className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                scope === s ? "bg-ink text-cream" : "text-ink-soft hover:text-ink"
+                scope === s ? "bg-inkbtn text-oncolor" : "text-ink-soft hover:text-ink"
               }`}
             >
               {s === "mine" ? "Mine" : "Everyone"}

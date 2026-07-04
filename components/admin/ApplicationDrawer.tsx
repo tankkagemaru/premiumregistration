@@ -95,7 +95,7 @@ export function ApplicationDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-ink/30" onClick={close} aria-hidden />
+      <div className="absolute inset-0 bg-inkbtn/30" onClick={close} aria-hidden />
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
         <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
           <div>
@@ -199,7 +199,7 @@ export function ApplicationDrawer({
               href={`/api/offer?app=${app.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-inkbtn px-4 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
             >
               Generate offer letter →
             </a>
@@ -263,7 +263,7 @@ export function ApplicationDrawer({
                     type="button"
                     disabled={pending}
                     onClick={() => start(async () => { await createVisaCase(app.id, "pecsb"); router.refresh(); })}
-                    className="rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-cream hover:bg-ink-soft disabled:opacity-50"
+                    className="rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
                   >
                     PECSB files
                   </button>
@@ -357,7 +357,7 @@ export function ApplicationDrawer({
                     router.refresh();
                   })
                 }
-                className="self-start rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+                className="self-start rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
               >
                 Add note
               </button>

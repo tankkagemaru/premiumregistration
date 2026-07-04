@@ -132,7 +132,7 @@ export function UserManager({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
+            className="rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft disabled:opacity-60"
           >
             {pending ? "Creating…" : "Create account"}
           </button>

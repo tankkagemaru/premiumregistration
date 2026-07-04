@@ -64,7 +64,7 @@ export function VisaCaseDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-ink/30" onClick={close} aria-hidden />
+      <div className="absolute inset-0 bg-inkbtn/30" onClick={close} aria-hidden />
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
         <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
           <div>
@@ -149,7 +149,7 @@ export function VisaCaseDrawer({
           <button
             onClick={save}
             disabled={pending}
-            className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+            className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
           >
             {pending ? "Saving…" : "Save changes"}
           </button>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { ConsoleNav } from "@/components/admin/ConsoleNav";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NotificationBell } from "@/components/admin/NotificationBell";
 import { listNotifications } from "@/lib/admin/notifications";
 import { signOut } from "../actions";
@@ -26,6 +27,7 @@ export default async function ConsoleLayout({
             </span>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
+            <ThemeToggle />
             <NotificationBell items={notifications} userId={profile.id} />
             <span className="hidden text-sm text-ink-soft sm:inline">{profile.full_name}</span>
             <form action={signOut}>

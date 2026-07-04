@@ -88,7 +88,7 @@ export function AddRecordDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/30 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-inkbtn/30 p-4 sm:p-8"
       onClick={onClose}
     >
       <div
@@ -230,7 +230,7 @@ export function AddRecordDialog({
                 type="button"
                 onClick={() => run(true)}
                 disabled={pending}
-                className="ml-2 inline-flex rounded-md bg-ink px-3 py-1 text-xs font-medium text-cream transition-colors hover:bg-ink-soft disabled:opacity-60"
+                className="ml-2 inline-flex rounded-md bg-inkbtn px-3 py-1 text-xs font-medium text-oncolor transition-colors hover:bg-inkbtn-soft disabled:opacity-60"
               >
                 {pending ? "Saving…" : "Create anyway"}
               </button>
@@ -250,7 +250,7 @@ export function AddRecordDialog({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-ink px-5 py-2 text-sm font-medium text-cream transition-colors hover:bg-ink-soft disabled:opacity-60"
+              className="rounded-md bg-inkbtn px-5 py-2 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft disabled:opacity-60"
             >
               {pending ? "Saving…" : copy.cta}
             </button>

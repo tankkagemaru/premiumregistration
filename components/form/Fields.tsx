@@ -144,7 +144,7 @@ export function Segmented({ options, value, onChange, error }: SegmentedProps) {
             className={cn(
               "rounded-md border px-3.5 py-2 text-sm transition-colors",
               active
-                ? "border-brand-red bg-brand-red text-cream"
+                ? "border-brand-red bg-brand-red text-oncolor"
                 : "border-border-warm bg-paper text-ink hover:bg-cream-50",
             )}
           >
@@ -301,7 +301,7 @@ export function SearchableMultiSelect({
                       className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
                         checked
-                          ? "border-brand-red bg-brand-red text-cream"
+                          ? "border-brand-red bg-brand-red text-oncolor"
                           : "border-border-warm",
                       )}
                     >

@@ -35,13 +35,13 @@ export function Button({
   };
 
   const variants: Record<Variant, string> = {
-    primary: "bg-ink text-cream hover:bg-ink-soft",
+    primary: "bg-inkbtn text-oncolor hover:bg-inkbtn-soft",
     // Public-site marketing CTA — the brand red gets the click on this app.
-    brand: "bg-brand-red text-cream hover:bg-brand-red-soft",
+    brand: "bg-brand-red text-oncolor hover:bg-brand-red-soft",
     secondary: "border border-border-warm bg-paper text-ink hover:bg-cream-50",
-    danger: "bg-brand-red text-cream hover:bg-brand-red-soft",
+    danger: "bg-brand-red text-oncolor hover:bg-brand-red-soft",
     ghost: "text-ink-soft hover:text-ink hover:bg-cream-50",
-    success: "bg-status-present text-cream hover:opacity-90",
+    success: "bg-status-present text-oncolor hover:opacity-90",
   };
 
   return (

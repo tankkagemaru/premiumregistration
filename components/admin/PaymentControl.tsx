@@ -52,7 +52,7 @@ export function PaymentControl({
             router.refresh();
           })
         }
-        className="rounded-md bg-ink px-2.5 py-1 text-xs font-medium text-cream hover:bg-ink-soft disabled:opacity-50"
+        className="rounded-md bg-inkbtn px-2.5 py-1 text-xs font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
       >
         Save
       </button>

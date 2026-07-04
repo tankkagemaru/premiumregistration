@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: <html class="dark"> (set by the no-flash script). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* -----------------------------------------------------------------------
    Design tokens — copied verbatim from the PECSB `qrattendance` app so the
    two products feel like one family. Tailwind v4 @theme generates utilities
@@ -18,6 +21,14 @@
   --color-ink-muted: #6e655c;
   --color-border-warm: #e8dfd2;
   --color-border-soft: #efe7d9;
+
+  /* Semantic decoupling tokens (so dark mode can flip surfaces/text without
+     breaking buttons that reused cream/ink for the opposite purpose):
+     oncolor = light text/icon on any coloured or dark surface (buttons,
+     badges); inkbtn = the dark primary-button surface + modal scrims. */
+  --color-oncolor: #faf4ea;
+  --color-inkbtn: #1b1612;
+  --color-inkbtn-soft: #4a4239;
 
   /* Brand accents */
   --color-brand-red: #a8242e;
@@ -42,6 +53,43 @@
 
   /* Radii — softer than default for the editorial feel */
   --radius-card: 0.625rem;
+}
+
+/* -----------------------------------------------------------------------
+   Dark theme — warm near-black derived from the same editorial family.
+   Only the token VALUES change; every utility (bg-cream, text-ink, …) keeps
+   working. inkbtn stays dark + oncolor stays light in both modes, so primary
+   buttons and scrims are unaffected by the flip.
+----------------------------------------------------------------------- */
+.dark {
+  --color-cream: #17130f;
+  --color-cream-50: #201a15;
+  --color-paper: #221c16;
+  --color-ink: #f0e8dc;
+  --color-ink-soft: #cabfae;
+  --color-ink-muted: #978c7d;
+  --color-border-warm: #38312a;
+  --color-border-soft: #2f2822;
+
+  --color-brand-red: #d95d66;
+  --color-brand-red-soft: #e57f86;
+  --color-brand-red-bg: #3b1e21;
+  --color-brand-gold: #cfa668;
+  --color-brand-gold-soft: #e2c491;
+
+  --color-status-present: #6fae7b;
+  --color-status-present-bg: #1f2f25;
+  --color-status-late: #cfa668;
+  --color-status-late-bg: #34291a;
+  --color-status-absent: #d95d66;
+  --color-status-absent-bg: #3b1e21;
+
+  /* Primary buttons stay a warm dark (lifted so they read on the near-black
+     page); their text is oncolor (light) in both modes. */
+  --color-inkbtn: #2e2720;
+  --color-inkbtn-soft: #3a322a;
+
+  color-scheme: dark;
 }
 
 body {

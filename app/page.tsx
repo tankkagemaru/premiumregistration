@@ -49,7 +49,7 @@ export default function Home() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft"
+            className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-3 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft"
           >
             {t("landing.cta")}
             <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />

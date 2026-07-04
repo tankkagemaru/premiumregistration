@@ -82,7 +82,7 @@ export function CommissionRulesManager({
         </p>
         <button
           onClick={() => setOpen((o) => !o)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-cream hover:bg-ink-soft"
+          className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
           Add rule
@@ -164,7 +164,7 @@ export function CommissionRulesManager({
           <button
             onClick={submit}
             disabled={pending}
-            className="mt-3 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+            className="mt-3 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
           >
             {pending ? "Saving…" : "Save rule"}
           </button>

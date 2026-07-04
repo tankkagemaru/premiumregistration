@@ -294,7 +294,7 @@ export function RegisterForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft disabled:opacity-60"
             >
               {submitting ? t("submit.sending") : t("review.submit")}
               {!submitting && <Check className="h-4 w-4" aria-hidden />}
@@ -303,7 +303,7 @@ export function RegisterForm() {
             <button
               type="button"
               onClick={next}
-              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft"
             >
               {t("nav.continue")}
               <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
@@ -395,7 +395,7 @@ function IntentStep({ form, t }: { form: Form; t: T }) {
                     </div>
                   </div>
                   {active ? (
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-red text-cream">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-red text-oncolor">
                       <Check className="h-3 w-3" aria-hidden />
                     </span>
                   ) : (

@@ -122,7 +122,7 @@ export function LeadsView({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setAddMode("lead")}
-            className="inline-flex items-center gap-2 rounded-md bg-ink px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+            className="inline-flex items-center gap-2 rounded-md bg-inkbtn px-3 py-2 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
           >
             <UserPlus className="h-4 w-4" aria-hidden />
             Add enquiry

@@ -41,7 +41,7 @@ export function AcademicControls({
         <button
           disabled={pending}
           onClick={() => start(async () => { await setClassDates(appId, s || null, e || null); router.refresh(); })}
-          className="rounded-md bg-ink px-2.5 py-1 text-xs font-medium text-cream hover:bg-ink-soft disabled:opacity-50"
+          className="rounded-md bg-inkbtn px-2.5 py-1 text-xs font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
         >
           Save
         </button>
@@ -50,7 +50,7 @@ export function AcademicControls({
         <button
           disabled={pending}
           onClick={() => start(async () => { await advanceApplicationStage(appId, "enrolled"); router.refresh(); })}
-          className="inline-flex items-center gap-1 rounded-md bg-brand-red px-2.5 py-1 text-xs font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md bg-brand-red px-2.5 py-1 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
         >
           <Check className="h-3 w-3" aria-hidden />
           Mark enrolled

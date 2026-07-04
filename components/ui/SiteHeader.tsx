@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Activity } from "lucide-react";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useI18n } from "@/lib/i18n/context";
 
 // Shared header: PECSB logo + the "regist·er" wordmark (the site's name),
@@ -33,6 +34,7 @@ export function SiteHeader() {
             <Activity className="h-3.5 w-3.5" aria-hidden />
             {t("nav.checkStatus")}
           </Link>
+          <ThemeToggle />
           <LanguageSwitcher />
         </div>
       </div>

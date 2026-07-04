@@ -58,7 +58,7 @@ export default async function Dashboard() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href="/admin/leads"
-              className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+              className="rounded-md bg-inkbtn px-4 py-2 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
             >
               Go to Leads
             </Link>

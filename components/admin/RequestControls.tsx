@@ -102,7 +102,7 @@ export function RaiseRequest({
               router.refresh();
             })
           }
-          className="shrink-0 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-50"
+          className="shrink-0 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft disabled:opacity-50"
         >
           {pending ? "Sending…" : "Send"}
         </button>

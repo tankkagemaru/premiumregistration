@@ -105,7 +105,7 @@ export function MessageComposer({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => onSent?.("whatsapp", tpl.label)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-status-present/90 px-3 py-1.5 text-xs font-medium text-cream transition-colors hover:bg-status-present"
+                className="inline-flex items-center gap-1.5 rounded-md bg-status-present/90 px-3 py-1.5 text-xs font-medium text-oncolor transition-colors hover:bg-status-present"
               >
                 <MessageCircle className="h-3.5 w-3.5" aria-hidden />
                 WhatsApp
@@ -115,7 +115,7 @@ export function MessageComposer({
               <a
                 href={mailtoUrl(recipient.email, subject, body)}
                 onClick={() => onSent?.("email", tpl.label)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-cream transition-colors hover:bg-ink-soft"
+                className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
               >
                 <Mail className="h-3.5 w-3.5" aria-hidden />
                 Email

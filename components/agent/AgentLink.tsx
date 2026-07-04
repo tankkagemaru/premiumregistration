@@ -21,7 +21,7 @@ export function AgentLink({ url }: { url: string }) {
       <button
         type="button"
         onClick={copy}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-xs font-medium text-cream transition-colors hover:bg-ink-soft"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-inkbtn px-3 py-2 text-xs font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
       >
         {copied ? (
           <Check className="h-3.5 w-3.5" aria-hidden />

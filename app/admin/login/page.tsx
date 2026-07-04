@@ -55,7 +55,7 @@ export default function AdminLogin() {
             </p>
             <a
               href="/admin"
-              className="mt-5 inline-flex rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft"
+              className="mt-5 inline-flex rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft"
             >
               Enter console
             </a>
@@ -85,7 +85,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={busy}
-              className="rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
+              className="rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-brand-red-soft disabled:opacity-60"
             >
               {busy ? "Signing in…" : "Sign in"}
             </button>

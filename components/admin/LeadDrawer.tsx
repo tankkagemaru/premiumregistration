@@ -87,7 +87,7 @@ export function LeadDrawer({
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
-        className="absolute inset-0 bg-ink/30"
+        className="absolute inset-0 bg-inkbtn/30"
         onClick={onClose}
         aria-hidden
       />
@@ -161,7 +161,7 @@ export function LeadDrawer({
                 router.push("/admin/applications");
               })
             }
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-ink-soft disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-inkbtn px-4 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft disabled:opacity-50"
           >
             Create application →
           </button>
@@ -367,7 +367,7 @@ export function LeadDrawer({
                     refresh();
                   })
                 }
-                className="self-start rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-cream hover:bg-brand-red-soft disabled:opacity-50"
+                className="self-start rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
               >
                 Add note
               </button>
