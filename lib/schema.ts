@@ -44,6 +44,7 @@ export const universitySchema = z.object({
   study_mode: z.string().optional(), // coursework | research | mixed | any
   intended_field: z.string().optional(),
   preferred_universities: z.array(z.string()).optional(),
+  recommend_institution: yesNo.optional(), // "not sure — recommend for me"
   intake_preference: z.string().optional(),
   scholarship_interest: yesNo.optional(),
 });
@@ -143,10 +144,12 @@ export const registrationSchema = z
         ["university", "intended_qualification"],
         "Select what you want to study.",
       );
+      // Institutions are optional if the applicant asks us to recommend for them.
       require(
-        !val.university?.preferred_universities?.length,
+        val.university?.recommend_institution !== "yes" &&
+          !val.university?.preferred_universities?.length,
         ["university", "preferred_universities"],
-        "Pick at least one institution.",
+        "Pick at least one institution, or ask us to recommend.",
       );
     }
     if (val.tracks.includes("corporate")) {

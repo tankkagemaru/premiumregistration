@@ -226,9 +226,13 @@ export function LeadDrawer({
               <Row k="Field" v={uni.intended_field as string} />
               <Row
                 k="Institutions"
-                v={(uni.preferred_universities as string[] | undefined)
-                  ?.map((u) => lbl(MALAYSIAN_INSTITUTIONS, u))
-                  .join(", ")}
+                v={
+                  uni.recommend_institution === "yes"
+                    ? "Wants our recommendation"
+                    : (uni.preferred_universities as string[] | undefined)
+                        ?.map((u) => lbl(MALAYSIAN_INSTITUTIONS, u))
+                        .join(", ")
+                }
               />
               <Row k="Intake" v={lbl(INTAKE_PREFERENCES, uni.intake_preference as string)} />
             </div>

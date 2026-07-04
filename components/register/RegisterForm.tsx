@@ -664,8 +664,9 @@ function EnglishStep({ form, t }: { form: Form; t: T }) {
 }
 
 function UniversityStep({ form, t }: { form: Form; t: T }) {
-  const { register, control, formState } = form;
+  const { register, control, formState, watch, setValue } = form;
   const e = formState.errors.university ?? {};
+  const recommend = watch("university.recommend_institution") === "yes";
   return (
     <div>
       <StepHead n="03" kicker={t("university.kicker")} title={t("university.title")} sub={t("university.sub")} />
@@ -730,23 +731,41 @@ function UniversityStep({ form, t }: { form: Form; t: T }) {
         </Field>
         <Field
           label={t("university.institutions")}
-          error={e.preferred_universities && t("university.errInstitutions")}
-          hint={t("university.institutionsHint")}
+          error={!recommend && e.preferred_universities && t("university.errInstitutions")}
+          hint={!recommend ? t("university.institutionsHint") : undefined}
         >
-          <Controller
-            control={control}
-            name="university.preferred_universities"
-            render={({ field }) => (
-              <SearchableMultiSelect
-                options={MALAYSIAN_INSTITUTIONS}
-                value={field.value ?? []}
-                onChange={field.onChange}
-                placeholder={t("university.institutionsPh")}
-                groupLabels={INSTITUTION_GROUP_LABELS}
-                error={e.preferred_universities?.message as string | undefined}
-              />
-            )}
-          />
+          {!recommend && (
+            <Controller
+              control={control}
+              name="university.preferred_universities"
+              render={({ field }) => (
+                <SearchableMultiSelect
+                  options={MALAYSIAN_INSTITUTIONS}
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder={t("university.institutionsPh")}
+                  groupLabels={INSTITUTION_GROUP_LABELS}
+                  error={e.preferred_universities?.message as string | undefined}
+                />
+              )}
+            />
+          )}
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              checked={recommend}
+              onChange={(ev) => {
+                setValue(
+                  "university.recommend_institution",
+                  ev.target.checked ? "yes" : "no",
+                );
+                if (ev.target.checked)
+                  setValue("university.preferred_universities", []);
+              }}
+              className="h-4 w-4 rounded border-border-warm text-brand-red focus:ring-brand-red"
+            />
+            {t("university.recommendMe")}
+          </label>
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label={t("university.intake")} htmlFor="uni_intake" optionalLabel={t("common.optional")}>
@@ -944,9 +963,13 @@ function ReviewStep({
           <Row k={t("review.rField")} v={v.university?.intended_field} />
           <Row
             k={t("review.rInstitutions")}
-            v={v.university?.preferred_universities
-              ?.map((u) => findLabel(MALAYSIAN_INSTITUTIONS, u))
-              .join(", ")}
+            v={
+              v.university?.recommend_institution === "yes"
+                ? t("university.recommendMe")
+                : v.university?.preferred_universities
+                    ?.map((u) => findLabel(MALAYSIAN_INSTITUTIONS, u))
+                    .join(", ")
+            }
           />
         </div>
       )}

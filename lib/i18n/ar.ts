@@ -107,6 +107,7 @@ export const ar: Dictionary = {
     institutions: "المؤسسات المفضّلة",
     institutionsHint: "ابحث في جميع الجامعات والكليات الجامعية في ماليزيا.",
     institutionsPh: "ابحث عن المؤسسات…",
+    recommendMe: "غير متأكد — أوصوا لي بالأنسب",
     intake: "فترة الالتحاق المفضّلة",
     intakePh: "اختر فترة الالتحاق",
     scholarship: "مهتم بالمنح الدراسية؟",

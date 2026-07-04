@@ -107,6 +107,7 @@ export const ja: Dictionary = {
     institutions: "希望する教育機関",
     institutionsHint: "マレーシアのすべての大学・大学カレッジを検索できます。",
     institutionsPh: "教育機関を検索…",
+    recommendMe: "決めかねる — 最適な進学先を提案してください",
     intake: "希望入学時期",
     intakePh: "入学時期を選択",
     scholarship: "奨学金に関心がありますか？",

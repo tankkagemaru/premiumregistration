@@ -131,6 +131,7 @@ export const en = {
     institutionsHint:
       "Search across every university and university college in Malaysia.",
     institutionsPh: "Search institutions…",
+    recommendMe: "Not sure — recommend the best fit for me",
     intake: "Intake preference",
     intakePh: "Select intake",
     scholarship: "Interested in scholarships?",

@@ -107,6 +107,7 @@ export const zh: Dictionary = {
     institutions: "意向院校",
     institutionsHint: "可搜索马来西亚所有大学及大学学院。",
     institutionsPh: "搜索院校…",
+    recommendMe: "不确定 — 请为我推荐最合适的院校",
     intake: "入学时间偏好",
     intakePh: "请选择入学时间",
     scholarship: "是否有意申请奖学金？",
