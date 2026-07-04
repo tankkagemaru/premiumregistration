@@ -22,6 +22,8 @@ import {
 } from "@/app/admin/application-actions";
 import { DocRequestControl } from "@/components/admin/DocRequestControl";
 import { WorkLog } from "@/components/admin/WorkLog";
+import { AddFeeControl } from "@/components/admin/AddFeeControl";
+import type { BillableItem } from "@/lib/admin/billables-shared";
 import { createVisaCase } from "@/app/admin/visa-actions";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
 import { PlanEditor } from "@/components/admin/PlanEditor";
@@ -57,6 +59,7 @@ export function ApplicationDrawer({
   requests = [],
   docRequirements = [],
   docRequests = [],
+  billables = [],
   role = "staff",
   officerName,
 }: {
@@ -71,6 +74,7 @@ export function ApplicationDrawer({
   requests?: ActionRequest[];
   docRequirements?: DocRequirement[];
   docRequests?: AppDocRequest[];
+  billables?: BillableItem[];
   role?: string;
   officerName?: string;
 }) {
@@ -226,7 +230,7 @@ export function ApplicationDrawer({
           )}
 
           {/* Fees */}
-          {fees.length > 0 && (
+          {(fees.length > 0 || (billables.length > 0 && ["admin", "finance"].includes(role))) && (
             <div>
               <SectionLabel>Fees</SectionLabel>
               <div className="flex flex-col gap-1.5">
@@ -255,6 +259,9 @@ export function ApplicationDrawer({
                   </div>
                 ))}
               </div>
+              {["admin", "finance"].includes(role) && (
+                <AddFeeControl applicationId={app.id} items={billables} />
+              )}
             </div>
           )}
 

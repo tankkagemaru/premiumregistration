@@ -2,6 +2,7 @@ import { getProfile } from "@/lib/auth";
 import { listApplications, getApplication } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listAppDocRequests } from "@/lib/admin/doc-requests";
+import { listBillableItems } from "@/lib/admin/billables";
 import { listFeesForApp } from "@/lib/admin/finance";
 import { getVisaCaseForApp } from "@/lib/admin/visa";
 import { listRequests } from "@/lib/admin/requests";
@@ -20,14 +21,15 @@ export default async function ApplicationsPage({
   const apps = await listApplications({ q: one(sp.q) });
   const appParam = one(sp.app);
   const selected = appParam ? await getApplication(appParam) : null;
-  const [fees, visa, requests, profile] = selected
+  const [fees, visa, requests, profile, billables] = selected
     ? await Promise.all([
         listFeesForApp(appParam!),
         getVisaCaseForApp(appParam!),
         listRequests({ applicationId: appParam! }),
         getProfile(),
+        listBillableItems(),
       ])
-    : [[], null, [], null];
+    : [[], null, [], null, []];
   // Document requirements resolved from the editable rules (track / level /
   // residency / nationality) plus any one-off requests for this application.
   const [ruleReqs, docRequests] = selected
@@ -79,6 +81,7 @@ export default async function ApplicationsPage({
           requests={requests}
           docRequirements={docRequirements}
           docRequests={docRequests}
+          billables={billables}
           role={profile?.role ?? "staff"}
           officerName={profile?.full_name}
         />

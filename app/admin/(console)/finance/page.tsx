@@ -10,6 +10,7 @@ import {
   type FeeStatus,
 } from "@/lib/admin/finance";
 import { listCommissionRules } from "@/lib/admin/commission-rules";
+import { listBillableItems } from "@/lib/admin/billables";
 import { listUsers } from "@/lib/admin/users";
 import { SearchBox } from "@/components/admin/SearchBox";
 import {
@@ -18,6 +19,8 @@ import {
   CommissionAmountControl,
 } from "@/components/admin/FinanceControls";
 import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
+import { BillableItemsManager } from "@/components/admin/BillableItemsManager";
+import { InvoiceAttach } from "@/components/admin/InvoiceAttach";
 import { PaymentControl } from "@/components/admin/PaymentControl";
 
 const FEE_BADGE: Record<FeeStatus, string> = {
@@ -47,13 +50,15 @@ export default async function FinancePage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
-  const [allFees, payments, allCommissions, rules, people] = await Promise.all([
-    listFees(),
-    listPayments(),
-    listCommissions(),
-    listCommissionRules(),
-    listUsers(),
-  ]);
+  const [allFees, payments, allCommissions, rules, people, billables] =
+    await Promise.all([
+      listFees(),
+      listPayments(),
+      listCommissions(),
+      listCommissionRules(),
+      listUsers(),
+      listBillableItems(true),
+    ]);
   const fees = q
     ? allFees.filter((f) => f.student_name.toLowerCase().includes(q))
     : allFees;
@@ -150,7 +155,14 @@ export default async function FinancePage({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <PaymentControl applicationId={f.application_id} feeId={f.id} amount={f.amount} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <PaymentControl applicationId={f.application_id} feeId={f.id} amount={f.amount} />
+                      <InvoiceAttach
+                        feeId={f.id}
+                        applicationId={f.application_id}
+                        invoiceDocId={f.invoice_doc_id}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -211,6 +223,11 @@ export default async function FinancePage({
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Billable items — the price list fees are created from */}
+      <section>
+        <BillableItemsManager items={billables} />
       </section>
 
       {/* Commission rules */}

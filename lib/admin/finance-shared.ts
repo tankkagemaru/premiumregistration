@@ -30,6 +30,8 @@ export interface Fee {
   currency: string;
   due_date?: string | null;
   status: FeeStatus;
+  billable_item_id?: string | null; // catalogue item this fee came from
+  invoice_doc_id?: string | null; // attached third-party invoice (QuickBooks)
 }
 
 export interface Payment {

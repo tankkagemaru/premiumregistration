@@ -3,6 +3,8 @@ import { requireRole } from "@/lib/auth";
 import { listApplications, STAGE_LABEL } from "@/lib/admin/applications";
 import { listFees, formatMoney } from "@/lib/admin/finance";
 import { listRequests } from "@/lib/admin/requests";
+import { listVisaCases, VISA_STAGE_LABEL } from "@/lib/admin/visa";
+import { TRACKS } from "@/lib/config/tracks";
 import { SearchBox } from "@/components/admin/SearchBox";
 import { AcademicControls } from "@/components/admin/AcademicControls";
 
@@ -18,11 +20,16 @@ export default async function AcademicPage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
-  const [apps, fees, openRequests] = await Promise.all([
+  const [apps, fees, openRequests, visaCases] = await Promise.all([
     listApplications(),
     listFees(),
     listRequests({ toRole: "academic", openOnly: true }),
+    listVisaCases(),
   ]);
+  const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
+  const visaByApp = new Map(visaCases.map((v) => [v.application_id, v] as const));
+  // Visa is considered "ready for class" once the VAL is issued (or later).
+  const VISA_READY = new Set(["val", "sev", "pass_active"]);
 
   let students = apps.filter((a) => ACADEMIC_STAGES.includes(a.stage));
   if (q) {
@@ -77,6 +84,7 @@ export default async function AcademicPage({
             <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
               <th className="px-4 py-2.5 font-medium">Student</th>
               <th className="px-4 py-2.5 font-medium">Programme</th>
+              <th className="px-4 py-2.5 font-medium">Pathway / intake</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
               <th className="px-4 py-2.5 font-medium">Fees</th>
               <th className="px-4 py-2.5 font-medium">Class dates &amp; enrolment</th>
@@ -85,13 +93,20 @@ export default async function AcademicPage({
           <tbody>
             {students.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
                   No students match.
                 </td>
               </tr>
             )}
             {students.map((a) => {
               const due = outstanding(a.id);
+              const vc = visaByApp.get(a.id);
+              // Class dates set while an international student's visa isn't
+              // ready (no VAL yet, or no case at all) — academic must re-plan.
+              const visaClash =
+                a.is_international &&
+                Boolean(a.class_start) &&
+                (!vc || !VISA_READY.has(vc.stage));
               return (
                 <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
@@ -104,6 +119,21 @@ export default async function AcademicPage({
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-soft">
                     {a.program_name ?? a.target_institution ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <span className="text-ink">{TRACK_TITLE[a.track] ?? a.track}</span>
+                    {a.plan?.intake && (
+                      <span className="block text-ink-soft">
+                        Intake: {a.plan.intake}
+                      </span>
+                    )}
+                    {a.plan?.steps?.length ? (
+                      <span className="block text-ink-muted">
+                        Plan: {a.plan.steps.length} step{a.plan.steps.length > 1 ? "s" : ""}
+                      </span>
+                    ) : (
+                      <span className="block text-ink-muted">No plan yet</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink">
                     {STAGE_LABEL[a.stage] ?? a.stage}
@@ -132,6 +162,13 @@ export default async function AcademicPage({
                       stage={a.stage}
                       feeCleared={due.length === 0}
                     />
+                    {visaClash && (
+                      <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-brand-gold">
+                        ⚠ Class starts {a.class_start} but visa is{" "}
+                        {vc ? `at "${VISA_STAGE_LABEL[vc.stage] ?? vc.stage}"` : "not filed yet"}
+                        {" — re-check the dates"}
+                      </p>
+                    )}
                   </td>
                 </tr>
               );
