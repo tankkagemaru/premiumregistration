@@ -166,11 +166,17 @@ export async function lookupStatus(
         .order("created_at", { ascending: true }),
     ]);
 
+  // Visa-stage documents (e.g. flight ticket) only appear once the application
+  // actually reaches the visa phase — no point asking for a ticket on day 1.
+  const visaPhase = ["accepted", "visa", "arrival", "enrolled", "active", "completed"].includes(
+    app.stage,
+  );
   const ruleReqs = await getDocRequirements({
     track: app.track,
     qualification: app.qualification_level,
     isInternational: Boolean(app.is_international),
     nationality: (student as { nationality?: string } | null)?.nationality ?? null,
+    ...(visaPhase ? {} : { stage: "application" }),
   });
   // One-off staff requests join the student's checklist.
   const requirements = [
