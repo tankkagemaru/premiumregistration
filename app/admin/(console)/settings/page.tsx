@@ -1,6 +1,7 @@
 import { TRACKS } from "@/lib/config/tracks";
 import { ENGLISH_PROGRAMS } from "@/lib/config/programs";
 import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
+import { STALENESS_RULES } from "@/lib/config/staleness";
 import { LOCALES } from "@/lib/i18n/config";
 
 function Card({
@@ -71,6 +72,30 @@ export default function SettingsPage() {
           </p>
           <p className="mt-1 text-xs text-ink-muted">
             Arabic renders right-to-left.
+          </p>
+        </Card>
+
+        <Card title="Stale-record flags">
+          <ul className="flex flex-col gap-1.5 text-sm text-ink">
+            {Object.values(STALENESS_RULES).map((r) => (
+              <li key={r.label} className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      r.level === "alert" ? "bg-brand-red" : "bg-brand-gold"
+                    }`}
+                  />
+                  {r.label}
+                </span>
+                <span className="shrink-0 font-mono text-xs text-ink-muted tabular">
+                  {r.days === 0 ? "when overdue" : `after ${r.days}d`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink-muted">
+            A lead is flagged for attention once it crosses any of these. Edit the
+            day thresholds in <span className="font-mono">lib/config/staleness.ts</span>.
           </p>
         </Card>
       </div>

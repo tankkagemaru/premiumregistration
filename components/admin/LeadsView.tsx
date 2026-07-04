@@ -11,6 +11,7 @@ import {
   type Staff,
 } from "@/lib/admin/leads-shared";
 import { TRACKS } from "@/lib/config/tracks";
+import { leadStaleness } from "@/lib/config/staleness";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
 import { LeadDrawer } from "@/components/admin/LeadDrawer";
 import { AddRecordDialog, type AddMode } from "@/components/admin/AddRecordDialog";
@@ -68,7 +69,16 @@ export function LeadsView({
   const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
   const [addMode, setAddMode] = useState<AddMode | null>(null);
+  const [attnOnly, setAttnOnly] = useState(false);
   const staffName = Object.fromEntries(staff.map((s) => [s.id, s.full_name]));
+
+  // Staleness is derived client-side from the loaded rows (day-granularity, so
+  // stable between server and client render). Thresholds live in config/staleness.
+  const stale = new Map(leads.map((l) => [l.id, leadStaleness(l)]));
+  const attnCount = leads.filter((l) => stale.get(l.id)?.level !== "ok").length;
+  const shown = attnOnly
+    ? leads.filter((l) => stale.get(l.id)?.level !== "ok")
+    : leads;
 
   function setParam(key: string, value?: string) {
     const next = new URLSearchParams(params.toString());
@@ -187,6 +197,23 @@ export function LeadsView({
             </option>
           ))}
         </select>
+        <button
+          onClick={() => setAttnOnly((v) => !v)}
+          aria-pressed={attnOnly}
+          className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+            attnOnly
+              ? "border-brand-red bg-brand-red-bg text-brand-red"
+              : "border-border-warm bg-paper text-ink-soft hover:bg-cream-50"
+          }`}
+        >
+          <span className="h-2 w-2 rounded-full bg-brand-red" aria-hidden />
+          Needs attention
+          {attnCount > 0 && (
+            <span className="rounded-full bg-brand-red/15 px-1.5 text-xs tabular">
+              {attnCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Table */}
@@ -203,21 +230,34 @@ export function LeadsView({
             </tr>
           </thead>
           <tbody>
-            {leads.length === 0 && (
+            {shown.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
                   No leads match these filters.
                 </td>
               </tr>
             )}
-            {leads.map((l) => (
+            {shown.map((l) => {
+              const s = stale.get(l.id);
+              return (
               <tr
                 key={l.id}
                 onClick={() => openLead(l.id)}
                 className="cursor-pointer border-b border-border-warm/60 bg-paper transition-colors last:border-0 hover:bg-cream-50"
               >
                 <td className="px-4 py-3">
-                  <div className="font-medium text-ink">{l.full_name}</div>
+                  <div className="flex items-center gap-2">
+                    {s && s.level !== "ok" && (
+                      <span
+                        title={s.reasons.join(" · ")}
+                        className={`h-2 w-2 shrink-0 rounded-full ${
+                          s.level === "alert" ? "bg-brand-red" : "bg-brand-gold"
+                        }`}
+                        aria-label={s.reasons.join(", ")}
+                      />
+                    )}
+                    <span className="font-medium text-ink">{l.full_name}</span>
+                  </div>
                   <div className="text-xs text-ink-muted">{l.email}</div>
                 </td>
                 <td className="px-4 py-3 text-xs text-ink-soft">
@@ -236,7 +276,8 @@ export function LeadsView({
                   {formatDate(l.created_at)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

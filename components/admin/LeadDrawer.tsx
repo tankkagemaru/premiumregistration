@@ -25,6 +25,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
 import { COUNTRIES } from "@/lib/config/countries";
 import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
+import { leadStaleness } from "@/lib/config/staleness";
 import {
   ENGLISH_PROGRAMS,
   ENGLISH_PURPOSES,
@@ -111,6 +112,23 @@ export function LeadDrawer({
         </div>
 
         <div className="flex flex-col gap-6 px-6 py-5">
+          {/* Stale-record warning (thresholds in config/staleness) */}
+          {(() => {
+            const s = leadStaleness(lead);
+            if (s.level === "ok") return null;
+            return (
+              <div
+                className={`rounded-md border px-3 py-2 text-sm ${
+                  s.level === "alert"
+                    ? "border-brand-red/40 bg-brand-red-bg text-brand-red"
+                    : "border-brand-gold/40 bg-status-late-bg text-brand-gold"
+                }`}
+              >
+                Needs attention — {s.reasons.join(" · ")}
+              </div>
+            );
+          })()}
+
           {/* Status + quick actions */}
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={lead.status} />
