@@ -9,6 +9,25 @@ import type { TrackId } from "@/lib/config/tracks";
 
 const yesNo = z.enum(["yes", "no"]);
 
+/** Whole years between `dob` (ISO yyyy-mm-dd) and today; null if unparseable. */
+export function ageFromDob(dob?: string): number | null {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+  return age;
+}
+
+// Parent/guardian declaration — required when the registrant is under 18.
+export const guardianSchema = z.object({
+  full_name: z.string().optional(),
+  relationship: z.string().optional(),
+  consent: z.boolean().optional(),
+});
+
 export const englishSchema = z.object({
   program: z.string().optional(),
   learning_purpose: z.string().optional(), // everyday | academic | immigration | business
@@ -49,6 +68,10 @@ export const registrationSchema = z
     phone: z.string().trim().min(6, "Enter a contactable phone number."),
     whatsapp: z.string().trim().optional(),
     nationality: z.string().trim().min(2, "Enter your nationality."),
+    // Date of birth — required for student tracks (english/university) so we can
+    // check age; a minor (<18) must add a guardian declaration. See superRefine.
+    dob: z.string().optional(),
+    guardian: guardianSchema.optional(),
     // attribution (captured silently — Phase 6 fills these from the URL)
     agent_code: z.string().optional(),
     english: englishSchema.optional(),
@@ -64,6 +87,32 @@ export const registrationSchema = z
       if (cond)
         ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
     };
+
+    // Age / guardian — only the student tracks; corporate registers an HR contact.
+    const isStudentReg =
+      val.tracks.includes("english") || val.tracks.includes("university");
+    if (isStudentReg) {
+      const age = ageFromDob(val.dob);
+      if (!val.dob || age === null || age < 0 || age > 120) {
+        require(true, ["dob"], "Enter a valid date of birth.");
+      } else if (age < 18) {
+        require(
+          !val.guardian?.full_name?.trim(),
+          ["guardian", "full_name"],
+          "Enter the parent or guardian's name.",
+        );
+        require(
+          !val.guardian?.relationship?.trim(),
+          ["guardian", "relationship"],
+          "Select the relationship.",
+        );
+        require(
+          val.guardian?.consent !== true,
+          ["guardian", "consent"],
+          "Guardian consent is required to register someone under 18.",
+        );
+      }
+    }
 
     if (val.tracks.includes("english")) {
       require(!val.english?.program, ["english", "program"], "Select a program.");
@@ -118,7 +167,16 @@ export type RegistrationValues = z.infer<typeof registrationSchema>;
 
 /** Field paths validated when leaving each step (for react-hook-form trigger). */
 export const STEP_FIELDS = {
-  contact: ["full_name", "email", "phone", "nationality"],
+  contact: [
+    "full_name",
+    "email",
+    "phone",
+    "nationality",
+    "dob",
+    "guardian.full_name",
+    "guardian.relationship",
+    "guardian.consent",
+  ],
   english: [
     "english.program",
     "english.learning_purpose",

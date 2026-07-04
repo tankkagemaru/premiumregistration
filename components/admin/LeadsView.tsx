@@ -66,6 +66,7 @@ export function LeadsView({
   const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
   const [addMode, setAddMode] = useState<AddMode | null>(null);
+  const staffName = Object.fromEntries(staff.map((s) => [s.id, s.full_name]));
 
   function setParam(key: string, value?: string) {
     const next = new URLSearchParams(params.toString());
@@ -194,6 +195,7 @@ export function LeadsView({
               <th className="px-4 py-2.5 font-medium">Name</th>
               <th className="px-4 py-2.5 font-medium">Tracks</th>
               <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Source</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Handler</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
               <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Created</th>
             </tr>
@@ -201,7 +203,7 @@ export function LeadsView({
           <tbody>
             {leads.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
                   No leads match these filters.
                 </td>
               </tr>
@@ -221,6 +223,9 @@ export function LeadsView({
                 </td>
                 <td className="hidden px-4 py-3 text-xs text-ink-soft sm:table-cell">
                   {l.utm_source ?? l.agent_code ?? "—"}
+                </td>
+                <td className="hidden px-4 py-3 text-xs text-ink-soft md:table-cell">
+                  {l.assigned_to ? staffName[l.assigned_to] ?? "—" : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={l.status} />

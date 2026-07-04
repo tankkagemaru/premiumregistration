@@ -17,6 +17,7 @@ export async function createStaffUser(input: {
   password: string;
   role: string;
   agent_code?: string;
+  parent_agent_id?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   if (!(await requireAdmin())) return { ok: false, error: "forbidden" };
   if (!authConfigured) return { ok: false, error: "dev" }; // no-op without Supabase
@@ -34,12 +35,14 @@ export async function createStaffUser(input: {
     return { ok: false, error: "create_failed" };
   }
 
+  const isAgent = input.role === "agent";
   await admin.from("profiles").upsert({
     id: created.user.id,
     full_name: input.full_name,
     email: input.email,
     role: input.role,
-    agent_code: input.role === "agent" ? input.agent_code ?? null : null,
+    agent_code: isAgent ? input.agent_code ?? null : null,
+    parent_agent_id: isAgent ? input.parent_agent_id || null : null,
   });
 
   await logAudit({
@@ -62,9 +65,15 @@ export async function updateUserRole(
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
+  const isAgent = role === "agent";
   await admin
     .from("profiles")
-    .update({ role, agent_code: role === "agent" ? agent_code ?? null : null })
+    .update({
+      role,
+      agent_code: isAgent ? agent_code ?? null : null,
+      // Non-agents can't have a master agent.
+      ...(isAgent ? {} : { parent_agent_id: null }),
+    })
     .eq("id", id);
 
   await logAudit({
@@ -72,6 +81,32 @@ export async function updateUserRole(
     target_type: "user",
     target_id: id,
     detail: `role → ${role}`,
+  });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Set (or clear) the master agent an agent is handled under. */
+export async function setAgentParent(
+  id: string,
+  parentAgentId: string | null,
+): Promise<{ ok: boolean }> {
+  if (!(await requireAdmin())) return { ok: false };
+  if (!authConfigured) return { ok: false };
+  if (parentAgentId === id) return { ok: false }; // an agent can't be their own master
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  await admin
+    .from("profiles")
+    .update({ parent_agent_id: parentAgentId || null })
+    .eq("id", id);
+
+  await logAudit({
+    action: "agent_parent_changed",
+    target_type: "user",
+    target_id: id,
+    detail: parentAgentId ? `master → ${parentAgentId}` : "master cleared",
   });
   revalidatePath("/admin", "layout");
   return { ok: true };

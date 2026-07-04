@@ -75,6 +75,8 @@ export async function POST(request: Request) {
     details.university = values.university ?? {};
   if (values.tracks.includes("corporate"))
     details.corporate = values.corporate ?? {};
+  // Guardian declaration (present only when the registrant is a minor).
+  if (values.guardian?.full_name) details.guardian = values.guardian;
 
   // Dev fallback: no Supabase configured → log and confirm the client flow.
   if (!supabaseConfigured) {
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
       phone: values.phone,
       whatsapp: values.whatsapp || null,
       nationality: values.nationality,
+      dob: values.dob || null,
       utm_source: attribution?.utm_source ?? null,
       utm_medium: attribution?.utm_medium ?? null,
       utm_campaign: attribution?.utm_campaign ?? null,

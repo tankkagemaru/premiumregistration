@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createStaffUser, updateUserRole } from "@/app/admin/user-actions";
+import {
+  createStaffUser,
+  updateUserRole,
+  setAgentParent,
+} from "@/app/admin/user-actions";
 import { ASSIGNABLE_ROLES, type StaffUser } from "@/lib/admin/users-shared";
 
 const INPUT_CLS =
@@ -23,8 +27,12 @@ export function UserManager({
     password: "",
     role: "staff",
     agent_code: "",
+    parent_agent_id: "",
   });
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Existing agents = candidate master agents.
+  const agents = users.filter((u) => u.role === "agent");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +40,7 @@ export function UserManager({
       const res = await createStaffUser(form);
       if (res.ok) {
         setNotice(`Account created for ${form.full_name}.`);
-        setForm({ full_name: "", email: "", password: "", role: "staff", agent_code: "" });
+        setForm({ full_name: "", email: "", password: "", role: "staff", agent_code: "", parent_agent_id: "" });
         router.refresh();
       } else if (res.error === "dev") {
         setNotice("Supabase isn't connected yet — accounts can be created once live.");
@@ -101,6 +109,24 @@ export function UserManager({
               />
             )}
           </div>
+          {form.role === "agent" && (
+            <select
+              value={form.parent_agent_id}
+              onChange={(e) =>
+                setForm({ ...form, parent_agent_id: e.target.value })
+              }
+              className={INPUT_CLS}
+              title="Master agent this agent is handled under"
+            >
+              <option value="">No master agent (top-level)</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  Under {a.full_name}
+                  {a.agent_code ? ` (${a.agent_code})` : ""}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button
@@ -127,6 +153,7 @@ export function UserManager({
               <th className="px-4 py-2.5 font-medium">Name</th>
               <th className="px-4 py-2.5 font-medium">Email</th>
               <th className="px-4 py-2.5 font-medium">Agent code</th>
+              <th className="px-4 py-2.5 font-medium">Master agent</th>
               <th className="px-4 py-2.5 font-medium">Role</th>
             </tr>
           </thead>
@@ -137,6 +164,32 @@ export function UserManager({
                 <td className="px-4 py-3 text-xs text-ink-soft">{u.email}</td>
                 <td className="px-4 py-3 font-mono text-xs text-ink-muted">
                   {u.agent_code ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {u.role === "agent" ? (
+                    <select
+                      value={u.parent_agent_id ?? ""}
+                      disabled={pending}
+                      onChange={(e) =>
+                        start(async () => {
+                          await setAgentParent(u.id, e.target.value || null);
+                          router.refresh();
+                        })
+                      }
+                      className="rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none"
+                    >
+                      <option value="">— none —</option>
+                      {agents
+                        .filter((a) => a.id !== u.id)
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.full_name}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <span className="text-ink-muted">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <select

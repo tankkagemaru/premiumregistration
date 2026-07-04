@@ -56,6 +56,9 @@ export async function createLeadManually(input: NewRecordInput): Promise<Result>
       whatsapp: input.whatsapp?.trim() || null,
       nationality: input.nationality || null,
       utm_source: "staff",
+      // Handler/incentive tracking: the staff member who keyed it in owns it.
+      created_by: profile.id,
+      assigned_to: profile.id,
       details: {},
     })
     .select("id")
@@ -123,6 +126,9 @@ export async function createStudentDirect(input: NewRecordInput): Promise<Result
       student_email: input.email.trim(),
       passport_no: student.passport_no,
       is_international: isInternational,
+      // Handler/incentive tracking.
+      created_by: profile.id,
+      assigned_to: profile.id,
     });
     if (ae) return { ok: false, error: "Student created, but an application failed to save." };
   }

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { authConfigured } from "@/lib/admin/leads-shared";
 import { Wordmark } from "@/components/ui/Wordmark";
 
@@ -31,6 +33,13 @@ export default function AdminLogin() {
   return (
     <main className="flex min-h-full items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-brand-red"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Back to home
+        </Link>
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Wordmark size="lg" />
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">

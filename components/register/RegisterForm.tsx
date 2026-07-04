@@ -16,6 +16,7 @@ import {
 import {
   registrationSchema,
   STEP_FIELDS,
+  ageFromDob,
   type RegistrationValues,
 } from "@/lib/schema";
 import { ENABLED_TRACKS, type TrackId } from "@/lib/config/tracks";
@@ -122,6 +123,8 @@ export function RegisterForm() {
       phone: "",
       whatsapp: "",
       nationality: "",
+      dob: "",
+      guardian: {},
       english: {},
       university: { preferred_universities: [] },
       corporate: {},
@@ -404,6 +407,19 @@ function IntentStep({ form, t }: { form: Form; t: T }) {
 function ContactStep({ form, t }: { form: Form; t: T }) {
   const { register, control, formState } = form;
   const e = formState.errors;
+  const tracks = form.watch("tracks");
+  const dob = form.watch("dob");
+  // DOB applies to the student (English / University); corporate registers an
+  // HR contact, so it's skipped there.
+  const isStudent = tracks.includes("english") || tracks.includes("university");
+  const age = ageFromDob(dob);
+  const isMinor = age !== null && age >= 0 && age < 18;
+  const relOptions = [
+    { value: "mother", label: t("guardian.relMother") },
+    { value: "father", label: t("guardian.relFather") },
+    { value: "guardian", label: t("guardian.relGuardian") },
+    { value: "other", label: t("guardian.relOther") },
+  ];
   return (
     <div>
       <StepHead
@@ -464,6 +480,66 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
             )}
           />
         </Field>
+
+        {isStudent && (
+          <Field label={t("contact.dob")} htmlFor="dob" error={e.dob && t("contact.errDob")}>
+            <TextInput
+              id="dob"
+              type="date"
+              error={e.dob?.message}
+              {...register("dob")}
+            />
+          </Field>
+        )}
+
+        {isStudent && isMinor && (
+          <div className="rounded-card border border-brand-red/30 bg-brand-red-bg p-4">
+            <SectionLabel>{t("guardian.title")}</SectionLabel>
+            <p className="mb-4 mt-1 text-sm text-ink-soft">{t("guardian.sub")}</p>
+            <div className="flex flex-col gap-4">
+              <Field
+                label={t("guardian.name")}
+                htmlFor="g_name"
+                error={e.guardian?.full_name && t("guardian.errName")}
+              >
+                <TextInput
+                  id="g_name"
+                  placeholder={t("guardian.namePh")}
+                  error={e.guardian?.full_name?.message}
+                  {...register("guardian.full_name")}
+                />
+              </Field>
+              <Field
+                label={t("guardian.relationship")}
+                error={e.guardian?.relationship && t("guardian.errRelationship")}
+              >
+                <Controller
+                  control={control}
+                  name="guardian.relationship"
+                  render={({ field }) => (
+                    <Segmented
+                      options={relOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={e.guardian?.relationship?.message}
+                    />
+                  )}
+                />
+              </Field>
+              <label className="flex cursor-pointer items-start gap-3 text-sm text-ink-soft">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-brand-red"
+                  {...register("guardian.consent")}
+                />
+                <span>{t("guardian.consent")}</span>
+              </label>
+              {e.guardian?.consent && (
+                <p className="text-xs text-brand-red">{t("guardian.errConsent")}</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -780,6 +856,10 @@ function ReviewStep({
   const yesNo = (x?: string) => (x ? t(`common.${x}`) : undefined);
   const tOpt = (group: string, value?: string) =>
     value ? t(`options.${group}.${value}`) : undefined;
+  const rel = v.guardian?.relationship;
+  const relLabel = rel
+    ? t(`guardian.rel${rel.charAt(0).toUpperCase()}${rel.slice(1)}`)
+    : undefined;
 
   return (
     <div>
@@ -791,6 +871,17 @@ function ReviewStep({
         <Row k={t("review.rPhone")} v={v.phone} />
         {v.whatsapp && <Row k={t("review.rWhatsapp")} v={v.whatsapp} />}
         <Row k={t("review.rNationality")} v={findLabel(COUNTRIES, v.nationality)} />
+        <Row k={t("review.rDob")} v={v.dob} />
+        {v.guardian?.full_name && (
+          <>
+            <Row k={t("review.rGuardian")} v={v.guardian.full_name} />
+            <Row k={t("review.rGuardianRel")} v={relLabel} />
+            <Row
+              k={t("review.rGuardianConsent")}
+              v={v.guardian.consent ? t("common.yes") : undefined}
+            />
+          </>
+        )}
         <Row
           k={t("review.rInterested")}
           v={v.tracks.map((x) => t(`tracks.${x}.title`)).join(", ")}

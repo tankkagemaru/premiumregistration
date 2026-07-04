@@ -49,6 +49,7 @@ export async function addApplicationNote(id: string, body: string) {
 export async function createApplicationFromLead(leadId: string) {
   if (!authConfigured) return;
   const supabase = await createClient();
+  const profile = await getProfile();
   const { data: reg } = await supabase
     .from("registrations")
     .select("*")
@@ -83,6 +84,8 @@ export async function createApplicationFromLead(leadId: string) {
       phone: reg.phone,
       whatsapp: reg.whatsapp,
       nationality: reg.nationality,
+      date_of_birth: reg.dob ?? null,
+      guardian: reg.details?.guardian ?? null,
       is_international: isInternational,
       agent_code: reg.agent_code,
       agent_id: agentId,
@@ -106,6 +109,9 @@ export async function createApplicationFromLead(leadId: string) {
       is_international: isInternational,
       agent_id: agentId,
       agent_name: agentName,
+      // The staff member converting the lead becomes the handler (incentive).
+      created_by: profile?.id ?? null,
+      assigned_to: profile?.id ?? null,
     });
   }
   await logAudit({
