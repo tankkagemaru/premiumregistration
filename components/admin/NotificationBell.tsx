@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import type { Notification } from "@/lib/admin/notifications";
+import type { Notification } from "@/lib/admin/notifications-shared";
 
 export function NotificationBell({ items }: { items: Notification[] }) {
   const [open, setOpen] = useState(false);

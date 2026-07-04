@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Activity } from "lucide-react";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/context";
@@ -27,8 +28,9 @@ export function SiteHeader() {
         <div className="flex items-center gap-3 sm:gap-4">
           <Link
             href="/status"
-            className="text-xs font-medium text-ink-soft transition-colors hover:text-brand-red"
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-red/30 bg-brand-red/5 px-3.5 py-1.5 text-xs font-medium text-brand-red transition-colors hover:border-brand-red/60 hover:bg-brand-red/10"
           >
+            <Activity className="h-3.5 w-3.5" aria-hidden />
             {t("nav.checkStatus")}
           </Link>
           <LanguageSwitcher />

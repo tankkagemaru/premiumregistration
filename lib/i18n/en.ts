@@ -26,6 +26,10 @@ export const en = {
     offer: "What we offer",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "Malaysia",
+    footerTagline:
+      "English courses, university placement in Malaysia, and corporate training.",
+    footerRegNo: "Reg. No.",
+    footerRights: "All rights reserved.",
   },
 
   tracks: {

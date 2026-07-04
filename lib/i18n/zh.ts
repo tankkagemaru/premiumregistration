@@ -19,6 +19,9 @@ export const zh: Dictionary = {
     offer: "我们的服务",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "马来西亚",
+    footerTagline: "英语课程、马来西亚大学入学安排及企业培训。",
+    footerRegNo: "注册号",
+    footerRights: "版权所有。",
   },
   tracks: {
     english: { title: "英语课程", blurb: "通用、商务及考试备考课程。" },

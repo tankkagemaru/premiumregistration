@@ -19,6 +19,9 @@ export const ja: Dictionary = {
     offer: "提供サービス",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "マレーシア",
+    footerTagline: "英語コース、マレーシアでの大学入学、法人研修。",
+    footerRegNo: "登録番号",
+    footerRights: "無断複写・転載を禁じます。",
   },
   tracks: {
     english: { title: "英語プログラム", blurb: "一般・ビジネス・試験対策コース。" },

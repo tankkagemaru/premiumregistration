@@ -19,6 +19,9 @@ export const ar: Dictionary = {
     offer: "ما نقدمه",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "ماليزيا",
+    footerTagline: "دورات اللغة الإنجليزية، والقبول الجامعي في ماليزيا، والتدريب المؤسسي.",
+    footerRegNo: "رقم التسجيل",
+    footerRights: "جميع الحقوق محفوظة.",
   },
   tracks: {
     english: { title: "برنامج اللغة الإنجليزية", blurb: "دورات عامة ومهنية وإعداد للاختبارات." },

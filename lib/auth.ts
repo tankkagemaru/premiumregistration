@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/leads-shared";
@@ -24,8 +25,12 @@ export interface Profile {
 /**
  * The signed-in staff profile. In dev (no Supabase) returns a bypass admin so
  * the console is usable locally; in prod reads the `profiles` row for the user.
+ *
+ * Wrapped in React cache() so the layout + page (which both need the profile on
+ * a single render) share one lookup, and uses getClaims() (local JWT decode)
+ * rather than getUser() (an Auth-server round-trip) to identify the user.
  */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   if (!authConfigured) {
     // Dev bypass — id matches the mock data's admin so "mine" filters work.
     return {
@@ -37,26 +42,28 @@ export async function getProfile(): Promise<Profile | null> {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  if (!claims?.sub) return null;
+
+  const userId = claims.sub as string;
+  const userEmail = (claims.email as string | undefined) ?? "";
 
   const { data } = await supabase
     .from("profiles")
     .select("id,full_name,email,role,agent_code")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   return (
     (data as Profile | null) ?? {
-      id: user.id,
-      full_name: user.email ?? "Staff",
-      email: user.email ?? "",
+      id: userId,
+      full_name: userEmail || "Staff",
+      email: userEmail,
       role: "staff",
     }
   );
-}
+});
 
 /** Server-side page gate: returns the profile or redirects away. */
 export async function requireRole(roles: Role[]): Promise<Profile> {

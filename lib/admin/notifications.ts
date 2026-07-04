@@ -1,14 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "./leads-shared";
+import type { Notification } from "./notifications-shared";
 
-export interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  lead_id?: string | null;
-  read_at?: string | null;
-  created_at: string;
-}
+export type { Notification } from "./notifications-shared";
 
 const MOCK: Notification[] = [
   {
