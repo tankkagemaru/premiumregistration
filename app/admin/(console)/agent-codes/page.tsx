@@ -1,9 +1,9 @@
-import { requireRole } from "@/lib/auth";
+import { requireRole, type Role } from "@/lib/auth";
 import { listAgentCodes, AGENT_CODE_ROLES } from "@/lib/admin/agent-codes";
 import { AgentCodesManager } from "@/components/admin/AgentCodesManager";
 
 export default async function AgentCodesPage() {
-  await requireRole(AGENT_CODE_ROLES);
+  await requireRole(AGENT_CODE_ROLES as Role[]);
   const codes = await listAgentCodes();
 
   return (
