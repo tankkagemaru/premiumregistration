@@ -9,6 +9,9 @@ export const serverEnv = {
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   turnstileSecret: process.env.TURNSTILE_SECRET_KEY,
   resendApiKey: process.env.RESEND_API_KEY,
+  // Brevo (transactional email) — an alternative to Resend that can send from a
+  // verified *sender email* without domain DNS. Preferred when set.
+  brevoApiKey: process.env.BREVO_API_KEY,
   adminAlertEmail: process.env.ADMIN_ALERT_EMAIL,
   // From address for transactional email — must be on a Resend-verified domain.
   emailFrom: process.env.EMAIL_FROM ?? "PECSB <noreply@premium.edu.my>",
@@ -23,7 +26,7 @@ export const supabaseConfigured = Boolean(
 /** True once a Turnstile secret is configured (verification enforced). */
 export const turnstileConfigured = Boolean(serverEnv.turnstileSecret);
 
-/** True once Resend + an admin alert address are configured. */
+/** True once an email provider (Brevo or Resend) + an alert address are set. */
 export const emailConfigured = Boolean(
-  serverEnv.resendApiKey && serverEnv.adminAlertEmail,
+  (serverEnv.brevoApiKey || serverEnv.resendApiKey) && serverEnv.adminAlertEmail,
 );

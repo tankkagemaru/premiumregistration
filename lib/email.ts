@@ -63,30 +63,87 @@ function applicantReplyHtml(lead: NewLead) {
   `);
 }
 
+interface Message {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+}
+
+/** Split `EMAIL_FROM` ("PECSB <inquiry@premium.edu.my>") into name + address. */
+function parseFrom(value: string): { name?: string; email: string } {
+  const m = value.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1] || undefined, email: m[2] } : { email: value.trim() };
+}
+
+/** Brevo transactional API — sends from a verified sender, no domain DNS needed. */
+async function sendViaBrevo(msg: Message): Promise<boolean> {
+  const from = parseFrom(serverEnv.emailFrom);
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": serverEnv.brevoApiKey!,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { email: from.email, ...(from.name ? { name: from.name } : {}) },
+      to: [{ email: msg.to }],
+      subject: msg.subject,
+      htmlContent: msg.html,
+      ...(msg.replyTo ? { replyTo: { email: msg.replyTo } } : {}),
+    }),
+  });
+  if (!res.ok) {
+    console.error("[email:brevo] failed", res.status, await res.text());
+    return false;
+  }
+  return true;
+}
+
+async function sendViaResend(msg: Message): Promise<boolean> {
+  const resend = new Resend(serverEnv.resendApiKey);
+  const { error } = await resend.emails.send({
+    from: serverEnv.emailFrom,
+    to: msg.to,
+    subject: msg.subject,
+    html: msg.html,
+    ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+  });
+  if (error) {
+    console.error("[email:resend] failed", error);
+    return false;
+  }
+  return true;
+}
+
 /**
  * Fire-and-forget transactional email on a new lead: instant admin alert +
- * branded applicant auto-reply. No-ops when Resend isn't configured.
+ * branded applicant auto-reply. No-ops when no provider is configured. Prefers
+ * Brevo when its key is set, else Resend. Failures are logged (not swallowed).
  */
 export async function sendNewLeadEmails(lead: NewLead) {
   if (!emailConfigured) return;
-  const resend = new Resend(serverEnv.resendApiKey);
-  try {
-    await Promise.allSettled([
-      resend.emails.send({
-        from: serverEnv.emailFrom,
-        to: serverEnv.adminAlertEmail!,
-        subject: `New lead — ${lead.fullName} (${lead.tracks.join(", ")})`,
-        html: adminAlertHtml(lead),
-        replyTo: lead.email,
+  const send = serverEnv.brevoApiKey ? sendViaBrevo : sendViaResend;
+  const messages: Message[] = [
+    {
+      to: serverEnv.adminAlertEmail!,
+      subject: `New lead — ${lead.fullName} (${lead.tracks.join(", ")})`,
+      html: adminAlertHtml(lead),
+      replyTo: lead.email,
+    },
+    {
+      to: lead.email,
+      subject: "We've received your registration — Premium Language Centre",
+      html: applicantReplyHtml(lead),
+    },
+  ];
+  await Promise.all(
+    messages.map((m) =>
+      send(m).catch((err) => {
+        console.error("[email] send threw", err);
+        return false;
       }),
-      resend.emails.send({
-        from: serverEnv.emailFrom,
-        to: lead.email,
-        subject: "We've received your registration — Premium Language Centre",
-        html: applicantReplyHtml(lead),
-      }),
-    ]);
-  } catch (err) {
-    console.error("[email] send failed:", err);
-  }
+    ),
+  );
 }
