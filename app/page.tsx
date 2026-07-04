@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ENABLED_TRACKS } from "@/lib/config/tracks";
 import { COMPANY, TALK_TO_TEAM_URL } from "@/lib/config/site";
+import { toWhatsAppNumber } from "@/lib/phone";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { useI18n } from "@/lib/i18n/context";
@@ -53,35 +54,31 @@ export default function Home() {
             {t("landing.cta")}
             <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
           </Link>
-          {TALK_TO_TEAM_URL ? (
-            <a
-              href={TALK_TO_TEAM_URL}
-              className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
-            >
-              <MessageCircle className="h-4 w-4 text-brand-red" aria-hidden />
-              {t("landing.talkCta")}
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              title="Coming soon"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-border-warm bg-paper px-6 py-3 text-sm font-medium text-ink-muted opacity-70"
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              {t("landing.talkCta")}
-            </button>
-          )}
+          <a
+            href={
+              TALK_TO_TEAM_URL ||
+              `https://wa.me/${toWhatsAppNumber(COMPANY.phone)}?text=${encodeURIComponent(
+                "Hi Premium, I'd like to talk to your team about studying with you.",
+              )}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+          >
+            <MessageCircle className="h-4 w-4 text-brand-red" aria-hidden />
+            {t("landing.talkCta")}
+          </a>
         </div>
 
         {/* Hero illustration */}
         <div className="mt-10 overflow-hidden rounded-card border border-border-warm">
           <Image
-            src="/hero.png"
+            src="/hero.webp"
             alt="A Premium consultant guiding students toward English, university, and corporate training pathways"
-            width={1672}
-            height={941}
+            width={1400}
+            height={788}
             priority
+            sizes="(max-width: 768px) 100vw, 768px"
             className="h-auto w-full"
           />
         </div>

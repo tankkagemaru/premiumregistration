@@ -167,8 +167,8 @@ export const zh: Dictionary = {
   },
   confirm: {
     title: "谢谢您，{name}。",
-    body: "我们已收到您的登记信息。我们的团队成员将尽快与您联系。",
-    note: "",
+    body: "我们已收到您的登记信息。我们的团队成员将尽快通过电子邮件和 WhatsApp 与您联系。",
+    note: "当您的申请开始处理后，我们会发送一个参考编号，供您在查询页面追踪进度。",
     back: "返回首页",
   },
 
@@ -182,7 +182,7 @@ export const zh: Dictionary = {
     codePh: "PECSB2026",
     check: "查询",
     checking: "查询中…",
-    errNotFound: "未找到申请。请检查您的护照号码和编号。",
+    errNotFound: "未找到符合这些信息的申请。如果您刚刚登记，参考编号将在申请开始处理后发送给您。",
     errGeneric: "出了点问题，请重试。",
     hello: "您好，{name}。",
     ref: "编号 {ref}",

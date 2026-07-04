@@ -167,8 +167,8 @@ export const ja: Dictionary = {
   },
   confirm: {
     title: "ありがとうございます、{name}様。",
-    body: "ご登録を受け付けました。担当者より追ってご連絡いたします。",
-    note: "",
+    body: "ご登録を受け付けました。担当者よりメールおよび WhatsApp にて追ってご連絡いたします。",
+    note: "お申し込みの手続きが開始されると、進捗を確認できる参照コードをお送りします。",
     back: "ホームに戻る",
   },
 
@@ -182,7 +182,7 @@ export const ja: Dictionary = {
     codePh: "PECSB2026",
     check: "確認",
     checking: "確認中…",
-    errNotFound: "申請が見つかりません。パスポート番号とコードをご確認ください。",
+    errNotFound: "その内容の申請が見つかりませんでした。ご登録直後の場合、参照コードは手続き開始後にお送りします。",
     errGeneric: "問題が発生しました。もう一度お試しください。",
     hello: "こんにちは、{name}様。",
     ref: "参照 {ref}",

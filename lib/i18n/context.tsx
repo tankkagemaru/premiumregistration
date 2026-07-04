@@ -44,10 +44,15 @@ function resolve(dict: unknown, path: string): string {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
-  // Restore the saved preference on mount.
+  // Restore the saved preference, else auto-detect from the browser language.
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (saved && saved in dictionaries) setLocaleState(saved);
+    if (saved && saved in dictionaries) {
+      setLocaleState(saved);
+      return;
+    }
+    const nav = window.navigator.language?.slice(0, 2).toLowerCase();
+    if (nav && nav in dictionaries) setLocaleState(nav as Locale);
   }, []);
 
   // Reflect the locale onto <html> (lang + dir) and persist it.

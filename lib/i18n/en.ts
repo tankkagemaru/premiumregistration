@@ -194,8 +194,8 @@ export const en = {
 
   confirm: {
     title: "Thank you, {name}.",
-    body: "Your registration has been received. A member of our team will reach out to you shortly.",
-    note: "",
+    body: "Your registration has been received. A member of our team will reach out to you shortly by email and WhatsApp.",
+    note: "Once your application is opened, we'll send you a reference code so you can track its progress on the status page.",
     back: "Back to home",
   },
 
@@ -209,7 +209,7 @@ export const en = {
     codePh: "PECSB2026",
     check: "Check",
     checking: "Checking…",
-    errNotFound: "No application found. Check your passport number and code.",
+    errNotFound: "We couldn't find an application with those details. If you registered recently, your tracking code is issued once your application is opened — we'll send it to you then.",
     errGeneric: "Something went wrong. Please try again.",
     hello: "Hello, {name}.",
     ref: "Ref {ref}",
