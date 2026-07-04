@@ -9,8 +9,14 @@ export async function updateVisaCase(
   id: string,
   patch: {
     stage?: string;
-    medical_status?: string;
-    emgs_ref?: string;
+    emgs_ref?: string | null;
+    eval_status?: string | null;
+    medical_status?: string | null;
+    medical_booked_date?: string | null;
+    medical_location?: string | null;
+    val_status?: string | null;
+    single_entry_visa?: string | null;
+    arrival_date?: string | null;
     student_pass_expiry?: string | null;
   },
 ) {

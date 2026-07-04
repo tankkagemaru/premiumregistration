@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { listVisaCases, VISA_STAGE_LABEL, expiryFlag } from "@/lib/admin/visa";
+import {
+  listVisaCases,
+  getVisaCase,
+  VISA_STAGE_LABEL,
+  expiryFlag,
+} from "@/lib/admin/visa";
 import { VisaStageSelect } from "@/components/admin/VisaStageSelect";
+import { VisaCaseDrawer } from "@/components/admin/VisaCaseDrawer";
 import { SearchBox } from "@/components/admin/SearchBox";
 
 export default async function VisaPage({
@@ -9,9 +15,11 @@ export default async function VisaPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(["admin", "visa"]);
+  const profile = await requireRole(["admin", "visa"]);
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
+  const visaParam = Array.isArray(sp.visa) ? sp.visa[0] : sp.visa;
+  const selected = visaParam ? await getVisaCase(visaParam) : null;
   const all = await listVisaCases();
   const cases = q
     ? all.filter((c) =>
@@ -57,7 +65,7 @@ export default async function VisaPage({
                 <tr key={c.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/admin/applications?app=${c.application_id}`}
+                      href={`/admin/visa?visa=${c.id}`}
                       className="font-medium text-ink hover:text-brand-red"
                     >
                       {c.student_name}
@@ -111,6 +119,14 @@ export default async function VisaPage({
           </tbody>
         </table>
       </div>
+
+      {selected && (
+        <VisaCaseDrawer
+          vc={selected.vc}
+          contact={selected.contact}
+          officerName={profile.full_name}
+        />
+      )}
     </div>
   );
 }

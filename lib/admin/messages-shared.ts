@@ -103,6 +103,43 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
       "Hi {first_name},\n\nThis is a friendly reminder about the outstanding fee for your application. Please let us know if you'd like help with the payment options.\n\nBest regards,\n{officer}\n{company}",
     contexts: ["application"],
   },
+  // — Visa / EMGS ——————————————————————————————————————————————
+  {
+    id: "visa_docs",
+    label: "Visa docs needed",
+    category: "Visa",
+    subject: "Documents needed for your student pass — Premium",
+    body:
+      "Hi {first_name},\n\nTo proceed with your student pass (EMGS) we still need: {missing_docs}. Please send them so we can submit your application.\n\nBest regards,\n{officer}\n{company}",
+    contexts: ["visa"],
+  },
+  {
+    id: "medical_booked",
+    label: "Medical booked",
+    category: "Visa",
+    subject: "Your medical check-up is booked — Premium",
+    body:
+      "Hi {first_name},\n\nYour medical check-up has been booked: {medical}. Please bring your passport and arrive 15 minutes early.\n\nBest regards,\n{officer}\n{company}",
+    contexts: ["visa"],
+  },
+  {
+    id: "val_issued",
+    label: "VAL issued",
+    category: "Visa",
+    subject: "Good news — your VAL has been issued",
+    body:
+      "Hi {first_name},\n\nGood news — your Visa Approval Letter (VAL) has been issued. We'll share the next steps for your single-entry visa and arrival shortly.\n\nBest regards,\n{officer}\n{company}",
+    contexts: ["visa"],
+  },
+  {
+    id: "arrival_info",
+    label: "Arrival info",
+    category: "Visa",
+    subject: "Before you arrive in Malaysia — Premium",
+    body:
+      "Hi {first_name},\n\nAs your arrival approaches, please keep your passport, VAL, and offer letter handy for immigration. Let us know your flight details and we'll guide you on the post-arrival steps.\n\nBest regards,\n{officer}\n{company}",
+    contexts: ["visa"],
+  },
   // — Blank ————————————————————————————————————————————————————
   {
     id: "blank",

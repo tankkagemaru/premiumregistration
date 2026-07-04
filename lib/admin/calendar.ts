@@ -26,7 +26,7 @@ export async function listCalendarEvents(): Promise<CalEvent[]> {
       .select("id,student_name,next_action,next_action_due,class_start,class_end"),
     supabase
       .from("visa_cases")
-      .select("application_id,student_name,student_pass_expiry"),
+      .select("application_id,student_name,student_pass_expiry,arrival_date,medical_booked_date,medical_location"),
     supabase
       .from("registrations")
       .select("id,full_name,next_action,next_action_due"),
@@ -47,12 +47,17 @@ export async function listCalendarEvents(): Promise<CalEvent[]> {
       events.push({ date: a.class_end, title: `Class end — ${a.student_name}`, kind: "class_end", href });
   }
   for (const v of visas ?? []) {
+    const href = v.application_id ? `/admin/applications?app=${v.application_id}` : undefined;
     if (v.student_pass_expiry)
+      events.push({ date: v.student_pass_expiry, title: `Pass expiry — ${v.student_name}`, kind: "visa_expiry", href });
+    if (v.arrival_date)
+      events.push({ date: v.arrival_date, title: `Arrival — ${v.student_name}`, kind: "arrival", href });
+    if (v.medical_booked_date)
       events.push({
-        date: v.student_pass_expiry,
-        title: `Pass expiry — ${v.student_name}`,
-        kind: "visa_expiry",
-        href: v.application_id ? `/admin/applications?app=${v.application_id}` : undefined,
+        date: v.medical_booked_date,
+        title: `Medical — ${v.student_name}${v.medical_location ? ` (${v.medical_location})` : ""}`,
+        kind: "other",
+        href,
       });
   }
   for (const l of leads ?? []) {
