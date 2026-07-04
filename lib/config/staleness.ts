@@ -23,6 +23,29 @@ export const STALENESS_RULES = {
   contactedStalled: { days: 14, label: "Stalled after contact", level: "alert" } as StalenessRule,
 };
 
+export type StalenessKey = keyof typeof STALENESS_RULES;
+
+/** Day thresholds only — the editable part, stored in app_settings. */
+export type StalenessDays = Record<StalenessKey, number>;
+
+export const DEFAULT_STALENESS_DAYS: StalenessDays = {
+  newUncontacted: STALENESS_RULES.newUncontacted.days,
+  followupOverdue: STALENESS_RULES.followupOverdue.days,
+  noFollowup: STALENESS_RULES.noFollowup.days,
+  contactedStalled: STALENESS_RULES.contactedStalled.days,
+};
+
+/** Apply saved day thresholds over the built-in rules (labels/levels fixed). */
+export function rulesWithDays(days?: Partial<StalenessDays> | null) {
+  const d = { ...DEFAULT_STALENESS_DAYS, ...(days ?? {}) };
+  return {
+    newUncontacted: { ...STALENESS_RULES.newUncontacted, days: d.newUncontacted },
+    followupOverdue: { ...STALENESS_RULES.followupOverdue, days: d.followupOverdue },
+    noFollowup: { ...STALENESS_RULES.noFollowup, days: d.noFollowup },
+    contactedStalled: { ...STALENESS_RULES.contactedStalled, days: d.contactedStalled },
+  };
+}
+
 export type StaleLevel = "ok" | "warn" | "alert";
 
 export interface StalenessResult {
@@ -48,11 +71,13 @@ export interface StalenessInput {
 export function leadStaleness(
   lead: StalenessInput,
   now: Date = new Date(),
+  days?: Partial<StalenessDays> | null, // console-configured thresholds
 ): StalenessResult {
   // Closed leads are done — never nag about them.
   if (lead.status === "enrolled" || lead.status === "dropped") {
     return { level: "ok", reasons: [] };
   }
+  const rules = rulesWithDays(days);
 
   const reasons: string[] = [];
   let level: StaleLevel = "ok";
@@ -63,25 +88,25 @@ export function leadStaleness(
   const age = daysSince(lead.created_at, now);
   const overdueBy = daysSince(lead.next_action_due, now);
 
-  if (!Number.isNaN(overdueBy) && overdueBy > STALENESS_RULES.followupOverdue.days) {
-    reasons.push(STALENESS_RULES.followupOverdue.label);
-    bump(STALENESS_RULES.followupOverdue.level);
+  if (!Number.isNaN(overdueBy) && overdueBy > rules.followupOverdue.days) {
+    reasons.push(rules.followupOverdue.label);
+    bump(rules.followupOverdue.level);
   }
-  if (lead.status === "new" && age >= STALENESS_RULES.newUncontacted.days) {
-    reasons.push(STALENESS_RULES.newUncontacted.label);
-    bump(STALENESS_RULES.newUncontacted.level);
+  if (lead.status === "new" && age >= rules.newUncontacted.days) {
+    reasons.push(rules.newUncontacted.label);
+    bump(rules.newUncontacted.level);
   }
-  if (!lead.next_action_due && age >= STALENESS_RULES.noFollowup.days) {
-    reasons.push(STALENESS_RULES.noFollowup.label);
-    bump(STALENESS_RULES.noFollowup.level);
+  if (!lead.next_action_due && age >= rules.noFollowup.days) {
+    reasons.push(rules.noFollowup.label);
+    bump(rules.noFollowup.level);
   }
   if (
     lead.status === "contacted" &&
     !lead.next_action_due &&
-    age >= STALENESS_RULES.contactedStalled.days
+    age >= rules.contactedStalled.days
   ) {
-    reasons.push(STALENESS_RULES.contactedStalled.label);
-    bump(STALENESS_RULES.contactedStalled.level);
+    reasons.push(rules.contactedStalled.label);
+    bump(rules.contactedStalled.level);
   }
 
   return { level, reasons };

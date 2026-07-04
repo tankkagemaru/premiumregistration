@@ -9,6 +9,9 @@ import {
 import { VisaStageSelect } from "@/components/admin/VisaStageSelect";
 import { VisaCaseDrawer } from "@/components/admin/VisaCaseDrawer";
 import { SearchBox } from "@/components/admin/SearchBox";
+import { getApplication } from "@/lib/admin/applications";
+import { getDocRequirements } from "@/lib/admin/doc-rules";
+import { listAppDocRequests } from "@/lib/admin/doc-requests";
 
 export default async function VisaPage({
   searchParams,
@@ -20,6 +23,31 @@ export default async function VisaPage({
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
   const visaParam = Array.isArray(sp.visa) ? sp.visa[0] : sp.visa;
   const selected = visaParam ? await getVisaCase(visaParam) : null;
+  // The application behind the case — its documents, checklist (including the
+  // visa-stage rules) and work-log events, so the visa team reviews in place.
+  const appRecord = selected?.vc.application_id
+    ? await getApplication(selected.vc.application_id)
+    : null;
+  const [visaReqs, visaDocRequests] = appRecord
+    ? await Promise.all([
+        getDocRequirements({
+          track: appRecord.app.track,
+          qualification: appRecord.app.qualification_level,
+          isInternational: appRecord.app.is_international,
+          nationality: appRecord.contact.nationality,
+        }),
+        listAppDocRequests(appRecord.app.id),
+      ])
+    : [[], []];
+  const visaRequirements = [
+    ...visaReqs,
+    ...visaDocRequests.map((r) => ({
+      kind: r.kind,
+      label: r.label,
+      note: r.note ?? undefined,
+      optional: r.optional,
+    })),
+  ];
   const all = await listVisaCases();
   const cases = q
     ? all.filter((c) =>
@@ -125,6 +153,10 @@ export default async function VisaPage({
           vc={selected.vc}
           contact={selected.contact}
           officerName={profile.full_name}
+          documents={appRecord?.documents ?? []}
+          requirements={visaRequirements}
+          docRequests={visaDocRequests}
+          events={appRecord?.events ?? []}
         />
       )}
     </div>

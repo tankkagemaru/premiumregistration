@@ -115,9 +115,10 @@ export function CatalogManager({
               <div className="flex shrink-0 items-center gap-3">
                 <button
                   onClick={() => run(() => updateProgram(p.id, { active: !p.active }))}
+                  title={p.active ? "Shown on the registration form — click to hide" : "Hidden from the registration form — click to show"}
                   className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${p.active ? "bg-status-present/15 text-status-present" : "bg-cream-50 text-ink-muted"}`}
                 >
-                  {p.active ? "Active" : "Hidden"}
+                  {p.active ? "Shown" : "Hidden"}
                 </button>
                 <button onClick={() => run(() => deleteProgram(p.id))} aria-label="Delete" className="text-ink-muted hover:text-brand-red">
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -172,20 +173,31 @@ export function CatalogManager({
             <div key={i.id} className="flex items-center justify-between gap-3 border-b border-border-warm/60 bg-paper px-4 py-2.5 last:border-0">
               <div className="min-w-0">
                 <RenameCell value={i.label} onSave={(v) => run(() => updateInstitution(i.id, { label: v }))} />
-                <p className="text-[11px] text-ink-muted">{catLabel(i.category)}</p>
+                <select
+                  value={i.category}
+                  onChange={(e) => run(() => updateInstitution(i.id, { category: e.target.value }))}
+                  aria-label="Category"
+                  className="mt-0.5 block rounded border border-transparent bg-transparent text-[11px] text-ink-muted outline-none hover:border-border-warm"
+                >
+                  {INSTITUTION_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{catLabel(c)}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex shrink-0 items-center gap-2.5">
                 <button
                   onClick={() => run(() => updateInstitution(i.id, { partner: !i.partner }))}
+                  title={i.partner ? "PECSB partner — click to unmark" : "Not a partner — click to mark as partner"}
                   className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${i.partner ? "bg-brand-red/15 text-brand-red" : "bg-cream-50 text-ink-muted"}`}
                 >
-                  {i.partner ? "Partner" : "—"}
+                  {i.partner ? "Partner" : "Mark partner"}
                 </button>
                 <button
                   onClick={() => run(() => updateInstitution(i.id, { active: !i.active }))}
+                  title={i.active ? "Shown on the registration form — click to hide" : "Hidden from the registration form — click to show"}
                   className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${i.active ? "bg-status-present/15 text-status-present" : "bg-cream-50 text-ink-muted"}`}
                 >
-                  {i.active ? "Active" : "Hidden"}
+                  {i.active ? "Shown" : "Hidden"}
                 </button>
                 <button onClick={() => run(() => deleteInstitution(i.id))} aria-label="Delete" className="text-ink-muted hover:text-brand-red">
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />

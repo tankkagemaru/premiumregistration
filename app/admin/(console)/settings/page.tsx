@@ -1,11 +1,12 @@
 import { TRACKS } from "@/lib/config/tracks";
-import { STALENESS_RULES } from "@/lib/config/staleness";
 import { LOCALES } from "@/lib/i18n/config";
 import { requireRole } from "@/lib/auth";
 import { listInstitutions, listPrograms } from "@/lib/admin/catalog";
 import { listDocRules } from "@/lib/admin/doc-rules";
+import { getStalenessDays } from "@/lib/admin/settings";
 import { CatalogManager } from "@/components/admin/CatalogManager";
 import { DocRulesManager } from "@/components/admin/DocRulesManager";
+import { StalenessSettings } from "@/components/admin/StalenessSettings";
 
 function Card({
   title,
@@ -26,10 +27,11 @@ function Card({
 
 export default async function SettingsPage() {
   await requireRole(["admin"]);
-  const [institutions, programs, docRules] = await Promise.all([
+  const [institutions, programs, docRules, stalenessDays] = await Promise.all([
     listInstitutions(true),
     listPrograms(true),
     listDocRules(true),
+    getStalenessDays(),
   ]);
 
   return (
@@ -80,27 +82,7 @@ export default async function SettingsPage() {
         </Card>
 
         <Card title="Stale-record flags">
-          <ul className="flex flex-col gap-1.5 text-sm text-ink">
-            {Object.values(STALENESS_RULES).map((r) => (
-              <li key={r.label} className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2">
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${
-                      r.level === "alert" ? "bg-brand-red" : "bg-brand-gold"
-                    }`}
-                  />
-                  {r.label}
-                </span>
-                <span className="shrink-0 font-mono text-xs text-ink-muted tabular">
-                  {r.days === 0 ? "when overdue" : `after ${r.days}d`}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-ink-muted">
-            A lead is flagged for attention once it crosses any of these. Edit the
-            day thresholds in <span className="font-mono">lib/config/staleness.ts</span>.
-          </p>
+          <StalenessSettings days={stalenessDays} />
         </Card>
       </div>
     </div>

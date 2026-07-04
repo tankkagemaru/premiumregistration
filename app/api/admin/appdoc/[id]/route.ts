@@ -12,7 +12,7 @@ const VIEW_ROLES = ["admin", "admissions", "visa", "finance", "counsellor", "aca
  *  application document. Role checked in code; the signed URL is minted with the
  *  service role so it isn't blocked by storage RLS. Every view is audited. */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!authConfigured) return NextResponse.json({ error: "not_configured" }, { status: 404 });
@@ -31,9 +31,18 @@ export async function GET(
     .maybeSingle();
   if (!doc?.storage_path) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(doc.storage_path, 60);
+  // Default opens the file inline (new tab); ?dl=1 forces a download.
+  const asDownload = new URL(req.url).searchParams.get("dl") === "1";
+  const { data: signed } = await admin.storage
+    .from(BUCKET)
+    .createSignedUrl(doc.storage_path, 60, asDownload ? { download: true } : undefined);
   if (!signed) return NextResponse.json({ error: "sign_failed" }, { status: 500 });
 
-  await logAudit({ action: "doc_downloaded", target_type: "document", target_id: id, detail: doc.storage_path });
+  await logAudit({
+    action: asDownload ? "doc_downloaded" : "doc_viewed",
+    target_type: "document",
+    target_id: id,
+    detail: doc.storage_path,
+  });
   return NextResponse.redirect(signed.signedUrl);
 }

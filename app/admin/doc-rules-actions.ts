@@ -47,7 +47,18 @@ export async function createDocRule(input: DocRuleInput): Promise<{ ok: boolean 
 
 export async function updateDocRule(
   id: string,
-  patch: { optional?: boolean; active?: boolean; label?: string },
+  patch: {
+    optional?: boolean;
+    active?: boolean;
+    label?: string;
+    kind?: string;
+    note?: string | null;
+    track?: string | null; // "" → any (null)
+    level?: string | null;
+    applies_to?: string;
+    nationality?: string | null;
+    stage?: string;
+  },
 ) {
   if (!authConfigured || !(await isAdmin())) return;
   const supabase = await createClient();
@@ -55,6 +66,14 @@ export async function updateDocRule(
   if (patch.optional !== undefined) clean.optional = patch.optional;
   if (patch.active !== undefined) clean.active = patch.active;
   if (patch.label !== undefined) clean.label = patch.label.trim();
+  if (patch.kind !== undefined) clean.kind = patch.kind.trim();
+  if (patch.note !== undefined) clean.note = patch.note?.trim() || null;
+  if (patch.track !== undefined) clean.track = patch.track || null;
+  if (patch.level !== undefined) clean.level = patch.level || null;
+  if (patch.applies_to !== undefined) clean.applies_to = patch.applies_to;
+  if (patch.nationality !== undefined)
+    clean.nationality = patch.nationality?.trim().toLowerCase() || null;
+  if (patch.stage !== undefined) clean.stage = patch.stage;
   if (Object.keys(clean).length === 0) return;
   await supabase.from("document_rules").update(clean).eq("id", id);
   await logAudit({ action: "doc_rule_updated", target_type: "document_rule", target_id: id });

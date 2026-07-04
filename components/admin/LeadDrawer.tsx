@@ -25,7 +25,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
 import { COUNTRIES } from "@/lib/config/countries";
 import { MALAYSIAN_INSTITUTIONS } from "@/lib/config/universities";
-import { leadStaleness } from "@/lib/config/staleness";
+import { leadStaleness, type StalenessDays } from "@/lib/config/staleness";
 import {
   ENGLISH_PROGRAMS,
   ENGLISH_PURPOSES,
@@ -61,11 +61,13 @@ export function LeadDrawer({
   staff,
   onClose,
   officerName,
+  stalenessDays,
 }: {
   data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
   staff: Staff[];
   onClose: () => void;
   officerName?: string;
+  stalenessDays?: StalenessDays;
 }) {
   const { lead, events, documents } = data;
   const router = useRouter();
@@ -114,7 +116,7 @@ export function LeadDrawer({
         <div className="flex flex-col gap-6 px-6 py-5">
           {/* Stale-record warning (thresholds in config/staleness) */}
           {(() => {
-            const s = leadStaleness(lead);
+            const s = leadStaleness(lead, new Date(), stalenessDays);
             if (s.level === "ok") return null;
             return (
               <div

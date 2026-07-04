@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Check, Circle, Download, Trash2, Loader2 } from "lucide-react";
+import { Upload, Check, Circle, Download, Eye, Trash2, Loader2 } from "lucide-react";
 import type { DocRequirement } from "@/lib/config/documents";
 import { DOC_KIND_LABEL } from "@/lib/config/documents";
 import type { ApplicationDoc } from "@/lib/admin/applications-shared";
@@ -98,7 +98,16 @@ export function DocumentUploader({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded p-1 text-ink-muted hover:bg-cream-50 hover:text-ink"
-                aria-label="Download"
+                aria-label="Open document"
+                title="Open"
+              >
+                <Eye className="h-3.5 w-3.5" aria-hidden />
+              </a>
+              <a
+                href={`/api/admin/appdoc/${d.id}?dl=1`}
+                className="rounded p-1 text-ink-muted hover:bg-cream-50 hover:text-ink"
+                aria-label="Download document"
+                title="Download"
               >
                 <Download className="h-3.5 w-3.5" aria-hidden />
               </a>

@@ -11,7 +11,7 @@ import {
   type Staff,
 } from "@/lib/admin/leads-shared";
 import { TRACKS } from "@/lib/config/tracks";
-import { leadStaleness } from "@/lib/config/staleness";
+import { leadStaleness, type StalenessDays } from "@/lib/config/staleness";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
 import { LeadDrawer } from "@/components/admin/LeadDrawer";
 import { AddRecordDialog, type AddMode } from "@/components/admin/AddRecordDialog";
@@ -57,12 +57,14 @@ export function LeadsView({
   filters,
   staff,
   officerName,
+  stalenessDays,
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
   filters: { status?: string; track?: string; q?: string };
   staff: Staff[];
   officerName?: string;
+  stalenessDays?: StalenessDays;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -74,7 +76,9 @@ export function LeadsView({
 
   // Staleness is derived client-side from the loaded rows (day-granularity, so
   // stable between server and client render). Thresholds live in config/staleness.
-  const stale = new Map(leads.map((l) => [l.id, leadStaleness(l)] as const));
+  const stale = new Map(
+    leads.map((l) => [l.id, leadStaleness(l, new Date(), stalenessDays)] as const),
+  );
   const attnCount = leads.filter((l) => stale.get(l.id)?.level !== "ok").length;
   const shown = attnOnly
     ? leads.filter((l) => stale.get(l.id)?.level !== "ok")
@@ -287,6 +291,7 @@ export function LeadsView({
           data={selected}
           staff={staff}
           officerName={officerName}
+          stalenessDays={stalenessDays}
           onClose={() => setParam("lead", undefined)}
         />
       )}

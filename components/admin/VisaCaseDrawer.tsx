@@ -10,10 +10,19 @@ import {
   visaChecklist,
   type VisaCase,
 } from "@/lib/admin/visa-shared";
-import type { AppContact } from "@/lib/admin/applications-shared";
+import type {
+  AppContact,
+  ApplicationDoc,
+  ApplicationEvent,
+  AppDocRequest,
+} from "@/lib/admin/applications-shared";
+import type { DocRequirement } from "@/lib/config/documents";
 import { updateVisaCase } from "@/app/admin/visa-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { MessageComposer } from "@/components/admin/MessageComposer";
+import { DocumentUploader } from "@/components/admin/DocumentUploader";
+import { DocRequestControl } from "@/components/admin/DocRequestControl";
+import { WorkLog } from "@/components/admin/WorkLog";
 
 const FIELD =
   "w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
@@ -22,10 +31,18 @@ export function VisaCaseDrawer({
   vc,
   contact,
   officerName,
+  documents = [],
+  requirements = [],
+  docRequests = [],
+  events = [],
 }: {
   vc: VisaCase;
   contact: AppContact;
   officerName?: string;
+  documents?: ApplicationDoc[];
+  requirements?: DocRequirement[];
+  docRequests?: AppDocRequest[];
+  events?: ApplicationEvent[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -153,6 +170,23 @@ export function VisaCaseDrawer({
           >
             {pending ? "Saving…" : "Save changes"}
           </button>
+
+          {/* Documents — review the pack, verify/reject, request extras */}
+          <div>
+            <SectionLabel>Documents</SectionLabel>
+            <DocumentUploader
+              applicationId={vc.application_id}
+              requirements={requirements}
+              docs={documents}
+            />
+            <DocRequestControl applicationId={vc.application_id} requests={docRequests} />
+          </div>
+
+          {/* Work log — EMGS visits, university replies, queries */}
+          <div>
+            <SectionLabel>Work log</SectionLabel>
+            <WorkLog applicationId={vc.application_id} events={events} />
+          </div>
 
           {/* Message the student */}
           <div>

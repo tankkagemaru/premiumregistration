@@ -108,6 +108,30 @@ export async function saveStudyPlan(
   revalidatePath("/admin", "layout");
 }
 
+/**
+ * Log a piece of work done on an application — "contacted university",
+ * "university replied", "went to EMGS", etc. Lands on the application timeline
+ * with the activity and the date it happened (which may differ from today).
+ */
+export async function logWork(
+  id: string,
+  input: { activity: string; date?: string; note?: string },
+) {
+  if (!authConfigured || !input.activity) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  const when = input.date || new Date().toISOString().slice(0, 10);
+  const body = `[${input.activity}] ${when}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}`;
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile?.id,
+    type: "work",
+    body,
+  });
+  await logAudit({ action: "work_logged", target_type: "application", target_id: id, detail: body });
+  revalidatePath("/admin", "layout");
+}
+
 export async function addApplicationNote(id: string, body: string) {
   if (!authConfigured || !body.trim()) return;
   const supabase = await createClient();
