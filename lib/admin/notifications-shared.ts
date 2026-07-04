@@ -9,6 +9,14 @@ export interface Notification {
   type: string;
   title: string;
   lead_id?: string | null;
+  application_id?: string | null;
   read_at?: string | null;
   created_at: string;
+}
+
+/** Where a notification links in the console, based on what it references. */
+export function notificationHref(n: Notification): string {
+  if (n.application_id) return `/admin/applications?app=${n.application_id}`;
+  if (n.lead_id) return `/admin/leads?lead=${n.lead_id}`;
+  return "/admin";
 }

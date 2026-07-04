@@ -26,7 +26,7 @@ export default async function ConsoleLayout({
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <NotificationBell items={notifications} />
+            <NotificationBell items={notifications} userId={profile.id} />
             <span className="text-sm text-ink-soft">{profile.full_name}</span>
             <form action={signOut}>
               <button

@@ -33,12 +33,13 @@ export async function listNotifications(
     .order("created_at", { ascending: false })
     .limit(20);
   return (
-    (data as { id: string; type: string; payload: { title?: string; lead_id?: string }; read_at?: string; created_at: string }[] | null) ?? []
+    (data as { id: string; type: string; payload: { title?: string; lead_id?: string; application_id?: string }; read_at?: string; created_at: string }[] | null) ?? []
   ).map((n) => ({
     id: n.id,
     type: n.type,
     title: n.payload?.title ?? n.type,
     lead_id: n.payload?.lead_id,
+    application_id: n.payload?.application_id,
     read_at: n.read_at,
     created_at: n.created_at,
   }));

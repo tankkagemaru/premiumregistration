@@ -15,6 +15,18 @@ export async function signOut() {
   redirect("/admin/login");
 }
 
+export async function markNotificationsRead() {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile) return;
+  await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", profile.id)
+    .is("read_at", null);
+}
+
 export async function updateLeadStatus(id: string, status: string) {
   if (!authConfigured) return; // dev no-op
   const supabase = await createClient();

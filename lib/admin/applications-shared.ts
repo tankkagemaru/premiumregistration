@@ -79,6 +79,29 @@ export function expectedDocs(stage: string, isInternational: boolean): string[] 
   return [...kinds];
 }
 
+/**
+ * Automation config — what advancing an application to a stage triggers.
+ * STAGE_FEES: standard fees scaffolded (amount 0, unpaid) so finance is prompted
+ * to set the real figure. STAGE_MILESTONE: the commission milestone accrued.
+ * Tune these to PECSB's real process/fee schedule.
+ */
+export const STAGE_FEES: Record<
+  string,
+  { type: string; internationalOnly?: boolean }[]
+> = {
+  accepted: [{ type: "registration" }],
+  visa: [
+    { type: "visa_emgs", internationalOnly: true },
+    { type: "medical", internationalOnly: true },
+  ],
+  enrolled: [{ type: "tuition" }],
+};
+
+export const STAGE_MILESTONE: Record<string, string> = {
+  offer: "on_offer",
+  enrolled: "on_enrolment",
+};
+
 export type ApplicationStatus = "active" | "withdrawn" | "completed";
 
 export interface Application {

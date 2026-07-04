@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
+import { runStageAutomation } from "@/lib/admin/automation";
 
 export async function advanceApplicationStage(id: string, stage: string) {
   if (!authConfigured) return;
@@ -25,6 +26,8 @@ export async function advanceApplicationStage(id: string, stage: string) {
     body: `Moved to ${stage}`,
   });
   await logAudit({ action: "stage_change", target_type: "application", target_id: id, detail: `${prev?.stage ?? "?"} → ${stage}` });
+  // Automation: scaffold fees, accrue commission at milestones, notify owner.
+  if (prev?.stage !== stage) await runStageAutomation(id, stage, profile?.id);
   revalidatePath("/admin", "layout");
 }
 
@@ -75,23 +78,36 @@ export async function createApplicationFromLead(leadId: string) {
     }
   }
 
-  const { data: student } = await supabase
+  // Dedup: if a student already exists for this email (e.g. an earlier
+  // conversion), reuse it rather than creating a duplicate person.
+  const { data: existingStudent } = await supabase
     .from("students")
-    .insert({
-      enquiry_id: reg.id,
-      full_name: reg.full_name,
-      email: reg.email,
-      phone: reg.phone,
-      whatsapp: reg.whatsapp,
-      nationality: reg.nationality,
-      date_of_birth: reg.dob ?? null,
-      guardian: reg.details?.guardian ?? null,
-      is_international: isInternational,
-      agent_code: reg.agent_code,
-      agent_id: agentId,
-    })
     .select("id, passport_no")
-    .single();
+    .ilike("email", reg.email)
+    .limit(1)
+    .maybeSingle();
+
+  let student = existingStudent as { id: string; passport_no: string | null } | null;
+  if (!student) {
+    const { data: created } = await supabase
+      .from("students")
+      .insert({
+        enquiry_id: reg.id,
+        full_name: reg.full_name,
+        email: reg.email,
+        phone: reg.phone,
+        whatsapp: reg.whatsapp,
+        nationality: reg.nationality,
+        date_of_birth: reg.dob ?? null,
+        guardian: reg.details?.guardian ?? null,
+        is_international: isInternational,
+        agent_code: reg.agent_code,
+        agent_id: agentId,
+      })
+      .select("id, passport_no")
+      .single();
+    student = created ?? null;
+  }
   if (!student) return;
 
   const tracks: string[] = reg.tracks ?? [];

@@ -39,6 +39,7 @@ export function AddRecordDialog({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [dup, setDup] = useState<{ id: string; name: string; kind: string } | null>(null);
   const [form, setForm] = useState<NewRecordInput>({
     full_name: "",
     email: "",
@@ -60,13 +61,16 @@ export function AddRecordDialog({
         : [...f.tracks, id],
     }));
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function run(force: boolean) {
     setError(null);
     start(async () => {
       const action = mode === "lead" ? createLeadManually : createStudentDirect;
-      const res = await action(form);
+      const res = await action(form, force);
       if (!res.ok) {
+        if (res.error === "duplicate" && res.duplicate) {
+          setDup(res.duplicate);
+          return;
+        }
         setError(res.error);
         return;
       }
@@ -74,6 +78,12 @@ export function AddRecordDialog({
       if (mode === "student") router.push("/admin/applications");
       else router.refresh();
     });
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setDup(null);
+    run(false);
   }
 
   return (
@@ -211,6 +221,21 @@ export function AddRecordDialog({
               </div>
             )}
           </div>
+
+          {dup && (
+            <div className="rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-3 text-sm text-ink-soft">
+              A {dup.kind} with this email already exists:{" "}
+              <span className="font-medium text-ink">{dup.name}</span>.
+              <button
+                type="button"
+                onClick={() => run(true)}
+                disabled={pending}
+                className="ml-2 inline-flex rounded-md bg-ink px-3 py-1 text-xs font-medium text-cream transition-colors hover:bg-ink-soft disabled:opacity-60"
+              >
+                {pending ? "Saving…" : "Create anyway"}
+              </button>
+            </div>
+          )}
 
           {error && <p className="text-xs text-brand-red">{error}</p>}
 

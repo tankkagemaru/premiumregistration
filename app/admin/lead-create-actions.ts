@@ -20,12 +20,36 @@ export interface NewRecordInput {
   note?: string; // lead mode only
 }
 
-type Result = { ok: true; id?: string } | { ok: false; error: string };
+type Result =
+  | { ok: true; id?: string }
+  | { ok: false; error: string; duplicate?: { id: string; name: string; kind: "lead" | "student" } };
 
 function validate(input: NewRecordInput): string | null {
   if (!input.full_name?.trim()) return "Enter the full name.";
   if (!input.email?.trim()) return "Enter an email address.";
   if (!input.tracks?.length) return "Select at least one track.";
+  return null;
+}
+
+/** Existing student or lead with the same email (student wins), or null. */
+async function findDuplicate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string,
+): Promise<{ id: string; name: string; kind: "lead" | "student" } | null> {
+  const { data: student } = await supabase
+    .from("students")
+    .select("id, full_name")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  if (student) return { id: student.id, name: student.full_name, kind: "student" };
+  const { data: lead } = await supabase
+    .from("registrations")
+    .select("id, full_name")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  if (lead) return { id: lead.id, name: lead.full_name, kind: "lead" };
   return null;
 }
 
@@ -35,7 +59,10 @@ function validate(input: NewRecordInput): string | null {
  * utm_source='staff' so attribution reporting can tell it apart from the public
  * form. It then flows through the normal lead → application pipeline.
  */
-export async function createLeadManually(input: NewRecordInput): Promise<Result> {
+export async function createLeadManually(
+  input: NewRecordInput,
+  force = false,
+): Promise<Result> {
   if (!authConfigured) return { ok: true }; // dev no-op (mock data)
   const err = validate(input);
   if (err) return { ok: false, error: err };
@@ -45,6 +72,14 @@ export async function createLeadManually(input: NewRecordInput): Promise<Result>
     return { ok: false, error: "You don't have permission to add records." };
 
   const supabase = await createClient();
+  const email = input.email.trim();
+
+  // Dedup: warn (don't hard-block) if this email is already a lead or student.
+  if (!force) {
+    const dup = await findDuplicate(supabase, email);
+    if (dup) return { ok: false, error: "duplicate", duplicate: dup };
+  }
+
   const { data, error } = await supabase
     .from("registrations")
     .insert({
@@ -89,7 +124,10 @@ export async function createLeadManually(input: NewRecordInput): Promise<Result>
  * createApplicationFromLead. Program details are left blank to fill in later
  * from the application drawer.
  */
-export async function createStudentDirect(input: NewRecordInput): Promise<Result> {
+export async function createStudentDirect(
+  input: NewRecordInput,
+  force = false,
+): Promise<Result> {
   if (!authConfigured) return { ok: true };
   const err = validate(input);
   if (err) return { ok: false, error: err };
@@ -99,6 +137,13 @@ export async function createStudentDirect(input: NewRecordInput): Promise<Result
     return { ok: false, error: "You don't have permission to add records." };
 
   const supabase = await createClient();
+  const email = input.email.trim();
+
+  if (!force) {
+    const dup = await findDuplicate(supabase, email);
+    if (dup) return { ok: false, error: "duplicate", duplicate: dup };
+  }
+
   const isInternational = (input.nationality ?? "").toLowerCase() !== "my";
 
   const { data: student, error: se } = await supabase

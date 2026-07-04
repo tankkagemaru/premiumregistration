@@ -1,19 +1,100 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import type { Notification } from "@/lib/admin/notifications-shared";
+import {
+  notificationHref,
+  type Notification,
+} from "@/lib/admin/notifications-shared";
+import { authConfigured } from "@/lib/admin/leads-shared";
+import { markNotificationsRead } from "@/app/admin/actions";
 
-export function NotificationBell({ items }: { items: Notification[] }) {
+interface Row {
+  id: string;
+  type: string;
+  payload: { title?: string; lead_id?: string; application_id?: string } | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+function toNotification(r: Row): Notification {
+  return {
+    id: r.id,
+    type: r.type,
+    title: r.payload?.title ?? r.type,
+    lead_id: r.payload?.lead_id,
+    application_id: r.payload?.application_id,
+    read_at: r.read_at,
+    created_at: r.created_at,
+  };
+}
+
+export function NotificationBell({
+  items,
+  userId,
+}: {
+  items: Notification[];
+  userId: string;
+}) {
   const [open, setOpen] = useState(false);
-  const unread = items.filter((n) => !n.read_at).length;
+  const [list, setList] = useState<Notification[]>(items);
+  const unread = list.filter((n) => !n.read_at).length;
+
+  // Realtime: prepend new notifications for this user as they arrive.
+  useEffect(() => {
+    if (!authConfigured || !userId) return;
+    let active = true;
+    let cleanup: (() => void) | undefined;
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      if (!active) return;
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`notif-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const next = toNotification(payload.new as Row);
+            setList((prev) =>
+              prev.some((n) => n.id === next.id) ? prev : [next, ...prev],
+            );
+          },
+        )
+        .subscribe();
+      cleanup = () => {
+        supabase.removeChannel(channel);
+      };
+    });
+    return () => {
+      active = false;
+      cleanup?.();
+    };
+  }, [userId]);
+
+  function openMenu() {
+    setOpen((o) => !o);
+    if (!open && unread > 0) {
+      // Optimistically clear, then persist.
+      setList((prev) =>
+        prev.map((n) =>
+          n.read_at ? n : { ...n, read_at: new Date().toISOString() },
+        ),
+      );
+      void markNotificationsRead();
+    }
+  }
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={openMenu}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         aria-label="Notifications"
         className="relative rounded-md p-1.5 text-ink-muted transition-colors hover:bg-cream-50 hover:text-ink"
@@ -30,15 +111,15 @@ export function NotificationBell({ items }: { items: Notification[] }) {
           <p className="border-b border-border-warm px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-muted">
             Notifications
           </p>
-          {items.length === 0 && (
+          {list.length === 0 && (
             <p className="px-4 py-6 text-center text-sm text-ink-muted">
               Nothing new.
             </p>
           )}
-          {items.map((n) => (
+          {list.map((n) => (
             <Link
               key={n.id}
-              href={n.lead_id ? `/admin/leads?lead=${n.lead_id}` : "/admin"}
+              href={notificationHref(n)}
               className="block border-b border-border-warm/60 px-4 py-3 text-sm text-ink transition-colors last:border-0 hover:bg-cream-50"
             >
               {n.title}
