@@ -16,6 +16,7 @@ export const zh: Dictionary = {
     title: "让我们为您找到合适的方向。",
     body: "登记您对英语课程、马来西亚大学入学申请或企业培训的兴趣。可任选一项或多项——我们只会询问与您所选内容相关的信息。",
     cta: "开始登记",
+    talkCta: "联系我们的团队",
     offer: "我们的服务",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "马来西亚",

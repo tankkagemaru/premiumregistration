@@ -48,6 +48,7 @@ export default async function ApplicationsPage({
           visa={visa}
           requests={requests}
           role={profile?.role ?? "staff"}
+          officerName={profile?.full_name}
         />
       )}
     </div>

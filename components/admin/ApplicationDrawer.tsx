@@ -7,16 +7,20 @@ import {
   STAGES,
   STAGE_DOCS,
   STAGE_LABEL,
+  DOC_LABEL,
   stagesFor,
   stagePercent,
   type Application,
   type ApplicationEvent,
   type ApplicationDoc,
+  type AppContact,
 } from "@/lib/admin/applications-shared";
 import {
   advanceApplicationStage,
   addApplicationNote,
+  logApplicationMessage,
 } from "@/app/admin/application-actions";
+import { MessageComposer } from "@/components/admin/MessageComposer";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { TRACKS } from "@/lib/config/tracks";
@@ -47,14 +51,21 @@ export function ApplicationDrawer({
   visa = null,
   requests = [],
   role = "staff",
+  officerName,
 }: {
-  data: { app: Application; events: ApplicationEvent[]; documents: ApplicationDoc[] };
+  data: {
+    app: Application;
+    events: ApplicationEvent[];
+    documents: ApplicationDoc[];
+    contact?: AppContact;
+  };
   fees?: Fee[];
   visa?: VisaCase | null;
   requests?: ActionRequest[];
   role?: string;
+  officerName?: string;
 }) {
-  const { app, events, documents } = data;
+  const { app, events, documents, contact } = data;
   const router = useRouter();
   const [pending, start] = useTransition();
   const [note, setNote] = useState("");
@@ -68,6 +79,18 @@ export function ApplicationDrawer({
     (s) => STAGE_DOCS[s.id] ?? [],
   );
   const have = new Set(documents.map((d) => d.kind));
+  const missing = [...new Set(required)].filter((k) => !have.has(k));
+
+  const messageVars: Record<string, string> = {
+    full_name: app.student_name,
+    program: app.program_name ?? "",
+    institution: app.target_institution ?? "",
+    stage: STAGE_LABEL[app.stage] ?? app.stage,
+    ref: app.access_code ?? "",
+    missing_docs: missing.map((k) => `• ${DOC_LABEL[k] ?? k}`).join("\n"),
+    officer: officerName ?? "the Premium team",
+    company: "Premium",
+  };
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
@@ -256,6 +279,30 @@ export function ApplicationDrawer({
               applicationId={app.id}
               subject={app.student_name}
               fromRole={role}
+            />
+          </div>
+
+          {/* Message the student */}
+          <div>
+            <SectionLabel>Message</SectionLabel>
+            <p className="mb-3 text-xs text-ink-muted">
+              Pick a template, edit if needed, then send via WhatsApp or email.
+            </p>
+            <MessageComposer
+              recipient={{
+                name: app.student_name,
+                email: contact?.email ?? app.student_email,
+                phone: contact?.whatsapp ?? contact?.phone,
+              }}
+              vars={messageVars}
+              context="application"
+              team={role}
+              onSent={(channel, label) =>
+                start(async () => {
+                  await logApplicationMessage(app.id, channel, label);
+                  router.refresh();
+                })
+              }
             />
           </div>
 

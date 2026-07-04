@@ -1,4 +1,5 @@
 import { listLeads, getLead, listStaff } from "@/lib/admin/leads";
+import { getProfile } from "@/lib/auth";
 import { LeadsView } from "@/components/admin/LeadsView";
 
 export default async function LeadsPage({
@@ -18,8 +19,15 @@ export default async function LeadsPage({
   const leads = await listLeads(filters);
   const selected = leadParam ? await getLead(leadParam) : null;
   const staff = await listStaff();
+  const profile = await getProfile();
 
   return (
-    <LeadsView leads={leads} selected={selected} filters={filters} staff={staff} />
+    <LeadsView
+      leads={leads}
+      selected={selected}
+      filters={filters}
+      staff={staff}
+      officerName={profile?.full_name}
+    />
   );
 }

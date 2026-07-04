@@ -16,6 +16,7 @@ export const ja: Dictionary = {
     title: "あなたに最適な道を見つけましょう。",
     body: "英語コース、マレーシアでの大学入学、または法人研修へのご関心をご登録ください。1つでも複数でも選択できます。選んだ内容に関係することだけをお伺いします。",
     cta: "登録を始める",
+    talkCta: "担当チームに相談する",
     offer: "提供サービス",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "マレーシア",

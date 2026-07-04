@@ -55,11 +55,13 @@ export function LeadsView({
   selected,
   filters,
   staff,
+  officerName,
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
   filters: { status?: string; track?: string; q?: string };
   staff: Staff[];
+  officerName?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -243,6 +245,7 @@ export function LeadsView({
         <LeadDrawer
           data={selected}
           staff={staff}
+          officerName={officerName}
           onClose={() => setParam("lead", undefined)}
         />
       )}

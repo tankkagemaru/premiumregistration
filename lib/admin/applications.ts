@@ -4,6 +4,7 @@ import {
   type Application,
   type ApplicationEvent,
   type ApplicationDoc,
+  type AppContact,
 } from "./applications-shared";
 
 export * from "./applications-shared";
@@ -163,10 +164,18 @@ export async function getApplication(id: string): Promise<{
   app: Application;
   events: ApplicationEvent[];
   documents: ApplicationDoc[];
+  contact: AppContact;
 } | null> {
   if (!authConfigured) {
     const app = MOCK.find((a) => a.id === id);
-    return app ? { app, events: MOCK_EVENTS, documents: MOCK_DOCS } : null;
+    return app
+      ? {
+          app,
+          events: MOCK_EVENTS,
+          documents: MOCK_DOCS,
+          contact: { phone: "+60123456789", whatsapp: "+60123456789", email: app.student_email },
+        }
+      : null;
   }
   const supabase = await createClient();
   const { data: app } = await supabase
@@ -175,18 +184,31 @@ export async function getApplication(id: string): Promise<{
     .eq("id", id)
     .single();
   if (!app) return null;
-  const { data: events } = await supabase
-    .from("application_events")
-    .select("id,type,body,created_at")
-    .eq("application_id", id)
-    .order("created_at", { ascending: false });
-  const { data: documents } = await supabase
-    .from("application_documents")
-    .select("id,kind,review_status")
-    .eq("application_id", id);
+  const [{ data: events }, { data: documents }, { data: student }] =
+    await Promise.all([
+      supabase
+        .from("application_events")
+        .select("id,type,body,created_at")
+        .eq("application_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("application_documents")
+        .select("id,kind,review_status")
+        .eq("application_id", id),
+      supabase
+        .from("students")
+        .select("phone,whatsapp")
+        .eq("id", (app as Application).student_id)
+        .maybeSingle(),
+    ]);
   return {
     app: app as Application,
     events: (events as ApplicationEvent[]) ?? [],
     documents: (documents as ApplicationDoc[]) ?? [],
+    contact: {
+      phone: (student as { phone?: string } | null)?.phone,
+      whatsapp: (student as { whatsapp?: string } | null)?.whatsapp,
+      email: (app as Application).student_email,
+    },
   };
 }

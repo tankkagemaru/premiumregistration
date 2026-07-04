@@ -31,6 +31,23 @@ export async function advanceApplicationStage(id: string, stage: string) {
   revalidatePath("/admin", "layout");
 }
 
+export async function logApplicationMessage(
+  id: string,
+  channel: string,
+  label: string,
+) {
+  if (!authConfigured || channel === "copy") return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile?.id,
+    type: channel === "email" ? "email" : "note",
+    body: `${channel === "email" ? "Email" : "WhatsApp"} sent — ${label}`,
+  });
+  revalidatePath("/admin", "layout");
+}
+
 export async function addApplicationNote(id: string, body: string) {
   if (!authConfigured || !body.trim()) return;
   const supabase = await createClient();

@@ -120,6 +120,7 @@ export interface Application {
   agent_id?: string | null;
   agent_name?: string | null;
   assigned_to?: string | null;
+  access_code?: string | null; // status-portal code
   stage: string;
   status: ApplicationStatus;
   flag?: Flag;
@@ -134,6 +135,13 @@ export interface ApplicationEvent {
   type: string;
   body?: string | null;
   created_at: string;
+}
+
+/** Student contact fields for messaging (not denormalised onto applications). */
+export interface AppContact {
+  phone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
 }
 
 export interface ApplicationDoc {

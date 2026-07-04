@@ -16,8 +16,10 @@ import {
   setFollowUp,
   assignLead,
   updateDocReview,
+  logLeadMessage,
 } from "@/app/admin/actions";
 import { createApplicationFromLead } from "@/app/admin/application-actions";
+import { MessageComposer } from "@/components/admin/MessageComposer";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
@@ -57,10 +59,12 @@ export function LeadDrawer({
   data,
   staff,
   onClose,
+  officerName,
 }: {
   data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
   staff: Staff[];
   onClose: () => void;
+  officerName?: string;
 }) {
   const { lead, events, documents } = data;
   const router = useRouter();
@@ -170,6 +174,30 @@ export function LeadDrawer({
             <Row k="WhatsApp" v={lead.whatsapp} />
             <Row k="Nationality" v={lbl(COUNTRIES, lead.nationality ?? undefined)} />
             <Row k="Interested in" v={lead.tracks.join(", ")} />
+          </div>
+
+          {/* Message the lead */}
+          <div>
+            <SectionLabel>Message</SectionLabel>
+            <MessageComposer
+              recipient={{
+                name: lead.full_name,
+                email: lead.email,
+                phone: lead.whatsapp || lead.phone,
+              }}
+              vars={{
+                full_name: lead.full_name,
+                officer: officerName ?? "the Premium team",
+                company: "Premium",
+              }}
+              context="lead"
+              onSent={(channel, label) =>
+                start(async () => {
+                  await logLeadMessage(lead.id, channel, label);
+                  refresh();
+                })
+              }
+            />
           </div>
 
           {/* Track details */}

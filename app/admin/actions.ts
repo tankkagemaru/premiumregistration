@@ -15,6 +15,19 @@ export async function signOut() {
   redirect("/admin/login");
 }
 
+export async function logLeadMessage(id: string, channel: string, label: string) {
+  if (!authConfigured || channel === "copy") return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  await supabase.from("lead_events").insert({
+    registration_id: id,
+    actor_id: profile?.id,
+    type: channel === "email" ? "email" : "note",
+    body: `${channel === "email" ? "Email" : "WhatsApp"} sent — ${label}`,
+  });
+  revalidatePath("/admin");
+}
+
 export async function markNotificationsRead() {
   if (!authConfigured) return;
   const supabase = await createClient();

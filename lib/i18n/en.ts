@@ -23,6 +23,7 @@ export const en = {
     title: "Let's find the right path for you.",
     body: "Register your interest in English courses, university placement in Malaysia, or corporate training. Choose one or more — we'll only ask what's relevant to what you pick.",
     cta: "Begin registration",
+    talkCta: "Talk to our team",
     offer: "What we offer",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "Malaysia",

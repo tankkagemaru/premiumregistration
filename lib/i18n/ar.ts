@@ -16,6 +16,7 @@ export const ar: Dictionary = {
     title: "دعنا نجد المسار المناسب لك.",
     body: "سجّل اهتمامك بدورات اللغة الإنجليزية، أو القبول الجامعي في ماليزيا، أو التدريب المؤسسي. اختر واحدًا أو أكثر — سنسألك فقط عمّا يخص اختيارك.",
     cta: "ابدأ التسجيل",
+    talkCta: "تحدث إلى فريقنا",
     offer: "ما نقدمه",
     footerCompany: "Premium Entrepreneur Consultant Sdn Bhd",
     footerLocation: "ماليزيا",

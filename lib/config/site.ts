@@ -3,6 +3,13 @@ export const PRIVACY_URL =
   process.env.NEXT_PUBLIC_PRIVACY_URL ?? "https://premium.edu.my/privacy";
 
 /**
+ * "Talk to our team" CTA target. Left blank for now — set this (or the
+ * NEXT_PUBLIC_TALK_URL env var) to the marketing portal / WhatsApp / chat link
+ * when it's ready. While empty the button is shown but disabled.
+ */
+export const TALK_TO_TEAM_URL = process.env.NEXT_PUBLIC_TALK_URL ?? "";
+
+/**
  * Company identity shown in the public footer. Values that vary or are still
  * being confirmed are env-overridable; anything left blank is simply hidden in
  * the footer (no placeholder text leaks onto the live site). Fill the blanks
