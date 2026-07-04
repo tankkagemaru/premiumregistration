@@ -171,6 +171,37 @@ export const ar: Dictionary = {
     back: "العودة إلى الرئيسية",
   },
 
+  status: {
+    kicker: "حالة الطلب",
+    title: "تابع حالة طلبك.",
+    sub: "أدخل رقم جواز سفرك (أو البريد الإلكتروني المستخدم في الطلب) والرمز المرجعي الذي أرسلناه إليك. يمكن للوكلاء متابعة أي من طلابهم بالطريقة نفسها.",
+    passportLabel: "جواز السفر أو البريد الإلكتروني",
+    passportPh: "A1234567",
+    codeLabel: "الرمز المرجعي",
+    codePh: "PECSB2026",
+    check: "تحقق",
+    checking: "جارٍ التحقق…",
+    errNotFound: "لم يتم العثور على طلب. تحقق من رقم جواز سفرك والرمز.",
+    errGeneric: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    hello: "مرحبًا، {name}.",
+    ref: "مرجع {ref}",
+    currentStage: "المرحلة الحالية",
+    stepOf: "الخطوة {n} من {total}",
+    complete: "مكتمل",
+    history: "السجل",
+  },
+
+  statusStages: {
+    application: "التقديم",
+    review: "المراجعة",
+    offer: "العرض",
+    accepted: "القبول",
+    visa: "التأشيرة",
+    enrolled: "التسجيل",
+    active: "قيد الدراسة",
+    completed: "مكتمل",
+  },
+
   submit: {
     sending: "جارٍ الإرسال…",
     error: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",

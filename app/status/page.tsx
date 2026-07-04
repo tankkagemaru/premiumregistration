@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { STAGES, stagesFor, type Flag } from "@/lib/admin/applications-shared";
+import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 interface Status {
@@ -21,6 +22,7 @@ interface Status {
 }
 
 export default function StatusPage() {
+  const { t } = useI18n();
   const [passport, setPassport] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -40,16 +42,19 @@ export default function StatusPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setError("No application found. Check your passport number and code.");
+        setError(t("status.errNotFound"));
       } else {
         setStatus(data.status);
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("status.errGeneric"));
     } finally {
       setBusy(false);
     }
   }
+
+  const stageLabel = (id?: string) =>
+    id ? t(`statusStages.${id}`) : "—";
 
   const stages = status ? stagesFor(status.is_international) : STAGES;
   const currentIdx = status
@@ -64,15 +69,13 @@ export default function StatusPage() {
       <SiteHeader />
       <div className="mx-auto w-full max-w-2xl px-6 py-14">
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Application status
+          {t("status.kicker")}
         </p>
         <h1 className="font-serif text-3xl font-medium leading-tight text-ink">
-          Track your application.
+          {t("status.title")}
         </h1>
         <p className="mt-3 text-base leading-relaxed text-ink-soft">
-          Enter your passport number (or the email on your application) and the
-          reference code we sent you. Agents can check any of their students the
-          same way.
+          {t("status.sub")}
         </p>
 
         <form
@@ -80,20 +83,20 @@ export default function StatusPage() {
           className="mt-7 flex flex-col gap-3 rounded-card border border-border-warm bg-paper p-5 sm:flex-row sm:items-end"
         >
           <label className="flex-1 text-sm font-medium text-ink">
-            Passport or email
+            {t("status.passportLabel")}
             <input
               value={passport}
               onChange={(e) => setPassport(e.target.value)}
-              placeholder="A1234567"
+              placeholder={t("status.passportPh")}
               className="mt-1.5 w-full rounded-md border border-border-warm bg-cream-50 px-3 py-2.5 text-sm text-ink outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red"
             />
           </label>
           <label className="flex-1 text-sm font-medium text-ink">
-            Reference code
+            {t("status.codeLabel")}
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="PECSB2026"
+              placeholder={t("status.codePh")}
               className="mt-1.5 w-full rounded-md border border-border-warm bg-cream-50 px-3 py-2.5 text-sm text-ink outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red"
             />
           </label>
@@ -102,7 +105,7 @@ export default function StatusPage() {
             disabled={busy}
             className="rounded-md bg-brand-red px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-brand-red-soft disabled:opacity-60"
           >
-            {busy ? "Checking…" : "Check"}
+            {busy ? t("status.checking") : t("status.check")}
           </button>
         </form>
 
@@ -116,10 +119,10 @@ export default function StatusPage() {
           <div className="mt-8 rounded-card border border-border-warm bg-paper p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-serif text-2xl font-medium text-ink">
-                Hello, {status.name}.
+                {t("status.hello", { name: status.name })}
               </h2>
               <span className="font-mono text-xs text-ink-muted">
-                Ref {status.reference}
+                {t("status.ref", { ref: status.reference })}
               </span>
             </div>
             <p className="mt-1 text-sm text-ink-soft">
@@ -132,17 +135,20 @@ export default function StatusPage() {
                 percent={percent}
                 flag={status.flag}
                 size={144}
-                sublabel="Complete"
+                sublabel={t("status.complete")}
               />
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-                  Current stage
+                  {t("status.currentStage")}
                 </p>
                 <p className="font-serif text-2xl font-medium text-ink">
-                  {stages[currentIdx]?.label ?? "—"}
+                  {stageLabel(stages[currentIdx]?.id)}
                 </p>
                 <p className="mt-1 text-sm text-ink-muted">
-                  Step {currentIdx + 1} of {stages.length}
+                  {t("status.stepOf", {
+                    n: currentIdx + 1,
+                    total: stages.length,
+                  })}
                 </p>
               </div>
             </div>
@@ -170,7 +176,7 @@ export default function StatusPage() {
                         current ? "font-medium text-ink" : "text-ink-muted",
                       )}
                     >
-                      {s.label}
+                      {stageLabel(s.id)}
                     </span>
                     {i < stages.length - 1 && (
                       <span className="mx-1 hidden h-px w-4 bg-border-warm sm:block" />
@@ -188,7 +194,7 @@ export default function StatusPage() {
 
             {status.timeline.length > 0 && (
               <div className="mt-6">
-                <SectionLabel>History</SectionLabel>
+                <SectionLabel>{t("status.history")}</SectionLabel>
                 <div className="flex flex-col gap-2.5">
                   {status.timeline.map((t, i) => (
                     <div key={i} className="flex justify-between text-sm">

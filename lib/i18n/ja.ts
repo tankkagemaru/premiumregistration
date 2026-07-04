@@ -171,6 +171,37 @@ export const ja: Dictionary = {
     back: "ホームに戻る",
   },
 
+  status: {
+    kicker: "申請状況",
+    title: "申請状況を確認する。",
+    sub: "パスポート番号（または申請時のメールアドレス）と、お送りした参照コードを入力してください。エージェントも同じ方法で担当学生を確認できます。",
+    passportLabel: "パスポートまたはメール",
+    passportPh: "A1234567",
+    codeLabel: "参照コード",
+    codePh: "PECSB2026",
+    check: "確認",
+    checking: "確認中…",
+    errNotFound: "申請が見つかりません。パスポート番号とコードをご確認ください。",
+    errGeneric: "問題が発生しました。もう一度お試しください。",
+    hello: "こんにちは、{name}様。",
+    ref: "参照 {ref}",
+    currentStage: "現在の段階",
+    stepOf: "{total} ステップ中 {n} 番目",
+    complete: "完了",
+    history: "履歴",
+  },
+
+  statusStages: {
+    application: "申請",
+    review: "審査",
+    offer: "オファー",
+    accepted: "承諾",
+    visa: "ビザ",
+    enrolled: "登録",
+    active: "在籍",
+    completed: "修了",
+  },
+
   submit: {
     sending: "送信中…",
     error: "問題が発生しました。もう一度お試しください。",

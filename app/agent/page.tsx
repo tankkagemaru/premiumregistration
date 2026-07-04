@@ -1,5 +1,10 @@
 import { getAgentPortal } from "@/lib/agent/portal";
-import { formatMoney } from "@/lib/admin/finance-shared";
+import {
+  formatMoney,
+  type Fee,
+  type Commission,
+  type CommissionStatus,
+} from "@/lib/admin/finance-shared";
 import { STAGE_LABEL, stagePercent } from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
@@ -8,15 +13,46 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+/** Roll up an application's fees into one payment badge. */
+function feeSummary(fees: Fee[]): { label: string; tone: "paid" | "due" | "none" } {
+  if (fees.length === 0) return { label: "—", tone: "none" };
+  const settled = fees.every((f) => f.status === "paid" || f.status === "waived");
+  if (settled) return { label: "Paid", tone: "paid" };
+  const started = fees.some((f) => f.status === "paid" || f.status === "partial");
+  return { label: started ? "Partial" : "Outstanding", tone: "due" };
+}
+
+const COMMISSION_TONE: Record<CommissionStatus, string> = {
+  accrued: "bg-cream-50 text-ink-muted",
+  invoiced: "bg-brand-gold/15 text-brand-gold",
+  paid: "bg-status-present/15 text-status-present",
+};
+const COMMISSION_LABEL: Record<CommissionStatus, string> = {
+  accrued: "Accrued",
+  invoiced: "Invoiced",
+  paid: "Paid",
+};
+const PAY_TONE: Record<"paid" | "due" | "none", string> = {
+  paid: "bg-status-present/15 text-status-present",
+  due: "bg-brand-red-bg text-brand-red",
+  none: "text-ink-muted",
+};
+
 export default async function AgentHome() {
-  const { agent, apps, commissions } = await getAgentPortal();
+  const { agent, apps, commissions, fees } = await getAgentPortal();
   const referral = `${APP_URL}/register?agent=${agent.code}`;
   const enrolled = apps.filter((a) =>
     ["enrolled", "active", "completed"].includes(a.stage),
   ).length;
-  const commissionTotal = commissions
-    .filter((c) => c.direction === "payable")
+  const payable = commissions.filter((c) => c.direction === "payable");
+  const commissionTotal = payable.reduce((s, c) => s + c.amount, 0);
+  const commissionPaid = payable
+    .filter((c) => c.status === "paid")
     .reduce((s, c) => s + c.amount, 0);
+
+  const feesByApp = (id: string) => fees.filter((f) => f.application_id === id);
+  const commissionByApp = (id: string): Commission | undefined =>
+    payable.find((c) => c.application_id === id);
 
   return (
     <div className="flex flex-col gap-8">
@@ -28,13 +64,17 @@ export default async function AgentHome() {
       </div>
 
       {/* Stat row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Referred", value: apps.length },
           { label: "Enrolled", value: enrolled },
           {
             label: "Commission",
             value: commissionTotal ? formatMoney(commissionTotal) : "—",
+          },
+          {
+            label: "Paid out",
+            value: commissionPaid ? formatMoney(commissionPaid) : "—",
           },
         ].map((s) => (
           <div key={s.label} className="rounded-card border border-border-warm bg-paper px-4 py-3">
@@ -59,55 +99,89 @@ export default async function AgentHome() {
       </div>
 
       {/* Students */}
-      <div className="overflow-hidden rounded-card border border-border-warm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-card border border-border-warm">
+        <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
               <th className="px-4 py-2.5 font-medium">Student</th>
-              <th className="px-4 py-2.5 font-medium">Track</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
+              <th className="px-4 py-2.5 font-medium">Payment</th>
+              <th className="px-4 py-2.5 font-medium">Commission</th>
               <th className="px-4 py-2.5 text-center font-medium">Progress</th>
             </tr>
           </thead>
           <tbody>
             {apps.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={5} className="px-4 py-10 text-center text-ink-muted">
                   No students yet — share your link to get started.
                 </td>
               </tr>
             )}
-            {apps.map((a) => (
-              <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-ink">{a.student_name}</div>
-                  <div className="text-xs text-ink-muted">
-                    {a.target_institution ?? ""}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-xs text-ink-soft">
-                  {TRACK_TITLE[a.track] ?? a.track}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex rounded-md bg-brand-red-bg px-2.5 py-1 text-xs font-medium text-brand-red">
-                    {STAGE_LABEL[a.stage] ?? a.stage}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-center">
-                    <ProgressRing
-                      percent={stagePercent(a.stage, a.is_international)}
-                      flag={a.flag ?? "progress"}
-                      size={44}
-                      thickness={5}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {apps.map((a) => {
+              const pay = feeSummary(feesByApp(a.id));
+              const comm = commissionByApp(a.id);
+              return (
+                <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-ink">{a.student_name}</div>
+                    <div className="text-xs text-ink-muted">
+                      {TRACK_TITLE[a.track] ?? a.track}
+                      {a.target_institution ? ` · ${a.target_institution}` : ""}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex rounded-md bg-brand-red-bg px-2.5 py-1 text-xs font-medium text-brand-red">
+                      {STAGE_LABEL[a.stage] ?? a.stage}
+                    </span>
+                    {a.status !== "active" && (
+                      <div className="mt-1 text-[11px] uppercase tracking-wide text-ink-muted">
+                        {a.status}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${PAY_TONE[pay.tone]}`}>
+                      {pay.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {comm ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-ink tabular">
+                          {formatMoney(comm.amount, comm.currency)}
+                        </span>
+                        <span className={`inline-flex w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${COMMISSION_TONE[comm.status]}`}>
+                          {COMMISSION_LABEL[comm.status]}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-ink-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center">
+                      <ProgressRing
+                        percent={stagePercent(a.stage, a.is_international)}
+                        flag={a.flag ?? "progress"}
+                        size={44}
+                        thickness={5}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Commission status legend */}
+      <p className="text-xs text-ink-muted">
+        Commission status: <span className="font-medium text-ink-soft">Accrued</span> earned, pending our invoice ·{" "}
+        <span className="font-medium text-brand-gold">Invoiced</span> invoice submitted ·{" "}
+        <span className="font-medium text-status-present">Paid</span> paid out to you.
+      </p>
     </div>
   );
 }

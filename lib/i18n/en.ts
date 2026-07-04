@@ -198,6 +198,37 @@ export const en = {
     back: "Back to home",
   },
 
+  status: {
+    kicker: "Application status",
+    title: "Track your application.",
+    sub: "Enter your passport number (or the email on your application) and the reference code we sent you. Agents can check any of their students the same way.",
+    passportLabel: "Passport or email",
+    passportPh: "A1234567",
+    codeLabel: "Reference code",
+    codePh: "PECSB2026",
+    check: "Check",
+    checking: "Checking…",
+    errNotFound: "No application found. Check your passport number and code.",
+    errGeneric: "Something went wrong. Please try again.",
+    hello: "Hello, {name}.",
+    ref: "Ref {ref}",
+    currentStage: "Current stage",
+    stepOf: "Step {n} of {total}",
+    complete: "Complete",
+    history: "History",
+  },
+
+  statusStages: {
+    application: "Application",
+    review: "Review",
+    offer: "Offer",
+    accepted: "Accepted",
+    visa: "Visa",
+    enrolled: "Enrolled",
+    active: "Active",
+    completed: "Completed",
+  },
+
   submit: {
     sending: "Submitting…",
     error: "Something went wrong. Please try again.",

@@ -171,6 +171,37 @@ export const zh: Dictionary = {
     back: "返回首页",
   },
 
+  status: {
+    kicker: "申请进度",
+    title: "查询您的申请进度。",
+    sub: "请输入您的护照号码（或申请时使用的邮箱）以及我们发送给您的参考编号。代理也可用同样方式查询其学生。",
+    passportLabel: "护照或邮箱",
+    passportPh: "A1234567",
+    codeLabel: "参考编号",
+    codePh: "PECSB2026",
+    check: "查询",
+    checking: "查询中…",
+    errNotFound: "未找到申请。请检查您的护照号码和编号。",
+    errGeneric: "出了点问题，请重试。",
+    hello: "您好，{name}。",
+    ref: "编号 {ref}",
+    currentStage: "当前阶段",
+    stepOf: "第 {n} 步，共 {total} 步",
+    complete: "完成",
+    history: "历史记录",
+  },
+
+  statusStages: {
+    application: "申请",
+    review: "审核",
+    offer: "录取",
+    accepted: "接受",
+    visa: "签证",
+    enrolled: "注册",
+    active: "在读",
+    completed: "完成",
+  },
+
   submit: {
     sending: "提交中…",
     error: "出现错误，请重试。",
