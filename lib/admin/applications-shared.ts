@@ -159,6 +159,7 @@ export interface Application {
  *  e.g. "English intensive → September university intake". */
 export interface StudyPlan {
   intake?: string; // target intake, free text (e.g. "September 2026")
+  target_completion?: string; // date the student intends to finish (ISO date)
   summary?: string;
   steps: { title: string; start?: string; end?: string; note?: string }[];
   updated_at?: string;

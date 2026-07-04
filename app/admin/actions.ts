@@ -20,6 +20,7 @@ export async function saveLeadPlan(
   id: string,
   plan: {
     intake?: string;
+    target_completion?: string;
     summary?: string;
     steps: { title: string; start?: string; end?: string; note?: string }[];
   },
@@ -29,6 +30,7 @@ export async function saveLeadPlan(
   const profile = await getProfile();
   const clean = {
     intake: plan.intake?.trim() || undefined,
+    target_completion: plan.target_completion || undefined,
     summary: plan.summary?.trim() || undefined,
     steps: plan.steps
       .filter((s) => s.title.trim())

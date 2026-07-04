@@ -7,6 +7,7 @@ import { listVisaCases, VISA_STAGE_LABEL } from "@/lib/admin/visa";
 import { TRACKS } from "@/lib/config/tracks";
 import { SearchBox } from "@/components/admin/SearchBox";
 import { AcademicControls } from "@/components/admin/AcademicControls";
+import { PlanEditor } from "@/components/admin/PlanEditor";
 
 /** Stages the Academic team cares about — offer holders and beyond. */
 const ACADEMIC_STAGES = ["accepted", "visa", "enrolled", "active", "completed", "offer"];
@@ -79,7 +80,7 @@ export default async function AcademicPage({
       )}
 
       <div className="overflow-x-auto rounded-card border border-border-warm">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[920px] text-sm">
           <thead>
             <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
               <th className="px-4 py-2.5 font-medium">Student</th>
@@ -87,13 +88,14 @@ export default async function AcademicPage({
               <th className="px-4 py-2.5 font-medium">Pathway / intake</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
               <th className="px-4 py-2.5 font-medium">Fees</th>
+              <th className="px-4 py-2.5 font-medium">Study plan / timeline</th>
               <th className="px-4 py-2.5 font-medium">Class dates &amp; enrolment</th>
             </tr>
           </thead>
           <tbody>
             {students.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={7} className="px-4 py-10 text-center text-ink-muted">
                   No students match.
                 </td>
               </tr>
@@ -123,15 +125,14 @@ export default async function AcademicPage({
                   <td className="px-4 py-3 text-xs">
                     <span className="text-ink">{TRACK_TITLE[a.track] ?? a.track}</span>
                     {a.plan?.intake && (
+                      <span className="block text-ink-soft">Intake: {a.plan.intake}</span>
+                    )}
+                    {a.plan?.target_completion && (
                       <span className="block text-ink-soft">
-                        Intake: {a.plan.intake}
+                        Finish by: {a.plan.target_completion}
                       </span>
                     )}
-                    {a.plan?.steps?.length ? (
-                      <span className="block text-ink-muted">
-                        Plan: {a.plan.steps.length} step{a.plan.steps.length > 1 ? "s" : ""}
-                      </span>
-                    ) : (
+                    {!a.plan?.steps?.length && (
                       <span className="block text-ink-muted">No plan yet</span>
                     )}
                   </td>
@@ -154,7 +155,14 @@ export default async function AcademicPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 align-top">
+                    <PlanEditor
+                      applicationId={a.id}
+                      studentName={a.student_name}
+                      plan={a.plan}
+                    />
+                  </td>
+                  <td className="px-4 py-3 align-top">
                     <AcademicControls
                       appId={a.id}
                       classStart={a.class_start ?? null}

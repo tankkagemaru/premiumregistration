@@ -26,6 +26,7 @@ interface Status {
   offer?: { available: boolean; acknowledgedAt: string | null };
   plan?: {
     intake?: string;
+    target_completion?: string;
     summary?: string;
     steps: { title: string; start?: string; end?: string; note?: string }[];
   } | null;
@@ -303,8 +304,13 @@ export default function StatusPage() {
               <div className="mt-6">
                 <SectionLabel>{t("status.planTitle")}</SectionLabel>
                 {status.plan.intake && (
-                  <p className="mb-2 text-sm text-ink-soft">
+                  <p className="mb-1 text-sm text-ink-soft">
                     {t("status.planIntake", { intake: status.plan.intake })}
+                  </p>
+                )}
+                {status.plan.target_completion && (
+                  <p className="mb-2 text-sm text-ink-soft">
+                    {t("status.planFinish", { date: status.plan.target_completion })}
                   </p>
                 )}
                 {status.plan.summary && (

@@ -13,10 +13,17 @@ const F =
 type StepDraft = { title: string; start: string; end: string; note: string };
 
 /** Build the WhatsApp/email-ready text version of a plan. */
-function planText(studentName: string, intake: string, summary: string, steps: StepDraft[]): string {
+function planText(
+  studentName: string,
+  intake: string,
+  targetCompletion: string,
+  summary: string,
+  steps: StepDraft[],
+): string {
   const lines = [
     `Study plan for ${studentName}`,
     intake ? `Target intake: ${intake}` : "",
+    targetCompletion ? `Expected completion: ${targetCompletion}` : "",
     summary ? `\n${summary}` : "",
     "",
     ...steps
@@ -47,6 +54,7 @@ export function PlanEditor({
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [intake, setIntake] = useState(plan?.intake ?? "");
+  const [targetCompletion, setTargetCompletion] = useState(plan?.target_completion ?? "");
   const [summary, setSummary] = useState(plan?.summary ?? "");
   const [steps, setSteps] = useState<StepDraft[]>(
     plan?.steps?.length
@@ -59,7 +67,7 @@ export function PlanEditor({
 
   function save() {
     start(async () => {
-      const payload = { intake, summary, steps };
+      const payload = { intake, target_completion: targetCompletion, summary, steps };
       if (target === "lead") await saveLeadPlan(applicationId, payload);
       else await saveStudyPlan(applicationId, payload);
       setOpen(false);
@@ -69,7 +77,9 @@ export function PlanEditor({
 
   async function copyText() {
     try {
-      await navigator.clipboard.writeText(planText(studentName, intake, summary, steps));
+      await navigator.clipboard.writeText(
+        planText(studentName, intake, targetCompletion, summary, steps),
+      );
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -122,6 +132,10 @@ export function PlanEditor({
               <input value={intake} onChange={(e) => setIntake(e.target.value)} placeholder="e.g. September 2026" className={`mt-1 w-full ${F}`} />
             </label>
             <label className="text-xs font-medium text-ink-soft">
+              Expected completion
+              <input type="date" value={targetCompletion} onChange={(e) => setTargetCompletion(e.target.value)} className={`mt-1 w-full ${F}`} aria-label="Expected completion date" />
+            </label>
+            <label className="col-span-2 text-xs font-medium text-ink-soft">
               Summary
               <input value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="one-line overview" className={`mt-1 w-full ${F}`} />
             </label>

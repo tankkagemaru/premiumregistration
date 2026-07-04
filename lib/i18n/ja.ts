@@ -203,6 +203,7 @@ export const ja: Dictionary = {
     offerAcked: "{date} に確認済み",
     planTitle: "学習プラン",
     planIntake: "目標入学時期：{intake}",
+    planFinish: "修了予定：{date}",
     docsTitle: "あなたの書類",
     docsSub: "ご依頼した書類をアップロードしてください。確認のうえ状況を更新します。",
     upload: "アップロード",

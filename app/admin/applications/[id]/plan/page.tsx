@@ -49,6 +49,7 @@ export default async function PlanPrintPage({
       <p className="mt-1 text-sm text-ink-soft">
         {app.program_name ?? app.target_institution ?? ""}
         {plan.intake ? ` · Target intake: ${plan.intake}` : ""}
+        {plan.target_completion ? ` · Expected completion: ${plan.target_completion}` : ""}
       </p>
       {plan.summary && (
         <p className="mt-4 text-base leading-relaxed text-ink-soft">{plan.summary}</p>

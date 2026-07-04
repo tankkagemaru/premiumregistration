@@ -203,6 +203,7 @@ export const ar: Dictionary = {
     offerAcked: "تم التأكيد في {date}",
     planTitle: "خطتك الدراسية",
     planIntake: "موعد الالتحاق المستهدف: {intake}",
+    planFinish: "الإكمال المتوقع: {date}",
     docsTitle: "مستنداتك",
     docsSub: "ارفع أي مستندات طلبناها، وسنراجعها ونحدّث حالتك.",
     upload: "رفع",

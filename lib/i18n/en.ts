@@ -230,6 +230,7 @@ export const en = {
     offerAcked: "Acknowledged on {date}",
     planTitle: "Your study plan",
     planIntake: "Target intake: {intake}",
+    planFinish: "Expected completion: {date}",
     docsTitle: "Your documents",
     docsSub: "Upload anything we've requested. We'll review and update your status.",
     upload: "Upload",

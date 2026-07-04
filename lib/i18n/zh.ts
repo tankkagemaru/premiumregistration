@@ -203,6 +203,7 @@ export const zh: Dictionary = {
     offerAcked: "已于 {date} 确认",
     planTitle: "您的学习计划",
     planIntake: "目标入学期：{intake}",
+    planFinish: "预计完成：{date}",
     docsTitle: "您的文件",
     docsSub: "上传我们所需的任何文件，我们将审核并更新您的状态。",
     upload: "上传",

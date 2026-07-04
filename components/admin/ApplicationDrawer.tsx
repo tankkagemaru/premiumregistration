@@ -25,6 +25,7 @@ import { WorkLog } from "@/components/admin/WorkLog";
 import { AddFeeControl } from "@/components/admin/AddFeeControl";
 import type { BillableItem } from "@/lib/admin/billables-shared";
 import { createVisaCase } from "@/app/admin/visa-actions";
+import { createActionRequest } from "@/app/admin/request-actions";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
 import { PlanEditor } from "@/components/admin/PlanEditor";
 import { MessageComposer } from "@/components/admin/MessageComposer";
@@ -208,6 +209,28 @@ export function ApplicationDrawer({
                 studentName={app.student_name}
                 plan={app.plan}
               />
+              {/* Handoff: admissions/marketing ask Academic to build the timeline */}
+              {["admin", "admissions", "marketing", "counsellor"].includes(role) && (
+                <button
+                  onClick={() =>
+                    start(async () => {
+                      await createActionRequest({
+                        applicationId: app.id,
+                        subject: app.student_name,
+                        toRole: "academic",
+                        type: "request",
+                        title: "Build the study plan / timeline",
+                        detail: `${app.program_name ?? app.track} — please set the intake, expected completion and step timeline.`,
+                      });
+                      router.refresh();
+                    })
+                  }
+                  disabled={pending}
+                  className="mt-2 text-xs font-medium text-brand-red hover:underline disabled:opacity-50"
+                >
+                  → Ask Academic to build the plan
+                </button>
+              )}
             </div>
           )}
 
