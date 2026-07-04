@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { getAgentPortal } from "@/lib/agent/portal";
 import {
   formatMoney,
@@ -5,7 +6,12 @@ import {
   type Commission,
   type CommissionStatus,
 } from "@/lib/admin/finance-shared";
-import { STAGE_LABEL, stagePercent } from "@/lib/admin/applications-shared";
+import {
+  STAGE_LABEL,
+  stagePercent,
+  expectedDocs,
+  DOC_LABEL,
+} from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -53,6 +59,15 @@ export default async function AgentHome() {
   const feesByApp = (id: string) => fees.filter((f) => f.application_id === id);
   const commissionByApp = (id: string): Commission | undefined =>
     payable.find((c) => c.application_id === id);
+  // Docs the student still owes: expected by the current stage but not yet
+  // provided (or rejected and needing re-upload).
+  const outstandingDocs = (appId: string, stage: string, intl: boolean) => {
+    const appDocs = docs.filter((d) => d.application_id === appId);
+    return expectedDocs(stage, intl).filter((kind) => {
+      const doc = appDocs.find((d) => d.kind === kind);
+      return !doc || doc.review_status === "rejected";
+    });
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -121,55 +136,89 @@ export default async function AgentHome() {
             {apps.map((a) => {
               const pay = feeSummary(feesByApp(a.id));
               const comm = commissionByApp(a.id);
+              const missing = outstandingDocs(a.id, a.stage, a.is_international);
+              const hasTodo = Boolean(a.next_action) || missing.length > 0;
               return (
-                <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-ink">{a.student_name}</div>
-                    <div className="text-xs text-ink-muted">
-                      {TRACK_TITLE[a.track] ?? a.track}
-                      {a.target_institution ? ` · ${a.target_institution}` : ""}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex rounded-md bg-brand-red-bg px-2.5 py-1 text-xs font-medium text-brand-red">
-                      {STAGE_LABEL[a.stage] ?? a.stage}
-                    </span>
-                    {a.status !== "active" && (
-                      <div className="mt-1 text-[11px] uppercase tracking-wide text-ink-muted">
-                        {a.status}
+                <Fragment key={a.id}>
+                  <tr className={hasTodo ? "bg-paper" : "border-b border-border-warm/60 bg-paper last:border-0"}>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-ink">{a.student_name}</div>
+                      <div className="text-xs text-ink-muted">
+                        {TRACK_TITLE[a.track] ?? a.track}
+                        {a.target_institution ? ` · ${a.target_institution}` : ""}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${PAY_TONE[pay.tone]}`}>
-                      {pay.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {comm ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-ink tabular">
-                          {formatMoney(comm.amount, comm.currency)}
-                        </span>
-                        <span className={`inline-flex w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${COMMISSION_TONE[comm.status]}`}>
-                          {COMMISSION_LABEL[comm.status]}
-                        </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded-md bg-brand-red-bg px-2.5 py-1 text-xs font-medium text-brand-red">
+                        {STAGE_LABEL[a.stage] ?? a.stage}
+                      </span>
+                      {a.status !== "active" && (
+                        <div className="mt-1 text-[11px] uppercase tracking-wide text-ink-muted">
+                          {a.status}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${PAY_TONE[pay.tone]}`}>
+                        {pay.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {comm ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-medium text-ink tabular">
+                            {formatMoney(comm.amount, comm.currency)}
+                          </span>
+                          <span className={`inline-flex w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${COMMISSION_TONE[comm.status]}`}>
+                            {COMMISSION_LABEL[comm.status]}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-ink-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center">
+                        <ProgressRing
+                          percent={stagePercent(a.stage, a.is_international)}
+                          flag={a.flag ?? "progress"}
+                          size={44}
+                          thickness={5}
+                        />
                       </div>
-                    ) : (
-                      <span className="text-xs text-ink-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center">
-                      <ProgressRing
-                        percent={stagePercent(a.stage, a.is_international)}
-                        flag={a.flag ?? "progress"}
-                        size={44}
-                        thickness={5}
-                      />
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {hasTodo && (
+                    <tr className="border-b border-border-warm/60 last:border-0">
+                      <td colSpan={5} className="bg-cream-50/70 px-4 pb-2.5 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs">
+                          {a.next_action && (
+                            <span className="text-ink-soft">
+                              <span className="font-medium text-ink">Next:</span>{" "}
+                              {a.next_action}
+                              {a.next_action_due ? ` · due ${a.next_action_due}` : ""}
+                            </span>
+                          )}
+                          {missing.length > 0 && (
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              <span className="font-medium text-brand-red">
+                                Awaiting from student:
+                              </span>
+                              {missing.map((kind) => (
+                                <span
+                                  key={kind}
+                                  className="rounded bg-brand-red-bg px-1.5 py-0.5 text-brand-red"
+                                >
+                                  {DOC_LABEL[kind] ?? kind}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

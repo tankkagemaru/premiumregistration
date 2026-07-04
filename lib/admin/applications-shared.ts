@@ -52,6 +52,33 @@ export const STAGE_DOCS: Record<string, string[]> = {
   visa: ["medical", "eval"],
 };
 
+/** Human labels for document kinds. */
+export const DOC_LABEL: Record<string, string> = {
+  passport: "Passport",
+  transcript: "Transcript",
+  photo: "Photo",
+  financial: "Financial proof",
+  medical: "Medical report",
+  eval: "Qualification evaluation",
+  val: "Visa approval letter",
+  offer_letter: "Offer letter",
+  other: "Other",
+};
+
+/**
+ * All document kinds expected by the time an application reaches `stage`
+ * (cumulative over every stage up to and including the current one), respecting
+ * the residency lane (visa docs only for international students).
+ */
+export function expectedDocs(stage: string, isInternational: boolean): string[] {
+  const list = stagesFor(isInternational);
+  const idx = list.findIndex((s) => s.id === stage);
+  const upto = idx < 0 ? list : list.slice(0, idx + 1);
+  const kinds = new Set<string>();
+  for (const s of upto) (STAGE_DOCS[s.id] ?? []).forEach((k) => kinds.add(k));
+  return [...kinds];
+}
+
 export type ApplicationStatus = "active" | "withdrawn" | "completed";
 
 export interface Application {

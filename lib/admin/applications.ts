@@ -101,6 +101,32 @@ const MOCK_DOCS: ApplicationDoc[] = [
   { id: "ad2", kind: "transcript", review_status: "pending" },
 ];
 
+export interface ApplicationDocRow extends ApplicationDoc {
+  application_id: string;
+}
+
+const MOCK_DOC_ROWS: ApplicationDocRow[] = [
+  { id: "ad1", kind: "passport", review_status: "verified", application_id: "a-0001" },
+  { id: "ad2", kind: "transcript", review_status: "pending", application_id: "a-0001" },
+  { id: "ad3", kind: "passport", review_status: "verified", application_id: "a-0002" },
+];
+
+/** Documents across many applications, in one query (for portal checklists). */
+export async function listDocumentsForApps(
+  appIds: string[],
+): Promise<ApplicationDocRow[]> {
+  if (appIds.length === 0) return [];
+  if (!authConfigured) {
+    return MOCK_DOC_ROWS.filter((d) => appIds.includes(d.application_id));
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("application_documents")
+    .select("id,kind,review_status,application_id")
+    .in("application_id", appIds);
+  return (data as ApplicationDocRow[] | null) ?? [];
+}
+
 export async function listApplications(filters: {
   stage?: string;
   q?: string;
