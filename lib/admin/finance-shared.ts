@@ -58,7 +58,11 @@ export interface Commission {
   status: CommissionStatus;
 }
 
-export function formatMoney(amount: number, currency = "MYR"): string {
+export function formatMoney(
+  amount: number | null | undefined,
+  currency = "MYR",
+): string {
+  if (amount == null) return "—"; // e.g. an accrued commission whose amount is TBD
   return `${currency} ${amount.toLocaleString("en-MY")}`;
 }
 

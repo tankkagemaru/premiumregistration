@@ -9,11 +9,14 @@ import {
   FEE_TYPE_LABEL,
   type FeeStatus,
 } from "@/lib/admin/finance";
+import { listCommissionRules } from "@/lib/admin/commission-rules";
+import { listUsers } from "@/lib/admin/users";
 import { SearchBox } from "@/components/admin/SearchBox";
 import {
   FeeStatusSelect,
   CommissionStatusSelect,
 } from "@/components/admin/FinanceControls";
+import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
 
 const FEE_BADGE: Record<FeeStatus, string> = {
   unpaid: "bg-brand-red-bg text-brand-red",
@@ -42,10 +45,12 @@ export default async function FinancePage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
-  const [allFees, payments, allCommissions] = await Promise.all([
+  const [allFees, payments, allCommissions, rules, people] = await Promise.all([
     listFees(),
     listPayments(),
     listCommissions(),
+    listCommissionRules(),
+    listUsers(),
   ]);
   const fees = q
     ? allFees.filter((f) => f.student_name.toLowerCase().includes(q))
@@ -62,10 +67,10 @@ export default async function FinancePage({
     .reduce((s, f) => s + Math.max(0, f.amount - paidTowards(f, payments)), 0);
   const payable = commissions
     .filter((c) => c.direction === "payable" && c.status !== "paid")
-    .reduce((s, c) => s + c.amount, 0);
+    .reduce((s, c) => s + (c.amount ?? 0), 0);
   const receivable = commissions
     .filter((c) => c.direction === "receivable" && c.status !== "paid")
-    .reduce((s, c) => s + c.amount, 0);
+    .reduce((s, c) => s + (c.amount ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -195,6 +200,18 @@ export default async function FinancePage({
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Commission rules */}
+      <section>
+        <CommissionRulesManager
+          rules={rules}
+          people={people.map((p) => ({ id: p.id, full_name: p.full_name }))}
+        />
+        <p className="mt-2 text-xs text-ink-muted">
+          Rules are the source of truth for how commission is calculated. Stage
+          automation will read these to fill in accrued amounts.
+        </p>
       </section>
     </div>
   );

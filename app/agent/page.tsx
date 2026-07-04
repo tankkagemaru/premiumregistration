@@ -51,10 +51,10 @@ export default async function AgentHome() {
     ["enrolled", "active", "completed"].includes(a.stage),
   ).length;
   const payable = commissions.filter((c) => c.direction === "payable");
-  const commissionTotal = payable.reduce((s, c) => s + c.amount, 0);
+  const commissionTotal = payable.reduce((s, c) => s + (c.amount ?? 0), 0);
   const commissionPaid = payable
     .filter((c) => c.status === "paid")
-    .reduce((s, c) => s + c.amount, 0);
+    .reduce((s, c) => s + (c.amount ?? 0), 0);
 
   const feesByApp = (id: string) => fees.filter((f) => f.application_id === id);
   const commissionByApp = (id: string): Commission | undefined =>
