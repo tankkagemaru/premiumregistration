@@ -70,6 +70,8 @@ export const en = {
     nationality: "Nationality",
     nationalityPh: "Select your country",
     dob: "Date of birth",
+    agentCode: "Agent / referral code",
+    agentCodePh: "If a Premium agent referred you",
     errName: "Enter your full name.",
     errEmail: "Enter a valid email address.",
     errPhone: "Enter a contactable phone number.",
@@ -195,7 +197,8 @@ export const en = {
   confirm: {
     title: "Thank you, {name}.",
     body: "Your registration has been received. A member of our team will reach out to you shortly by email and WhatsApp.",
-    note: "Once your application is opened, we'll send you a reference code so you can track its progress on the status page.",
+    codeLabel: "Your tracking code",
+    note: "Keep this code — track your progress any time on the status page using it and your email. We've emailed it to you as well.",
     back: "Back to home",
   },
 

@@ -83,6 +83,7 @@ export function RegisterForm() {
   const { t } = useI18n();
   const [stepIndex, setStepIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [refCode, setRefCode] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [token, setToken] = useState("");
@@ -91,9 +92,13 @@ export function RegisterForm() {
   const [consent, setConsent] = useState(false);
   const attribution = useRef<Attribution>({});
 
-  // Capture marketing attribution silently on mount (first-touch).
+  // Capture marketing attribution silently on mount (first-touch), and pre-fill
+  // the visible agent-code field from ?agent= if present.
   useEffect(() => {
     attribution.current = captureAttribution();
+    if (attribution.current.agent_code)
+      form.setValue("agent_code", attribution.current.agent_code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Draft persistence — an accidental refresh no longer wipes the form.
@@ -224,6 +229,7 @@ export function RegisterForm() {
         source: attribution.current.utm_source ?? "direct",
       });
       window.sessionStorage.removeItem(DRAFT_KEY);
+      setRefCode(typeof data.accessCode === "string" ? data.accessCode : null);
       setSubmitted(true);
     } catch {
       setSubmitError(t("submit.error"));
@@ -232,7 +238,7 @@ export function RegisterForm() {
     }
   }
 
-  if (submitted) return <Confirmation form={form} t={t} />;
+  if (submitted) return <Confirmation form={form} t={t} code={refCode} />;
 
   return (
     <div>
@@ -486,6 +492,18 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
                 error={e.nationality?.message}
               />
             )}
+          />
+        </Field>
+
+        <Field
+          label={t("contact.agentCode")}
+          htmlFor="agent_code"
+          optionalLabel={t("common.optional")}
+        >
+          <TextInput
+            id="agent_code"
+            placeholder={t("contact.agentCodePh")}
+            {...register("agent_code")}
           />
         </Field>
 
@@ -1000,7 +1018,7 @@ function ReviewStep({
   );
 }
 
-function Confirmation({ form, t }: { form: Form; t: T }) {
+function Confirmation({ form, t, code }: { form: Form; t: T; code?: string | null }) {
   const name = form.getValues("full_name").split(" ")[0] || "";
   return (
     <div className="py-12 text-center">
@@ -1015,6 +1033,14 @@ function Confirmation({ form, t }: { form: Form; t: T }) {
       <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-ink-soft animate-[rise-in_500ms_ease-out_220ms_both]">
         {t("confirm.body")}
       </p>
+      {code && (
+        <div className="mx-auto mt-6 max-w-xs rounded-card border border-border-warm bg-paper px-5 py-4 animate-[rise-in_500ms_ease-out_300ms_both]">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">
+            {t("confirm.codeLabel")}
+          </p>
+          <p className="mt-1 font-mono text-xl tracking-widest text-ink">{code}</p>
+        </div>
+      )}
       <p className="mt-6 text-xs text-ink-muted animate-[rise-in_500ms_ease-out_320ms_both]">
         {t("confirm.note")}
       </p>

@@ -18,6 +18,7 @@ interface NewLead {
   tracks: string[];
   nationality?: string;
   source?: string;
+  accessCode?: string;
 }
 
 function shell(inner: string) {
@@ -53,6 +54,14 @@ function adminAlertHtml(lead: NewLead) {
 }
 
 function applicantReplyHtml(lead: NewLead) {
+  const statusUrl = `${serverEnv.appUrl}/status`;
+  const codeBlock = lead.accessCode
+    ? `<div style="margin-top:20px;padding:14px 16px;background:${CREAM};border:1px solid ${LINE};border-radius:8px">
+        <p style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${MUTED};margin:0 0 6px">Your tracking code</p>
+        <p style="font-family:monospace;font-size:20px;letter-spacing:0.08em;color:${INK};margin:0">${lead.accessCode}</p>
+        <p style="font-size:13px;color:${MUTED};margin:8px 0 0">Track your progress any time at <a href="${statusUrl}" style="color:${RED}">${statusUrl}</a> using this code and your email.</p>
+      </div>`
+    : "";
   return shell(`
     <p style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${RED};margin:0 0 8px">Premium Language Centre</p>
     <h1 style="font-family:Georgia,serif;font-size:22px;margin:0 0 16px">Thank you, ${lead.fullName.split(" ")[0]}.</h1>
@@ -60,6 +69,7 @@ function applicantReplyHtml(lead: NewLead) {
       We've received your registration and a member of our team will reach out to you shortly.
       If you need us sooner, simply reply to this email.
     </p>
+    ${codeBlock}
   `);
 }
 

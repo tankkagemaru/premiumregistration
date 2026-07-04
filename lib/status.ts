@@ -14,6 +14,7 @@ export interface PublicStatus {
   timeline: { label: string; date: string }[];
   next_step?: string;
   documents: { kind: string; review_status: string }[];
+  isLead?: boolean; // matched a registration (not yet an application)
 }
 
 // Dev demo: passport A1234567 + code PECSB2026.
@@ -87,7 +88,34 @@ export async function lookupStatus(
     )
     .eq("access_code", c)
     .maybeSingle();
-  if (!app) return null;
+
+  // No application yet — try a registration (lead) with the same code so a
+  // just-registered student can already track using their emailed code.
+  if (!app) {
+    const { data: reg } = await admin
+      .from("registrations")
+      .select("id, tracks, full_name, email, status, created_at")
+      .eq("access_code", c)
+      .maybeSingle();
+    if (!reg || !reg.email || reg.email.toLowerCase() !== v) return null;
+    const leadStage: Record<string, string> =
+      { new: "application", contacted: "review", enrolled: "enrolled", dropped: "review" };
+    return {
+      name: (reg.full_name ?? "").split(" ")[0],
+      reference: (reg.id as string).slice(0, 8).toUpperCase(),
+      track: (reg.tracks?.[0] as string) ?? "english",
+      qualification: null,
+      is_international: false,
+      stage: leadStage[reg.status as string] ?? "application",
+      flag: reg.status === "enrolled" ? "ok" : "progress",
+      timeline: [
+        { label: "Registration received", date: String(reg.created_at).slice(0, 10) },
+      ],
+      documents: [],
+      isLead: true,
+    };
+  }
+
   const matches =
     (app.passport_no && app.passport_no.toLowerCase() === v) ||
     (app.student_email && app.student_email.toLowerCase() === v);

@@ -50,6 +50,8 @@ export const zh: Dictionary = {
     nationality: "国籍",
     nationalityPh: "请选择您的国家",
     dob: "出生日期",
+    agentCode: "代理 / 推荐码",
+    agentCodePh: "如有 Premium 代理推荐",
     errName: "请输入您的全名。",
     errEmail: "请输入有效的电子邮箱地址。",
     errPhone: "请输入可联系的电话号码。",
@@ -168,7 +170,8 @@ export const zh: Dictionary = {
   confirm: {
     title: "谢谢您，{name}。",
     body: "我们已收到您的登记信息。我们的团队成员将尽快通过电子邮件和 WhatsApp 与您联系。",
-    note: "当您的申请开始处理后，我们会发送一个参考编号，供您在查询页面追踪进度。",
+    codeLabel: "您的追踪编号",
+    note: "请保存此编号——随时可在查询页面使用它和您的邮箱追踪进度。我们也已将其发送至您的邮箱。",
     back: "返回首页",
   },
 

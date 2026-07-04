@@ -22,6 +22,7 @@ interface Status {
   timeline: { label: string; date: string }[];
   next_step?: string;
   documents: { kind: string; review_status: string }[];
+  isLead?: boolean;
 }
 
 export default function StatusPage() {
@@ -229,7 +230,8 @@ export default function StatusPage() {
               </div>
             )}
 
-            {/* Documents — student self-upload */}
+            {/* Documents — student self-upload (once an application exists) */}
+            {!status.isLead && (
             <div className="mt-6">
               <SectionLabel>{t("status.docsTitle")}</SectionLabel>
               <p className="mb-3 text-sm text-ink-soft">{t("status.docsSub")}</p>
@@ -295,6 +297,7 @@ export default function StatusPage() {
                 })}
               </ul>
             </div>
+            )}
 
             {status.timeline.length > 0 && (
               <div className="mt-6">

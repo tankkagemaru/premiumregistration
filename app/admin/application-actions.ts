@@ -162,6 +162,8 @@ export async function createApplicationFromLead(leadId: string) {
       is_international: isInternational,
       agent_id: agentId,
       agent_name: agentName,
+      // Keep the student's tracking code stable across lead → application.
+      ...(reg.access_code ? { access_code: reg.access_code } : {}),
       // The staff member converting the lead becomes the handler (incentive).
       created_by: profile?.id ?? null,
       assigned_to: profile?.id ?? null,

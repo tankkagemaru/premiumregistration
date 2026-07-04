@@ -50,6 +50,8 @@ export const ja: Dictionary = {
     nationality: "国籍",
     nationalityPh: "国を選択してください",
     dob: "生年月日",
+    agentCode: "エージェント / 紹介コード",
+    agentCodePh: "Premium エージェントの紹介がある場合",
     errName: "氏名を入力してください。",
     errEmail: "有効なメールアドレスを入力してください。",
     errPhone: "連絡可能な電話番号を入力してください。",
@@ -168,7 +170,8 @@ export const ja: Dictionary = {
   confirm: {
     title: "ありがとうございます、{name}様。",
     body: "ご登録を受け付けました。担当者よりメールおよび WhatsApp にて追ってご連絡いたします。",
-    note: "お申し込みの手続きが開始されると、進捗を確認できる参照コードをお送りします。",
+    codeLabel: "追跡コード",
+    note: "このコードを保管してください。コードとメールアドレスで、状況ページからいつでも進捗を確認できます。メールでもお送りしています。",
     back: "ホームに戻る",
   },
 

@@ -105,10 +105,10 @@ export async function POST(request: Request) {
       utm_medium: attribution?.utm_medium ?? null,
       utm_campaign: attribution?.utm_campaign ?? null,
       referrer: attribution?.referrer ?? null,
-      agent_code: attribution?.agent_code ?? null,
+      agent_code: values.agent_code || attribution?.agent_code || null,
       details,
     })
-    .select("id")
+    .select("id, access_code")
     .single();
 
   if (insertError || !row) {
@@ -147,7 +147,8 @@ export async function POST(request: Request) {
     tracks: values.tracks,
     nationality: values.nationality,
     source: attribution?.utm_source ?? attribution?.agent_code ?? undefined,
+    accessCode: row.access_code ?? undefined,
   });
 
-  return NextResponse.json({ ok: true, id: row.id, uploads });
+  return NextResponse.json({ ok: true, id: row.id, accessCode: row.access_code, uploads });
 }
