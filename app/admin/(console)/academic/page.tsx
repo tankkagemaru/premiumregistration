@@ -4,6 +4,7 @@ import { listApplications, STAGE_LABEL } from "@/lib/admin/applications";
 import { listFees, formatMoney } from "@/lib/admin/finance";
 import { listRequests } from "@/lib/admin/requests";
 import { SearchBox } from "@/components/admin/SearchBox";
+import { AcademicControls } from "@/components/admin/AcademicControls";
 
 /** Stages the Academic team cares about — offer holders and beyond. */
 const ACADEMIC_STAGES = ["accepted", "visa", "enrolled", "active", "completed", "offer"];
@@ -77,15 +78,14 @@ export default async function AcademicPage({
               <th className="px-4 py-2.5 font-medium">Student</th>
               <th className="px-4 py-2.5 font-medium">Programme</th>
               <th className="px-4 py-2.5 font-medium">Stage</th>
-              <th className="px-4 py-2.5 font-medium">Class start</th>
-              <th className="px-4 py-2.5 font-medium">Class end</th>
-              <th className="px-4 py-2.5 font-medium">Class entry</th>
+              <th className="px-4 py-2.5 font-medium">Fees</th>
+              <th className="px-4 py-2.5 font-medium">Class dates &amp; enrolment</th>
             </tr>
           </thead>
           <tbody>
             {students.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={5} className="px-4 py-10 text-center text-ink-muted">
                   No students match.
                 </td>
               </tr>
@@ -108,12 +108,6 @@ export default async function AcademicPage({
                   <td className="px-4 py-3 text-xs text-ink">
                     {STAGE_LABEL[a.stage] ?? a.stage}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted">
-                    {a.class_start ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted">
-                    {a.class_end ?? "—"}
-                  </td>
                   <td className="px-4 py-3">
                     {due.length === 0 ? (
                       <span className="inline-flex rounded-md bg-status-present-bg px-2 py-0.5 text-xs font-medium text-status-present">
@@ -126,9 +120,18 @@ export default async function AcademicPage({
                           .map((f) => `${f.label ?? f.type}: ${formatMoney(f.amount)}`)
                           .join(", ")}
                       >
-                        Fee outstanding · {formatMoney(due.reduce((s, f) => s + f.amount, 0))}
+                        Outstanding · {formatMoney(due.reduce((s, f) => s + (f.amount ?? 0), 0))}
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <AcademicControls
+                      appId={a.id}
+                      classStart={a.class_start ?? null}
+                      classEnd={a.class_end ?? null}
+                      stage={a.stage}
+                      feeCleared={due.length === 0}
+                    />
                   </td>
                 </tr>
               );

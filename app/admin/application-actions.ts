@@ -48,6 +48,26 @@ export async function logApplicationMessage(
   revalidatePath("/admin", "layout");
 }
 
+export async function setClassDates(
+  id: string,
+  classStart: string | null,
+  classEnd: string | null,
+) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  await supabase
+    .from("applications")
+    .update({ class_start: classStart || null, class_end: classEnd || null })
+    .eq("id", id);
+  await logAudit({
+    action: "class_dates_set",
+    target_type: "application",
+    target_id: id,
+    detail: `${classStart ?? "—"} → ${classEnd ?? "—"}`,
+  });
+  revalidatePath("/admin", "layout");
+}
+
 export async function addApplicationNote(id: string, body: string) {
   if (!authConfigured || !body.trim()) return;
   const supabase = await createClient();
