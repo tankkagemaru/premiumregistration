@@ -46,8 +46,17 @@ export const ENGLISH_SCHEDULES = [
   { value: "intensive", label: "Intensive" },
 ] as const;
 
-/** External placement test app (link out — not embedded in v1). */
-export const PLACEMENT_TEST_URL = "https://placement.premium.edu.my";
+/**
+ * External placement test app (link out — not embedded in v1). China reaches
+ * Vercel unreliably, so zh users are sent to the Zeabur mirror. Use
+ * placementTestUrl(locale) rather than a single constant.
+ */
+export const PLACEMENT_TEST_URL_GLOBAL = "https://premium-placement-test.vercel.app/";
+export const PLACEMENT_TEST_URL_CHINA = "https://premium-placement-test.zeabur.app/";
+
+export function placementTestUrl(locale?: string): string {
+  return locale === "zh" ? PLACEMENT_TEST_URL_CHINA : PLACEMENT_TEST_URL_GLOBAL;
+}
 
 /** Corporate training need categories. */
 export const CORPORATE_NEEDS = [

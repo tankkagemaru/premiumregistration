@@ -143,22 +143,28 @@ export const QUALIFICATION_LEVELS = [
   { value: "phd", label: "PhD / Doctorate" },
 ] as const;
 
-/** Study mode — matters most for postgraduate applicants. */
+/** Study mode — matters most for postgraduate applicants. ODL = Open Distance
+ *  Learning (a growing option for working / overseas students). */
 export const STUDY_MODES = [
   { value: "coursework", label: "Coursework" },
   { value: "research", label: "Research" },
   { value: "mixed", label: "Mixed mode" },
+  { value: "odl", label: "Open Distance Learning (ODL)" },
   { value: "any", label: "Any / not sure" },
 ] as const;
 
-/** Applicant's CURRENT education level (what they've completed). */
+/** Applicant's CURRENT education level (what they've completed). Includes
+ *  international equivalents since many applicants study from abroad. */
 export const EDUCATION_LEVELS = [
+  { value: "high_school", label: "High school / secondary" },
   { value: "spm", label: "SPM / O-Level" },
   { value: "stpm", label: "STPM / A-Level" },
-  { value: "diploma", label: "Diploma" },
+  { value: "ib", label: "International Baccalaureate (IB)" },
   { value: "foundation", label: "Foundation" },
+  { value: "diploma", label: "Diploma" },
   { value: "bachelor", label: "Bachelor's degree" },
   { value: "master", label: "Master's degree" },
+  { value: "other", label: "Other" },
 ] as const;
 
 export const INTAKE_PREFERENCES = [

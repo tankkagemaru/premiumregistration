@@ -26,7 +26,7 @@ import {
   ENGLISH_EXAMS,
   CEFR_LEVELS,
   ENGLISH_SCHEDULES,
-  PLACEMENT_TEST_URL,
+  placementTestUrl,
   HEADCOUNT_RANGES,
   TIMELINES,
 } from "@/lib/config/programs";
@@ -555,6 +555,7 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
 
 function EnglishStep({ form, t }: { form: Form; t: T }) {
   const { register, control, formState } = form;
+  const { locale } = useI18n();
   const e = formState.errors.english ?? {};
   return (
     <div>
@@ -604,7 +605,7 @@ function EnglishStep({ form, t }: { form: Form; t: T }) {
             <>
               {t("english.placementHint")}{" "}
               <a
-                href={PLACEMENT_TEST_URL}
+                href={placementTestUrl(locale)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-brand-red underline underline-offset-2"
