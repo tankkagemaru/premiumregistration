@@ -190,6 +190,13 @@ export const zh: Dictionary = {
     stepOf: "第 {n} 步，共 {total} 步",
     complete: "完成",
     history: "历史记录",
+    docsTitle: "您的文件",
+    docsSub: "上传我们所需的任何文件，我们将审核并更新您的状态。",
+    upload: "上传",
+    replace: "替换",
+    docPending: "等待审核",
+    docVerified: "已核实",
+    docRejected: "需重新上传",
   },
 
   statusStages: {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Upload, Loader2 } from "lucide-react";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { STAGES, stagesFor, type Flag } from "@/lib/admin/applications-shared";
+import { requiredDocuments } from "@/lib/config/documents";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +15,13 @@ interface Status {
   reference: string;
   track: string;
   program?: string;
+  qualification?: string | null;
   is_international: boolean;
   stage: string;
   flag: Flag;
   timeline: { label: string; date: string }[];
   next_step?: string;
+  documents: { kind: string; review_status: string }[];
 }
 
 export default function StatusPage() {
@@ -28,12 +31,14 @@ export default function StatusPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setStatus(null);
+  async function load(clear: boolean) {
+    if (clear) {
+      setBusy(true);
+      setError(null);
+      setStatus(null);
+    }
     try {
       const res = await fetch("/api/status", {
         method: "POST",
@@ -42,14 +47,46 @@ export default function StatusPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setError(t("status.errNotFound"));
+        if (clear) setError(t("status.errNotFound"));
       } else {
         setStatus(data.status);
       }
     } catch {
-      setError(t("status.errGeneric"));
+      if (clear) setError(t("status.errGeneric"));
     } finally {
-      setBusy(false);
+      if (clear) setBusy(false);
+    }
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    load(true);
+  }
+
+  async function uploadDoc(kind: string, file: File) {
+    setUploading(kind);
+    try {
+      const signRes = await fetch("/api/status/upload", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ passport, code, action: "sign", kind, filename: file.name }),
+      });
+      const sign = await signRes.json();
+      if (!sign.ok) return;
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("registration-docs")
+        .uploadToSignedUrl(sign.path, sign.token, file);
+      if (upErr) return;
+      await fetch("/api/status/upload", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ passport, code, action: "confirm", kind, path: sign.path }),
+      });
+      await load(false);
+    } finally {
+      setUploading(null);
     }
   }
 
@@ -191,6 +228,73 @@ export default function StatusPage() {
                 {status.next_step}
               </div>
             )}
+
+            {/* Documents — student self-upload */}
+            <div className="mt-6">
+              <SectionLabel>{t("status.docsTitle")}</SectionLabel>
+              <p className="mb-3 text-sm text-ink-soft">{t("status.docsSub")}</p>
+              <ul className="flex flex-col divide-y divide-border-warm/50">
+                {requiredDocuments({
+                  track: status.track,
+                  qualification: status.qualification,
+                  isInternational: status.is_international,
+                }).map((r) => {
+                  const d = status.documents.find((x) => x.kind === r.kind);
+                  const reviewLabel =
+                    d?.review_status === "verified"
+                      ? t("status.docVerified")
+                      : d?.review_status === "rejected"
+                        ? t("status.docRejected")
+                        : t("status.docPending");
+                  return (
+                    <li key={r.kind} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                      {d ? (
+                        <Check className="h-4 w-4 shrink-0 text-status-present" aria-hidden />
+                      ) : (
+                        <span className="h-4 w-4 shrink-0 rounded-full border border-ink-muted" />
+                      )}
+                      <span className={d ? "text-ink" : "text-ink-muted"}>
+                        {r.label}
+                        {r.optional && (
+                          <span className="ml-1 text-[10px] uppercase text-ink-muted">optional</span>
+                        )}
+                      </span>
+                      <div className="ml-auto flex items-center gap-2">
+                        {d && (
+                          <span
+                            className={cn(
+                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                              d.review_status === "verified" && "bg-status-present-bg text-status-present",
+                              d.review_status === "rejected" && "bg-brand-red-bg text-brand-red",
+                              d.review_status === "pending" && "bg-cream-50 text-ink-muted",
+                            )}
+                          >
+                            {reviewLabel}
+                          </span>
+                        )}
+                        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border-warm bg-paper px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-cream-50">
+                          {uploading === r.kind ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                          ) : (
+                            <Upload className="h-3.5 w-3.5" aria-hidden />
+                          )}
+                          {d ? t("status.replace") : t("status.upload")}
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) uploadDoc(r.kind, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
             {status.timeline.length > 0 && (
               <div className="mt-6">

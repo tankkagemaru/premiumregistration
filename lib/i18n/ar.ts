@@ -190,6 +190,13 @@ export const ar: Dictionary = {
     stepOf: "الخطوة {n} من {total}",
     complete: "مكتمل",
     history: "السجل",
+    docsTitle: "مستنداتك",
+    docsSub: "ارفع أي مستندات طلبناها، وسنراجعها ونحدّث حالتك.",
+    upload: "رفع",
+    replace: "استبدال",
+    docPending: "قيد المراجعة",
+    docVerified: "تم التحقق",
+    docRejected: "يلزم إعادة الرفع",
   },
 
   statusStages: {

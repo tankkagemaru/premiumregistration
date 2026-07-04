@@ -217,6 +217,13 @@ export const en = {
     stepOf: "Step {n} of {total}",
     complete: "Complete",
     history: "History",
+    docsTitle: "Your documents",
+    docsSub: "Upload anything we've requested. We'll review and update your status.",
+    upload: "Upload",
+    replace: "Replace",
+    docPending: "Awaiting review",
+    docVerified: "Verified",
+    docRejected: "Re-upload needed",
   },
 
   statusStages: {

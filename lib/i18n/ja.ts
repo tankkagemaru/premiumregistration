@@ -190,6 +190,13 @@ export const ja: Dictionary = {
     stepOf: "{total} ステップ中 {n} 番目",
     complete: "完了",
     history: "履歴",
+    docsTitle: "あなたの書類",
+    docsSub: "ご依頼した書類をアップロードしてください。確認のうえ状況を更新します。",
+    upload: "アップロード",
+    replace: "差し替え",
+    docPending: "確認待ち",
+    docVerified: "確認済み",
+    docRejected: "再アップロードが必要",
   },
 
   statusStages: {
