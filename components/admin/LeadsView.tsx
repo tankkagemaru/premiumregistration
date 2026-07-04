@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Search, Download } from "lucide-react";
+import { Search, Download, UserPlus, GraduationCap } from "lucide-react";
 import {
   LEAD_STATUSES,
   type Lead,
@@ -13,6 +13,7 @@ import {
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
 import { LeadDrawer } from "@/components/admin/LeadDrawer";
+import { AddRecordDialog, type AddMode } from "@/components/admin/AddRecordDialog";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 
@@ -64,6 +65,7 @@ export function LeadsView({
   const params = useSearchParams();
   const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
+  const [addMode, setAddMode] = useState<AddMode | null>(null);
 
   function setParam(key: string, value?: string) {
     const next = new URLSearchParams(params.toString());
@@ -114,13 +116,29 @@ export function LeadsView({
             {leads.length} {leads.length === 1 ? "lead" : "leads"}
           </h1>
         </div>
-        <button
-          onClick={download}
-          className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
-        >
-          <Download className="h-4 w-4 text-ink-muted" aria-hidden />
-          Export CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setAddMode("lead")}
+            className="inline-flex items-center gap-2 rounded-md bg-ink px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+          >
+            <UserPlus className="h-4 w-4" aria-hidden />
+            Add enquiry
+          </button>
+          <button
+            onClick={() => setAddMode("student")}
+            className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+          >
+            <GraduationCap className="h-4 w-4 text-ink-muted" aria-hidden />
+            Add student
+          </button>
+          <button
+            onClick={download}
+            className="inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+          >
+            <Download className="h-4 w-4 text-ink-muted" aria-hidden />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Stat row */}
@@ -222,6 +240,10 @@ export function LeadsView({
           staff={staff}
           onClose={() => setParam("lead", undefined)}
         />
+      )}
+
+      {addMode && (
+        <AddRecordDialog mode={addMode} onClose={() => setAddMode(null)} />
       )}
     </div>
   );
