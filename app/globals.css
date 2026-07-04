@@ -117,3 +117,18 @@ h3 {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Registration-complete celebration (used on the confirmation screen). */
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ring-out {
+  0% { opacity: 0.5; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

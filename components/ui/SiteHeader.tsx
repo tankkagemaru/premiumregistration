@@ -14,7 +14,7 @@ export function SiteHeader() {
   const { t } = useI18n();
   return (
     <header className="border-b border-border-warm">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
         <Link href="/" className="flex items-center gap-3">
           <Image
             src="/pecsb-logo.png"

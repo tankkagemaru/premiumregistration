@@ -1003,18 +1003,24 @@ function ReviewStep({
 function Confirmation({ form, t }: { form: Form; t: T }) {
   const name = form.getValues("full_name").split(" ")[0] || "";
   return (
-    <div className="py-10 text-center">
-      <CircleCheck className="mx-auto h-12 w-12 text-brand-red" aria-hidden />
-      <h1 className="mt-5 font-serif text-3xl font-medium text-ink">
+    <div className="py-12 text-center">
+      <div className="relative mx-auto flex h-16 w-16 items-center justify-center">
+        <span className="absolute inset-0 rounded-full bg-brand-red/20 animate-[ring-out_1.1s_ease-out_forwards]" aria-hidden />
+        <span className="absolute inset-0 rounded-full bg-brand-red/20 animate-[ring-out_1.1s_ease-out_0.3s_forwards]" aria-hidden />
+        <CircleCheck className="relative h-14 w-14 text-brand-red animate-[pop-in_500ms_ease-out_both]" aria-hidden />
+      </div>
+      <h1 className="mt-6 font-serif text-3xl font-medium text-ink animate-[rise-in_500ms_ease-out_120ms_both]">
         {t("confirm.title", { name })}
       </h1>
-      <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-ink-soft">
+      <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-ink-soft animate-[rise-in_500ms_ease-out_220ms_both]">
         {t("confirm.body")}
       </p>
-      <p className="mt-6 text-xs text-ink-muted">{t("confirm.note")}</p>
+      <p className="mt-6 text-xs text-ink-muted animate-[rise-in_500ms_ease-out_320ms_both]">
+        {t("confirm.note")}
+      </p>
       <Link
         href="/"
-        className="mt-8 inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+        className="mt-8 inline-flex items-center gap-2 rounded-md border border-border-warm bg-paper px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-cream-50 animate-[rise-in_500ms_ease-out_420ms_both]"
       >
         {t("confirm.back")}
       </Link>

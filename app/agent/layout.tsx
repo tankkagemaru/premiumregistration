@@ -15,7 +15,7 @@ export default async function AgentLayout({
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-border-warm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
           <div className="flex items-baseline gap-3">
             <Wordmark size="md" />
             <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
