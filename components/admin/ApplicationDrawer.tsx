@@ -20,6 +20,7 @@ import {
   addApplicationNote,
   logApplicationMessage,
 } from "@/app/admin/application-actions";
+import { createVisaCase } from "@/app/admin/visa-actions";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -238,7 +239,7 @@ export function ApplicationDrawer({
           )}
 
           {/* Visa */}
-          {visa && (
+          {visa ? (
             <div>
               <SectionLabel>Visa / EMGS</SectionLabel>
               <Row k="Stage" v={VISA_STAGE_LABEL[visa.stage] ?? visa.stage} />
@@ -246,7 +247,37 @@ export function ApplicationDrawer({
               <Row k="EMGS ref" v={visa.emgs_ref} />
               <Row k="Medical" v={visa.medical_status} />
               <Row k="Pass expiry" v={visa.student_pass_expiry} />
+              <a href={`/admin/visa?visa=${visa.id}`} className="mt-2 inline-flex text-xs font-medium text-brand-red hover:underline">
+                Open visa case →
+              </a>
             </div>
+          ) : (
+            app.is_international && (
+              <div>
+                <SectionLabel>Visa / EMGS</SectionLabel>
+                <p className="mb-2 text-sm text-ink-muted">
+                  No visa case yet. Start one to track EMGS / student pass:
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => start(async () => { await createVisaCase(app.id, "pecsb"); router.refresh(); })}
+                    className="rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-cream hover:bg-ink-soft disabled:opacity-50"
+                  >
+                    PECSB files
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => start(async () => { await createVisaCase(app.id, "university"); router.refresh(); })}
+                    className="rounded-md border border-border-warm bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-cream-50 disabled:opacity-50"
+                  >
+                    University files
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {/* Cross-team requests */}

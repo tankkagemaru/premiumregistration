@@ -17,6 +17,7 @@ import {
   CommissionStatusSelect,
 } from "@/components/admin/FinanceControls";
 import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
+import { PaymentControl } from "@/components/admin/PaymentControl";
 
 const FEE_BADGE: Record<FeeStatus, string> = {
   unpaid: "bg-brand-red-bg text-brand-red",
@@ -112,6 +113,7 @@ export default async function FinancePage({
                 <th className="px-4 py-2.5 text-right font-medium">Received</th>
                 <th className="px-4 py-2.5 font-medium">Due</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Record</th>
               </tr>
             </thead>
             <tbody>
@@ -145,6 +147,9 @@ export default async function FinancePage({
                       </span>
                       <FeeStatusSelect id={f.id} status={f.status} />
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <PaymentControl applicationId={f.application_id} feeId={f.id} amount={f.amount} />
                   </td>
                 </tr>
               ))}
