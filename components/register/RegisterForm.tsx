@@ -731,7 +731,7 @@ function UniversityStep({ form, t }: { form: Form; t: T }) {
         </Field>
         <Field
           label={t("university.institutions")}
-          error={!recommend && e.preferred_universities && t("university.errInstitutions")}
+          error={!recommend && e.preferred_universities ? t("university.errInstitutions") : undefined}
           hint={!recommend ? t("university.institutionsHint") : undefined}
         >
           {!recommend && (

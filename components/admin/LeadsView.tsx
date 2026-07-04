@@ -74,7 +74,7 @@ export function LeadsView({
 
   // Staleness is derived client-side from the loaded rows (day-granularity, so
   // stable between server and client render). Thresholds live in config/staleness.
-  const stale = new Map(leads.map((l) => [l.id, leadStaleness(l)]));
+  const stale = new Map(leads.map((l) => [l.id, leadStaleness(l)] as const));
   const attnCount = leads.filter((l) => stale.get(l.id)?.level !== "ok").length;
   const shown = attnOnly
     ? leads.filter((l) => stale.get(l.id)?.level !== "ok")
