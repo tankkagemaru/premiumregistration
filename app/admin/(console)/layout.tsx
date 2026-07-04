@@ -18,16 +18,16 @@ export default async function ConsoleLayout({
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-border-warm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-baseline gap-3">
             <Wordmark size="md" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            <span className="hidden text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted sm:inline">
               Staff console
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <NotificationBell items={notifications} userId={profile.id} />
-            <span className="text-sm text-ink-soft">{profile.full_name}</span>
+            <span className="hidden text-sm text-ink-soft sm:inline">{profile.full_name}</span>
             <form action={signOut}>
               <button
                 type="submit"
@@ -40,7 +40,7 @@ export default async function ConsoleLayout({
         </div>
       </header>
       <ConsoleNav role={profile.role} />
-      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</div>
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</div>
     </div>
   );
 }

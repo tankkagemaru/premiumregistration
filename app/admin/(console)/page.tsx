@@ -48,6 +48,32 @@ export default async function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8">
+      {total === 0 && (
+        <div className="rounded-card border border-border-warm bg-paper p-6">
+          <p className="font-serif text-xl text-ink">Welcome — let&apos;s get started.</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            No leads yet. Add your first enquiry from the Leads tab, or share the
+            public registration form with prospects.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/admin/leads"
+              className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-ink-soft"
+            >
+              Go to Leads
+            </Link>
+            <a
+              href="/register"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md border border-border-warm bg-paper px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-cream-50"
+            >
+              Open the registration form
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Total leads" value={total} />
         <Stat label="New" value={by("new")} />

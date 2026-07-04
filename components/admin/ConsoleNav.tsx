@@ -30,8 +30,8 @@ export function ConsoleNav({ role }: { role: string }) {
   const tabs = TABS.filter((t) => t.roles.includes("*") || t.roles.includes(role));
 
   return (
-    <nav className="flex gap-6 overflow-x-auto border-b border-border-warm px-6">
-      <div className="mx-auto flex w-full max-w-6xl gap-6">
+    <nav className="flex gap-6 overflow-x-auto border-b border-border-warm px-4 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl gap-5 sm:gap-6">
         {tabs.map((t) => {
           const active =
             t.href === "/admin"
