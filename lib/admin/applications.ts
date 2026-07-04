@@ -197,7 +197,7 @@ export async function getApplication(id: string): Promise<{
         .eq("application_id", id),
       supabase
         .from("students")
-        .select("phone,whatsapp")
+        .select("phone,whatsapp,nationality")
         .eq("id", (app as Application).student_id)
         .maybeSingle(),
     ]);
@@ -209,6 +209,7 @@ export async function getApplication(id: string): Promise<{
       phone: (student as { phone?: string } | null)?.phone,
       whatsapp: (student as { whatsapp?: string } | null)?.whatsapp,
       email: (app as Application).student_email,
+      nationality: (student as { nationality?: string } | null)?.nationality,
     },
   };
 }

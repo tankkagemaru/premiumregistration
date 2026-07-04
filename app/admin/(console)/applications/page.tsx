@@ -1,5 +1,6 @@
 import { getProfile } from "@/lib/auth";
 import { listApplications, getApplication } from "@/lib/admin/applications";
+import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listFeesForApp } from "@/lib/admin/finance";
 import { getVisaCaseForApp } from "@/lib/admin/visa";
 import { listRequests } from "@/lib/admin/requests";
@@ -26,6 +27,16 @@ export default async function ApplicationsPage({
         getProfile(),
       ])
     : [[], null, [], null];
+  // Document requirements resolved from the editable rules (track / level /
+  // residency / nationality). Computed server-side; passed into the drawer.
+  const docRequirements = selected
+    ? await getDocRequirements({
+        track: selected.app.track,
+        qualification: selected.app.qualification_level,
+        isInternational: selected.app.is_international,
+        nationality: selected.contact.nationality,
+      })
+    : [];
 
   return (
     <div>
@@ -47,6 +58,7 @@ export default async function ApplicationsPage({
           fees={fees}
           visa={visa}
           requests={requests}
+          docRequirements={docRequirements}
           role={profile?.role ?? "staff"}
           officerName={profile?.full_name}
         />

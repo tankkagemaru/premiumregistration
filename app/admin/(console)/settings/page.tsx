@@ -3,7 +3,9 @@ import { STALENESS_RULES } from "@/lib/config/staleness";
 import { LOCALES } from "@/lib/i18n/config";
 import { requireRole } from "@/lib/auth";
 import { listInstitutions, listPrograms } from "@/lib/admin/catalog";
+import { listDocRules } from "@/lib/admin/doc-rules";
 import { CatalogManager } from "@/components/admin/CatalogManager";
+import { DocRulesManager } from "@/components/admin/DocRulesManager";
 
 function Card({
   title,
@@ -24,9 +26,10 @@ function Card({
 
 export default async function SettingsPage() {
   await requireRole(["admin"]);
-  const [institutions, programs] = await Promise.all([
+  const [institutions, programs, docRules] = await Promise.all([
     listInstitutions(true),
     listPrograms(true),
+    listDocRules(true),
   ]);
 
   return (
@@ -46,6 +49,11 @@ export default async function SettingsPage() {
       {/* Editable catalog — programs + institutions */}
       <section className="rounded-card border border-border-warm bg-paper p-5">
         <CatalogManager institutions={institutions} programs={programs} />
+      </section>
+
+      {/* Editable document requirements */}
+      <section className="rounded-card border border-border-warm bg-paper p-5">
+        <DocRulesManager rules={docRules} />
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">

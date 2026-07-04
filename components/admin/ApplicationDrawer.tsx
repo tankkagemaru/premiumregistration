@@ -12,7 +12,7 @@ import {
   type ApplicationDoc,
   type AppContact,
 } from "@/lib/admin/applications-shared";
-import { requiredDocuments } from "@/lib/config/documents";
+import type { DocRequirement } from "@/lib/config/documents";
 import {
   advanceApplicationStage,
   addApplicationNote,
@@ -50,6 +50,7 @@ export function ApplicationDrawer({
   fees = [],
   visa = null,
   requests = [],
+  docRequirements = [],
   role = "staff",
   officerName,
 }: {
@@ -62,6 +63,7 @@ export function ApplicationDrawer({
   fees?: Fee[];
   visa?: VisaCase | null;
   requests?: ActionRequest[];
+  docRequirements?: DocRequirement[];
   role?: string;
   officerName?: string;
 }) {
@@ -73,12 +75,7 @@ export function ApplicationDrawer({
   const close = () => router.push("/admin/applications");
   const applicable = stagesFor(app.is_international);
 
-  // Required documents from the requirements matrix (track / level / residency).
-  const docRequirements = requiredDocuments({
-    track: app.track,
-    qualification: app.qualification_level,
-    isInternational: app.is_international,
-  });
+  // Required documents come pre-resolved from the editable rules (server-side).
   const have = new Set(documents.map((d) => d.kind));
   const missing = docRequirements.filter((r) => !r.optional && !have.has(r.kind));
 

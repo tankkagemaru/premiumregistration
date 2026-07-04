@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { STAGES, stagesFor, type Flag } from "@/lib/admin/applications-shared";
-import { requiredDocuments } from "@/lib/config/documents";
+import type { DocRequirement } from "@/lib/config/documents";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ interface Status {
   timeline: { label: string; date: string }[];
   next_step?: string;
   documents: { kind: string; review_status: string }[];
+  requirements: DocRequirement[];
   isLead?: boolean;
 }
 
@@ -236,11 +237,7 @@ export default function StatusPage() {
               <SectionLabel>{t("status.docsTitle")}</SectionLabel>
               <p className="mb-3 text-sm text-ink-soft">{t("status.docsSub")}</p>
               <ul className="flex flex-col divide-y divide-border-warm/50">
-                {requiredDocuments({
-                  track: status.track,
-                  qualification: status.qualification,
-                  isInternational: status.is_international,
-                }).map((r) => {
+                {status.requirements.map((r) => {
                   const d = status.documents.find((x) => x.kind === r.kind);
                   const reviewLabel =
                     d?.review_status === "verified"

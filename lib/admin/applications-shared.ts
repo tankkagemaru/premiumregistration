@@ -142,6 +142,7 @@ export interface AppContact {
   phone?: string | null;
   whatsapp?: string | null;
   email?: string | null;
+  nationality?: string | null;
 }
 
 export interface ApplicationDoc {

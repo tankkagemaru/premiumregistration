@@ -1,6 +1,8 @@
 import "server-only";
 import { supabaseConfigured } from "@/lib/env";
 import { STAGE_LABEL, type Flag } from "@/lib/admin/applications-shared";
+import { getDocRequirements } from "@/lib/admin/doc-rules";
+import type { DocRequirement } from "@/lib/config/documents";
 
 export interface PublicStatus {
   name: string;
@@ -14,6 +16,7 @@ export interface PublicStatus {
   timeline: { label: string; date: string }[];
   next_step?: string;
   documents: { kind: string; review_status: string }[];
+  requirements: DocRequirement[]; // resolved from the editable rules
   isLead?: boolean; // matched a registration (not yet an application)
 }
 
@@ -34,6 +37,10 @@ const MOCK: PublicStatus = {
   ],
   next_step: "We are preparing your acceptance letter. No action needed from you yet.",
   documents: [{ kind: "passport", review_status: "verified" }],
+  requirements: [
+    { kind: "passport", label: "Passport (bio-data page)" },
+    { kind: "transcript", label: "Degree transcript(s)" },
+  ],
 };
 
 /** Verify passport/email + code and return the application id (for uploads). */
@@ -84,7 +91,7 @@ export async function lookupStatus(
   const { data: app } = await admin
     .from("applications")
     .select(
-      "id, track, program_name, qualification_level, stage, student_name, passport_no, student_email, is_international",
+      "id, track, program_name, qualification_level, stage, student_name, passport_no, student_email, is_international, student_id",
     )
     .eq("access_code", c)
     .maybeSingle();
@@ -94,24 +101,33 @@ export async function lookupStatus(
   if (!app) {
     const { data: reg } = await admin
       .from("registrations")
-      .select("id, tracks, full_name, email, status, created_at")
+      .select("id, tracks, full_name, email, status, created_at, nationality")
       .eq("access_code", c)
       .maybeSingle();
     if (!reg || !reg.email || reg.email.toLowerCase() !== v) return null;
     const leadStage: Record<string, string> =
       { new: "application", contacted: "review", enrolled: "enrolled", dropped: "review" };
+    const track = (reg.tracks?.[0] as string) ?? "english";
+    const isIntl = (reg.nationality ?? "").toLowerCase() !== "my";
+    const requirements = await getDocRequirements({
+      track,
+      qualification: null,
+      isInternational: isIntl,
+      nationality: reg.nationality as string | null,
+    });
     return {
       name: (reg.full_name ?? "").split(" ")[0],
       reference: (reg.id as string).slice(0, 8).toUpperCase(),
-      track: (reg.tracks?.[0] as string) ?? "english",
+      track,
       qualification: null,
-      is_international: false,
+      is_international: isIntl,
       stage: leadStage[reg.status as string] ?? "application",
       flag: reg.status === "enrolled" ? "ok" : "progress",
       timeline: [
         { label: "Registration received", date: String(reg.created_at).slice(0, 10) },
       ],
       documents: [],
+      requirements,
       isLead: true,
     };
   }
@@ -121,7 +137,7 @@ export async function lookupStatus(
     (app.student_email && app.student_email.toLowerCase() === v);
   if (!matches) return null;
 
-  const [{ data: events }, { data: docs }] = await Promise.all([
+  const [{ data: events }, { data: docs }, { data: student }] = await Promise.all([
     admin
       .from("application_events")
       .select("to_stage, body, created_at")
@@ -132,7 +148,17 @@ export async function lookupStatus(
       .from("application_documents")
       .select("kind, review_status")
       .eq("application_id", app.id),
+    app.student_id
+      ? admin.from("students").select("nationality").eq("id", app.student_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+
+  const requirements = await getDocRequirements({
+    track: app.track,
+    qualification: app.qualification_level,
+    isInternational: Boolean(app.is_international),
+    nationality: (student as { nationality?: string } | null)?.nationality ?? null,
+  });
 
   const flag: Flag = ["enrolled", "active", "completed"].includes(app.stage)
     ? "ok"
@@ -151,5 +177,6 @@ export async function lookupStatus(
       date: String(e.created_at).slice(0, 10),
     })),
     documents: (docs as { kind: string; review_status: string }[] | null) ?? [],
+    requirements,
   };
 }
