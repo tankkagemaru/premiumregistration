@@ -1,53 +1,41 @@
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { listLeads, listStaff } from "@/lib/admin/leads";
+import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import type { Lead } from "@/lib/admin/leads-shared";
 
-function Group({
-  title,
+function List({
   leads,
   staffName,
-  tone,
 }: {
-  title: string;
   leads: Lead[];
   staffName: (id?: string | null) => string;
-  tone?: "danger";
 }) {
-  return (
-    <section>
-      <p
-        className={`mb-3 text-[11px] font-medium uppercase tracking-[0.22em] ${
-          tone === "danger" ? "text-brand-red" : "text-ink-muted"
-        }`}
-      >
-        {title} · {leads.length}
+  if (leads.length === 0)
+    return (
+      <p className="rounded-card border border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
+        Nothing here.
       </p>
-      {leads.length === 0 ? (
-        <p className="rounded-card border border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-          Nothing here.
-        </p>
-      ) : (
-        <div className="overflow-hidden rounded-card border border-border-warm">
-          {leads.map((l) => (
-            <Link
-              key={l.id}
-              href={`/admin/leads?lead=${l.id}`}
-              className="flex items-center justify-between gap-4 border-b border-border-warm/60 bg-paper px-4 py-3 transition-colors last:border-0 hover:bg-cream-50"
-            >
-              <div>
-                <p className="text-sm font-medium text-ink">{l.full_name}</p>
-                <p className="text-xs text-ink-muted">{l.next_action}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-mono text-xs text-ink">{l.next_action_due}</p>
-                <p className="text-[11px] text-ink-muted">{staffName(l.assigned_to)}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
+    );
+  return (
+    <div className="overflow-hidden rounded-card border border-border-warm">
+      {leads.map((l) => (
+        <Link
+          key={l.id}
+          href={`/admin/leads?lead=${l.id}`}
+          className="flex items-center justify-between gap-4 border-b border-border-warm/60 bg-paper px-4 py-3 transition-colors last:border-0 hover:bg-cream-50"
+        >
+          <div>
+            <p className="text-sm font-medium text-ink">{l.full_name}</p>
+            <p className="text-xs text-ink-muted">{l.next_action}</p>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-xs text-ink">{l.next_action_due}</p>
+            <p className="text-[11px] text-ink-muted">{staffName(l.assigned_to)}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -57,7 +45,9 @@ export default async function FollowUpsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const scope = (Array.isArray(sp.scope) ? sp.scope[0] : sp.scope) ?? "mine";
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const scope = one(sp.scope) ?? "mine";
+  const stage = one(sp.stage) ?? "overdue";
   const [profile, leads, staff] = await Promise.all([
     getProfile(),
     listLeads(),
@@ -78,8 +68,15 @@ export default async function FollowUpsPage({
   const dueToday = withDue.filter((l) => l.next_action_due === today);
   const upcoming = withDue.filter((l) => l.next_action_due! > today);
 
+  const tabs: StageTab[] = [
+    { id: "overdue", label: "Overdue", attention: true, count: overdue.length },
+    { id: "today", label: "Due today", count: dueToday.length },
+    { id: "upcoming", label: "Upcoming", count: upcoming.length },
+  ];
+  const shown = stage === "today" ? dueToday : stage === "upcoming" ? upcoming : overdue;
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
@@ -93,7 +90,7 @@ export default async function FollowUpsPage({
           {(["mine", "all"] as const).map((s) => (
             <Link
               key={s}
-              href={`/admin/follow-ups${s === "all" ? "?scope=all" : ""}`}
+              href={`/admin/follow-ups?scope=${s}&stage=${stage}`}
               className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
                 scope === s ? "bg-inkbtn text-oncolor" : "text-ink-soft hover:text-ink"
               }`}
@@ -103,9 +100,8 @@ export default async function FollowUpsPage({
           ))}
         </div>
       </div>
-      <Group title="Overdue" leads={overdue} staffName={staffName} tone="danger" />
-      <Group title="Due today" leads={dueToday} staffName={staffName} />
-      <Group title="Upcoming" leads={upcoming} staffName={staffName} />
+      <StageTabs tabs={tabs} active={stage} />
+      <List leads={shown} staffName={staffName} />
     </div>
   );
 }

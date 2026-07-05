@@ -186,7 +186,7 @@ export default async function Dashboard() {
             Needs attention
           </p>
           <div className="flex flex-col gap-2 text-sm">
-            <Link href="/admin/leads?status=new" className="flex justify-between hover:text-brand-red">
+            <Link href="/admin/leads?stage=new" className="flex justify-between hover:text-brand-red">
               <span className="text-ink-soft">Unassigned new leads</span>
               <span className="font-medium text-ink">{unassigned.length}</span>
             </Link>
