@@ -5,7 +5,7 @@ import type { AgentCode } from "./agent-codes-shared";
 export * from "./agent-codes-shared";
 
 const MOCK: AgentCode[] = [
-  { id: "ac1", created_at: "2026-07-01T00:00:00Z", code: "AG-CELIA1", agent_name: "Celia", contact: "celia@example.com", active: true, issued_by_name: "Administrator" },
+  { id: "ac1", created_at: "2026-07-01T00:00:00Z", code: "AG-KUCING1", agent_name: "Kucing Oren", contact: "kucing@example.com", active: true, issued_by_name: "Administrator" },
   { id: "ac2", created_at: "2026-06-20T00:00:00Z", code: "AG-FELIX2", agent_name: "Felix", contact: "+60 12-345 6789", active: true, issued_by_name: "Administrator" },
 ];
 

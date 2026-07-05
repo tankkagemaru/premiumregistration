@@ -29,7 +29,7 @@ export async function getAgentPortal(): Promise<{
   const agent: AgentContext =
     profile?.role === "agent"
       ? { id: profile.id, code: profile.agent_code ?? "", name: profile.full_name }
-      : { id: "s-celia", code: "CELIA", name: "Celia (demo)" };
+      : { id: "s-kucing", code: "KUCING", name: "Kucing Oren (demo)" };
 
   const apps = await listApplications({ agentId: agent.id });
   const appIds = apps.map((a) => a.id);

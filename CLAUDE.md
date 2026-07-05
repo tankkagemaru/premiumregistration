@@ -261,7 +261,7 @@ Roles live on a `profiles` table linked to Supabase Auth; enforced by RLS.
 - **Staff / counsellor**: manage leads (all, or assigned-only — configurable), log activity,
   send emails; no user management or settings.
 - **Agent** (optional): a restricted portal showing only leads whose `agent_code` matches
-  theirs — lets referral partners (e.g. Celia, Felix) track their own leads and status, tied to
+  theirs — lets referral partners (e.g. Felix) track their own leads and status, tied to
   the commission structure. The `agent_code` hook is already on the row; build the portal when
   you want it.
 

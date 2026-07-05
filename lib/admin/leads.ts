@@ -12,7 +12,7 @@ export * from "./leads-shared";
 
 const MOCK_STAFF: Staff[] = [
   { id: "s-waty", full_name: "Madam Waty" },
-  { id: "s-celia", full_name: "Celia" },
+  { id: "s-kucing", full_name: "Kucing Oren" },
   { id: "s-felix", full_name: "Felix" },
 ];
 
@@ -41,7 +41,7 @@ const MOCK_LEADS: Lead[] = [
     nationality: "my",
     utm_source: "instagram",
     utm_campaign: "july-intake",
-    agent_code: "CELIA",
+    agent_code: "KUCING",
     next_action: "Call to confirm intake",
     next_action_due: "2026-07-04",
     tags: ["hot"],
@@ -69,7 +69,7 @@ const MOCK_LEADS: Lead[] = [
     phone: "+60129998888",
     nationality: "my",
     utm_source: "google",
-    assigned_to: "s-celia",
+    assigned_to: "s-kucing",
     next_action: "Send training proposal",
     next_action_due: "2026-07-01",
     details: {

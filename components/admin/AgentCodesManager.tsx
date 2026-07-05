@@ -86,7 +86,7 @@ export function AgentCodesManager({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <label className="col-span-2 text-xs font-medium text-ink-soft sm:col-span-1">
               Agent name
-              <input value={form.agent_name} onChange={(e) => set("agent_name", e.target.value)} placeholder="e.g. Celia" className={`mt-1 w-full ${F}`} />
+              <input value={form.agent_name} onChange={(e) => set("agent_name", e.target.value)} placeholder="e.g. Kucing Oren" className={`mt-1 w-full ${F}`} />
             </label>
             <label className="col-span-2 text-xs font-medium text-ink-soft sm:col-span-1">
               Contact

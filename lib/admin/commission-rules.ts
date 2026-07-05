@@ -5,7 +5,7 @@ import type { CommissionRule } from "./commission-rules-shared";
 export * from "./commission-rules-shared";
 
 const MOCK: CommissionRule[] = [
-  { id: "r1", active: true, scope: "agent_payout", subject_id: "s-celia", subject_name: "Celia", basis: "percent", rate: 15, currency: "MYR", label: "Celia — standard" },
+  { id: "r1", active: true, scope: "agent_payout", subject_id: "s-kucing", subject_name: "Kucing Oren", basis: "percent", rate: 15, currency: "MYR", label: "Kucing Oren — standard" },
   { id: "r2", active: true, scope: "agent_payout", subject_id: "s-felix", subject_name: "Felix", basis: "percent", rate: 20, min_students: 10, currency: "MYR", label: "Felix — volume tier" },
   { id: "r3", active: true, scope: "university_share", university: "Universiti Putra Malaysia (UPM)", category: "PG_masters", basis: "split", our_share_pct: 30, currency: "MYR", label: "UPM Master's split" },
   { id: "r4", active: true, scope: "handler_incentive", basis: "fixed", rate: 200, currency: "MYR", label: "Handler incentive — default" },

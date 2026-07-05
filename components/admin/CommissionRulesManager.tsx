@@ -107,7 +107,7 @@ export function CommissionRulesManager({
             </label>
             <label className="col-span-2 text-xs font-medium text-ink-soft">
               Label
-              <input value={form.label} onChange={(e) => set("label", e.target.value)} placeholder="e.g. Celia — standard" className={`mt-1 w-full ${F}`} />
+              <input value={form.label} onChange={(e) => set("label", e.target.value)} placeholder="e.g. Kucing Oren — standard" className={`mt-1 w-full ${F}`} />
             </label>
 
             {usesSubject && (

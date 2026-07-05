@@ -9,8 +9,8 @@ const MOCK_USERS: StaffUser[] = [
   { id: "s-aina", full_name: "Aina", email: "aina@premium.edu.my", role: "admissions" },
   { id: "s-hafiz", full_name: "Hafiz", email: "hafiz@premium.edu.my", role: "visa" },
   { id: "s-meiling", full_name: "Mei Ling", email: "meiling@premium.edu.my", role: "finance" },
-  { id: "s-celia", full_name: "Celia", email: "celia@partners.example", role: "agent", agent_code: "CELIA" },
-  { id: "s-felix", full_name: "Felix", email: "felix@partners.example", role: "agent", agent_code: "FELIX", parent_agent_id: "s-celia" },
+  { id: "s-kucing", full_name: "Kucing Oren", email: "kucing@partners.example", role: "agent", agent_code: "KUCING" },
+  { id: "s-felix", full_name: "Felix", email: "felix@partners.example", role: "agent", agent_code: "FELIX", parent_agent_id: "s-kucing" },
 ];
 
 export async function listUsers(q?: string): Promise<StaffUser[]> {
