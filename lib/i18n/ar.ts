@@ -54,6 +54,7 @@ export const ar: Dictionary = {
     agentCodePh: "إذا أحالك أحد وكلاء Premium",
     passport: "رقم جواز السفر / الهوية",
     passportPh: "يُستخدم لاحقًا للتحقق من حالتك",
+    errPassport: "أدخل رقم جواز السفر / الهوية.",
     errName: "أدخل اسمك الكامل.",
     errEmail: "أدخل بريدًا إلكترونيًا صحيحًا.",
     errPhone: "أدخل رقم هاتف يمكن التواصل عبره.",

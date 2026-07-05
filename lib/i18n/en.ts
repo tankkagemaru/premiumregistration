@@ -74,6 +74,7 @@ export const en = {
     agentCodePh: "If a Premium agent referred you",
     passport: "Passport / ID number",
     passportPh: "Used to check your status later",
+    errPassport: "Enter your passport / ID number.",
     errName: "Enter your full name.",
     errEmail: "Enter a valid email address.",
     errPhone: "Enter a contactable phone number.",

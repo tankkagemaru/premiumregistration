@@ -541,11 +541,12 @@ function ContactStep({ form, t }: { form: Form; t: T }) {
             <Field
               label={t("contact.passport")}
               htmlFor="passport_no"
-              optionalLabel={t("common.optional")}
+              error={e.passport_no && t("contact.errPassport")}
             >
               <TextInput
                 id="passport_no"
                 placeholder={t("contact.passportPh")}
+                error={e.passport_no?.message}
                 {...register("passport_no")}
               />
             </Field>

@@ -54,6 +54,7 @@ export const zh: Dictionary = {
     agentCodePh: "如有 Premium 代理推荐",
     passport: "护照 / 身份证号码",
     passportPh: "用于日后查询进度",
+    errPassport: "请输入护照 / 身份证号码。",
     errName: "请输入您的全名。",
     errEmail: "请输入有效的电子邮箱地址。",
     errPhone: "请输入可联系的电话号码。",

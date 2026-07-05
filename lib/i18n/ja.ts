@@ -54,6 +54,7 @@ export const ja: Dictionary = {
     agentCodePh: "Premium エージェントの紹介がある場合",
     passport: "パスポート / ID 番号",
     passportPh: "後で進捗確認に使用します",
+    errPassport: "パスポート / ID 番号を入力してください。",
     errName: "氏名を入力してください。",
     errEmail: "有効なメールアドレスを入力してください。",
     errPhone: "連絡可能な電話番号を入力してください。",

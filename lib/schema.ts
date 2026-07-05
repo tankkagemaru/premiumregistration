@@ -96,6 +96,8 @@ export const registrationSchema = z
     const isStudentReg =
       val.tracks.includes("english") || val.tracks.includes("university");
     if (isStudentReg) {
+      // Passport / national ID is required for student registrations.
+      require(!val.passport_no?.trim(), ["passport_no"], "Enter your passport / ID number.");
       const age = ageFromDob(val.dob);
       if (!val.dob || age === null || age < 0 || age > 120) {
         require(true, ["dob"], "Enter a valid date of birth.");
@@ -179,6 +181,7 @@ export const STEP_FIELDS = {
     "phone",
     "nationality",
     "dob",
+    "passport_no",
     "guardian.full_name",
     "guardian.relationship",
     "guardian.consent",
