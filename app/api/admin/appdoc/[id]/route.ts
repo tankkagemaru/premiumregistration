@@ -6,7 +6,8 @@ import { logAudit } from "@/lib/admin/audit";
 export const runtime = "nodejs";
 
 const BUCKET = "registration-docs";
-const VIEW_ROLES = ["admin", "admissions", "visa", "finance", "counsellor", "academic", "staff"];
+// boss: read-only document view from the exec student popout (audited like all).
+const VIEW_ROLES = ["admin", "boss", "admissions", "visa", "finance", "counsellor", "academic", "staff"];
 
 /** Redirect a permitted staff user to a short-lived signed URL for an
  *  application document. Role checked in code; the signed URL is minted with the
