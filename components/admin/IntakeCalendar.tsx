@@ -101,6 +101,20 @@ export function IntakeCalendar({
   const intakesOn = (iso: string) =>
     intakes.filter((i) => i.start_date <= iso && iso <= i.end_date && i.status !== "cancelled");
 
+  // Clicking a day selects it and opens a detail panel (works for every role —
+  // viewers see what's on; editors get add/edit right there).
+  const todayISO = toISO(now);
+  const [selected, setSelected] = useState<string | null>(null);
+  const selectedHoliday = selected ? holidayByDate.get(selected) : undefined;
+  const selectedIntakes = selected ? intakesOn(selected) : [];
+  const prettyDate = (iso: string) =>
+    parseISO(iso).toLocaleDateString(undefined, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
   // Add-intake form.
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -201,24 +215,40 @@ export function IntakeCalendar({
             const weekend = dow === 0 || dow === 6;
             const holiday = holidayByDate.get(iso);
             const active = intakesOn(iso);
+            const isToday = iso === todayISO;
+            const isSelected = iso === selected;
             return (
               <button
                 key={idx}
-                onClick={() => canEdit && openAdd(iso)}
-                disabled={!canEdit}
-                className={`min-h-[84px] border-b border-r border-border-warm/60 p-1.5 text-left align-top last:border-r-0 ${
+                onClick={() => setSelected(iso)}
+                className={`group relative min-h-[84px] cursor-pointer border-b border-r border-border-warm/60 p-1.5 text-left align-top last:border-r-0 hover:bg-cream-50 ${
                   inMonth ? "bg-paper" : "bg-cream-50/40"
                 } ${weekend ? "bg-cream-50/60" : ""} ${holiday ? "bg-brand-red/[0.06]" : ""} ${
-                  canEdit ? "hover:bg-cream-50" : "cursor-default"
+                  isSelected ? "ring-2 ring-inset ring-brand-red" : ""
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs ${inMonth ? "text-ink" : "text-ink-muted/60"}`}>
+                  <span
+                    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs ${
+                      isToday
+                        ? "bg-brand-red font-semibold text-oncolor"
+                        : inMonth
+                          ? "text-ink"
+                          : "text-ink-muted/60"
+                    }`}
+                  >
                     {d.getUTCDate()}
                   </span>
+                  {canEdit && (
+                    <Plus
+                      className="h-3.5 w-3.5 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  )}
                 </div>
                 {holiday && (
-                  <p className="mt-0.5 truncate text-[9px] font-medium text-brand-red" title={holiday}>
+                  <p className="mt-0.5 flex items-center gap-0.5 truncate text-[9px] font-medium text-brand-red" title={holiday}>
+                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-red/70" />
                     {holiday}
                   </p>
                 )}
@@ -244,6 +274,81 @@ export function IntakeCalendar({
           })}
         </div>
       </div>
+
+      {/* selected-day detail — click any day to see (and edit) what's on it */}
+      {selected && (
+        <div className="rounded-card border border-border-warm bg-paper p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-serif text-lg text-ink">{prettyDate(selected)}</p>
+            <button
+              onClick={() => setSelected(null)}
+              className="text-xs text-ink-muted hover:text-ink"
+            >
+              Close
+            </button>
+          </div>
+          {selectedHoliday && (
+            <p className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-brand-red/[0.08] px-2.5 py-1 text-xs font-medium text-brand-red">
+              <span className="h-2 w-2 rounded-full bg-brand-red/70" /> Public holiday — {selectedHoliday}
+            </p>
+          )}
+          {selectedIntakes.length === 0 ? (
+            <p className="text-sm text-ink-muted">No intakes running on this day.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {selectedIntakes.map((i) => (
+                <div
+                  key={i.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border-warm/60 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-sm ${PROG_BAR[i.program] ?? "bg-ink-muted"}`} />
+                    <div>
+                      <p className="text-sm font-medium text-ink">{intakeName(i)}</p>
+                      <p className="text-xs text-ink-muted">
+                        {i.start_date} → {i.end_date}
+                        {i.start_date === selected ? " · starts today" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canEdit ? (
+                      <select
+                        value={i.status}
+                        onChange={(e) => run(() => updateIntake(i.id, { status: e.target.value }))}
+                        className="rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none"
+                      >
+                        {INTAKE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : (
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${INTAKE_STATUS_TONE[i.status] ?? ""}`}>
+                        {i.status}
+                      </span>
+                    )}
+                    {canEdit && (
+                      <button
+                        onClick={() => run(() => deleteIntake(i.id))}
+                        aria-label="Delete intake"
+                        className="text-ink-muted hover:text-brand-red"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {canEdit && (
+            <button
+              onClick={() => openAdd(selected)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-brand-red px-3 py-1.5 text-sm font-medium text-oncolor hover:bg-brand-red-soft"
+            >
+              <Plus className="h-4 w-4" aria-hidden /> Add intake on this day
+            </button>
+          )}
+        </div>
+      )}
 
       {/* add form */}
       {open && canEdit && (
