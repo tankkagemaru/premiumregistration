@@ -33,6 +33,7 @@ export interface VisaCase {
   single_entry_visa?: string | null;
   arrival_date?: string | null;
   student_pass_expiry?: string | null;
+  created_at?: string | null;
 }
 
 /** Officer-editable statuses for the visa detail editor. */
