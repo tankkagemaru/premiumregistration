@@ -64,7 +64,7 @@ export default async function Dashboard() {
     <div className="flex flex-col gap-8">
       {staleLeads.length > 0 && (
         <Link
-          href="/admin/leads?attn=1"
+          href="/admin/leads?stage=attention"
           className="flex items-center justify-between gap-3 rounded-card border border-brand-red/40 bg-brand-red-bg px-5 py-4 transition-colors hover:border-brand-red"
         >
           <div>

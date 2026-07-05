@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, Download, UserPlus, GraduationCap } from "lucide-react";
 import {
-  LEAD_STATUSES,
   type Lead,
   type LeadEvent,
   type LeadDocument,
@@ -12,7 +11,8 @@ import {
 } from "@/lib/admin/leads-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { leadStaleness, type StalenessDays } from "@/lib/config/staleness";
-import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import { LeadDrawer } from "@/components/admin/LeadDrawer";
 import { AddRecordDialog, type AddMode } from "@/components/admin/AddRecordDialog";
 
@@ -58,7 +58,6 @@ export function LeadsView({
   staff,
   officerName,
   stalenessDays,
-  initialAttention = false,
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
@@ -66,14 +65,12 @@ export function LeadsView({
   staff: Staff[];
   officerName?: string;
   stalenessDays?: StalenessDays;
-  initialAttention?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
   const [q, setQ] = useState(filters.q ?? "");
   const [addMode, setAddMode] = useState<AddMode | null>(null);
-  const [attnOnly, setAttnOnly] = useState(initialAttention);
   const staffName = Object.fromEntries(staff.map((s) => [s.id, s.full_name]));
 
   // Staleness is derived client-side from the loaded rows (day-granularity, so
@@ -81,10 +78,20 @@ export function LeadsView({
   const stale = new Map(
     leads.map((l) => [l.id, leadStaleness(l, new Date(), stalenessDays)] as const),
   );
+  const stage = params.get("stage") ?? "attention";
+  const byStatus = (s: string) => leads.filter((l) => l.status === s).length;
   const attnCount = leads.filter((l) => stale.get(l.id)?.level !== "ok").length;
-  const shown = attnOnly
-    ? leads.filter((l) => stale.get(l.id)?.level !== "ok")
-    : leads;
+  const tabs: StageTab[] = [
+    { id: "attention", label: "Needs attention", attention: true, count: attnCount },
+    { id: "new", label: "New", count: byStatus("new") },
+    { id: "contacted", label: "Contacted", count: byStatus("contacted") },
+    { id: "enrolled", label: "Converted", count: byStatus("enrolled") },
+    { id: "dropped", label: "Dropped", count: byStatus("dropped") },
+  ];
+  const shown =
+    stage === "attention"
+      ? leads.filter((l) => stale.get(l.id)?.level !== "ok")
+      : leads.filter((l) => l.status === stage);
 
   function setParam(key: string, value?: string) {
     const next = new URLSearchParams(params.toString());
@@ -118,11 +125,6 @@ export function LeadsView({
     a.click();
     URL.revokeObjectURL(url);
   }
-
-  const counts = LEAD_STATUSES.map((s) => ({
-    s,
-    n: leads.filter((l) => l.status === s).length,
-  }));
 
   return (
     <div>
@@ -160,24 +162,9 @@ export function LeadsView({
         </div>
       </div>
 
-      {/* Stat row */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {counts.map(({ s, n }) => (
-          <button
-            key={s}
-            onClick={() => setParam("status", filters.status === s ? undefined : s)}
-            className={`rounded-card border px-4 py-3 text-left transition-colors ${
-              filters.status === s
-                ? "border-brand-red bg-paper"
-                : "border-border-warm bg-paper hover:bg-cream-50"
-            }`}
-          >
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">
-              {statusLabel(s)}
-            </p>
-            <p className="mt-1 font-serif text-2xl text-ink tabular">{n}</p>
-          </button>
-        ))}
+      {/* Stage tabs */}
+      <div className="mb-4">
+        <StageTabs tabs={tabs} active={stage} />
       </div>
 
       {/* Filters */}
@@ -203,23 +190,6 @@ export function LeadsView({
             </option>
           ))}
         </select>
-        <button
-          onClick={() => setAttnOnly((v) => !v)}
-          aria-pressed={attnOnly}
-          className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-            attnOnly
-              ? "border-brand-red bg-brand-red-bg text-brand-red"
-              : "border-border-warm bg-paper text-ink-soft hover:bg-cream-50"
-          }`}
-        >
-          <span className="h-2 w-2 rounded-full bg-brand-red" aria-hidden />
-          Needs attention
-          {attnCount > 0 && (
-            <span className="rounded-full bg-brand-red/15 px-1.5 text-xs tabular">
-              {attnCount}
-            </span>
-          )}
-        </button>
       </div>
 
       {/* Table */}

@@ -17,7 +17,9 @@ export default async function LeadsPage({
     q: one(sp.q),
   };
   const leadParam = one(sp.lead);
-  const leads = await listLeads(filters);
+  // Fetch across all statuses so the stage-tab counts are accurate; stage
+  // filtering happens in the view.
+  const leads = await listLeads({ track: filters.track, q: filters.q });
   const selected = leadParam ? await getLead(leadParam) : null;
   const staff = await listStaff();
   const profile = await getProfile();
@@ -31,7 +33,6 @@ export default async function LeadsPage({
       staff={staff}
       officerName={profile?.full_name}
       stalenessDays={stalenessDays}
-      initialAttention={one(sp.attn) === "1"}
     />
   );
 }
