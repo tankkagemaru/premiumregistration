@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/ui/Wordmark";
 import { Clock } from "@/components/ui/Clock";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NotificationBell } from "@/components/admin/NotificationBell";
+import { PendingAlert } from "@/components/admin/PendingAlert";
 import { UrgentPopup } from "@/components/admin/UrgentPopup";
 import { LangToggle } from "@/components/admin/LangToggle";
 import { signOut } from "@/app/admin/actions";
@@ -143,6 +144,7 @@ export function ConsoleShell({
             <Clock />
             <LangToggle lang={lang} />
             <ThemeToggle />
+            <PendingAlert role={role} />
             <NotificationBell items={notifications} userId={userId} />
             <span className="hidden text-sm text-ink-soft sm:inline">{userName}</span>
             <form action={signOut}>
