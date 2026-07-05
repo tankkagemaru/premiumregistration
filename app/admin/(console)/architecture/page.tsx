@@ -99,7 +99,12 @@ function Branch({
 }
 
 function Down() {
-  return <div className="pl-3 text-lg leading-none text-ink-muted">↓</div>;
+  return (
+    <div className="flex flex-col items-center gap-0.5 py-1" aria-hidden>
+      <span className="h-5 w-px bg-brand-red/40" />
+      <span className="text-xs leading-none text-brand-red/70">▼</span>
+    </div>
+  );
 }
 
 function Phase({
@@ -115,13 +120,16 @@ function Phase({
 }) {
   return (
     <section className="rounded-card border border-border-warm bg-paper/40 p-5">
-      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-mono text-xs tracking-[0.22em] text-brand-red">{n}</span>
+      <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="inline-flex h-7 w-9 items-center justify-center rounded-md border border-brand-red/30 bg-brand-red-bg font-mono text-xs tracking-[0.18em] text-brand-red">
+          {n}
+        </span>
         <h2 className="font-serif text-xl font-medium text-ink">{title}</h2>
         {actors && (
-          <span className="text-[11px] uppercase tracking-[0.14em] text-ink-muted">{actors}</span>
+          <span className="ms-auto text-[11px] uppercase tracking-[0.14em] text-ink-muted">{actors}</span>
         )}
       </div>
+      <div className="mb-4 border-b border-border-warm/60 pt-2" />
       <div className="flex flex-col gap-3">{children}</div>
     </section>
   );
@@ -204,7 +212,7 @@ export default async function ArchitecturePage() {
         {/* 02 — Qualify */}
         <Phase n="02" title="Qualify" actors="Marketing · Admissions — Leads tab">
           <Row>
-            <Node variant="step" title="Lead — status: New" />
+            <Node variant="step" title="Lead lands in stage tabs" sub="★ Needs attention · New · Contacted · Converted · Dropped" />
             <Arrow />
             <Node variant="decision" title="Contacted in time?" icon={HelpCircle} />
           </Row>
@@ -255,9 +263,29 @@ export default async function ArchitecturePage() {
               <Node variant="decision" title="Student acknowledged?" icon={HelpCircle} />
             </Row>
             <Row>
-              <Node variant="step" title="Ask Academic to build the plan" actor="Admissions" />
+              <Node variant="step" title="Study plan drafted" actor="Admissions" sub="intake · expected completion · step dates" />
               <Arrow />
-              <Node variant="step" title="Academic builds timeline" actor="Academic" sub="intake · expected completion · step dates" />
+              <Node variant="decision" title="Which review path?" icon={HelpCircle} />
+            </Row>
+            <Branch answer="Visa → Academic (international)" tone="info">
+              <Row>
+                <Node variant="step" title="Visa verifies" actor="Visa" sub="sign-off recorded" />
+                <Arrow />
+                <Node variant="done" title="Academic finalises" icon={CheckCircle2} />
+              </Row>
+            </Branch>
+            <Branch answer="Academic → Visa" tone="info">
+              <Row>
+                <Node variant="step" title="Academic verifies" actor="Academic" />
+                <Arrow />
+                <Node variant="done" title="Visa finalises" icon={CheckCircle2} />
+              </Row>
+            </Branch>
+            <Branch answer="Academic only (local)" tone="info">
+              <Node variant="done" title="Academic finalises" icon={CheckCircle2} />
+            </Branch>
+            <Row>
+              <Node variant="optional" title="Any holder can return to Admissions" sub="with a recorded reason — chain restarts; every handover raises a Request to the next team" />
             </Row>
             <Down />
             <Row>
@@ -293,7 +321,7 @@ export default async function ArchitecturePage() {
         <Down />
 
         {/* 04 — Visa */}
-        <Phase n="04" title="Visa / EMGS" actors="Visa team — international only · Visa tab">
+        <Phase n="04" title="Visa / EMGS" actors="Visa edits · every team can view">
           <Row>
             <Node variant="step" title="Document prep" />
             <Arrow />
@@ -311,6 +339,11 @@ export default async function ArchitecturePage() {
             <Node variant="io" title="Doc checklist reviewed in-place" sub="incl. visa-stage docs (e.g. flight ticket); verify / reject / request extra" icon={FileText} />
             <Arrow />
             <Node variant="optional" title="Work log" sub="EMGS visits, university replies, queries — with the date it happened" />
+          </Row>
+          <Row>
+            <Node variant="optional" title="Stage tabs" sub="★ Attention (pass expiring ≤ 45d / stuck > 30d) · Doc prep · EMGS · Medical · VAL/Visa · Active" />
+            <Arrow />
+            <Node variant="io" title="Visa milestones on the shared calendar" sub="medical · arrival · pass expiry — visible to everyone" icon={FileText} />
           </Row>
         </Phase>
 
@@ -369,11 +402,14 @@ export default async function ArchitecturePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {[
+            "Stage tabs — every module opens on its ★ act-now list",
             "Requests — cross-team handoffs (raise / resolve)",
-            "Notifications — bell + realtime",
+            "Notifications — bell + realtime + chime",
+            "Urgent sign-in popup — role-scoped daily heads-up",
             "Calendar — follow-ups, class + pass dates",
             "Reports / CSV export",
-            "Executive dashboard (boss — aggregates only)",
+            "Executive dashboard (boss — aggregates + quick status lookup)",
+            "EN / العربية console toggle (RTL aware)",
             "Audit log — every action",
             "Student record + printable PDF report",
             "Status portal — the student's own view (by tracking code)",

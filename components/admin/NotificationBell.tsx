@@ -8,6 +8,7 @@ import {
   type Notification,
 } from "@/lib/admin/notifications-shared";
 import { authConfigured } from "@/lib/admin/leads-shared";
+import { playChime } from "@/lib/chime";
 import { markNotificationsRead } from "@/app/admin/actions";
 
 interface Row {
@@ -61,9 +62,11 @@ export function NotificationBell({
           },
           (payload) => {
             const next = toNotification(payload.new as Row);
-            setList((prev) =>
-              prev.some((n) => n.id === next.id) ? prev : [next, ...prev],
-            );
+            setList((prev) => {
+              if (prev.some((n) => n.id === next.id)) return prev;
+              playChime(); // audible ping for a genuinely new notification
+              return [next, ...prev];
+            });
           },
         )
         .subscribe();

@@ -4,17 +4,21 @@ import { STAGE_LABEL } from "@/lib/admin/applications-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { ExecStatusLookup } from "@/components/admin/ExecStatusLookup";
+import { getConsoleLang, CONSOLE_STR, EXEC_LATE_AR } from "@/lib/admin/console-i18n";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
+type Str = (typeof CONSOLE_STR)["en"];
 
 /** Ranked leads → enrolled → conversion table for a performance dimension. */
 function PerfTable({
   title,
   rows,
+  L,
   label = (n) => n,
 }: {
   title: string;
   rows: PerfRow[];
+  L: Str;
   label?: (name: string) => string;
 }) {
   if (rows.length === 0) return null;
@@ -26,20 +30,20 @@ function PerfTable({
       <div className="overflow-x-auto rounded-card border border-border-warm">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
-            <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
-              <th className="px-4 py-2.5 font-medium">Name</th>
-              <th className="px-4 py-2.5 text-right font-medium">Leads</th>
-              <th className="px-4 py-2.5 text-right font-medium">Enrolled</th>
-              <th className="px-4 py-2.5 text-right font-medium">Conversion</th>
+            <tr className="border-b border-border-warm bg-cream-50 text-start text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+              <th className="px-4 py-2.5 font-medium">{L.exec_col_name}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{L.exec_col_leads}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{L.exec_col_enrolled}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{L.exec_col_conversion}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.name} className="border-b border-border-warm/60 bg-paper last:border-0">
                 <td className="px-4 py-2.5 text-ink">{label(r.name)}</td>
-                <td className="px-4 py-2.5 text-right font-mono tabular text-ink-soft">{r.leads}</td>
-                <td className="px-4 py-2.5 text-right font-mono tabular text-ink">{r.enrolled}</td>
-                <td className="px-4 py-2.5 text-right font-mono tabular text-brand-red">
+                <td className="px-4 py-2.5 text-end font-mono tabular text-ink-soft">{r.leads}</td>
+                <td className="px-4 py-2.5 text-end font-mono tabular text-ink">{r.enrolled}</td>
+                <td className="px-4 py-2.5 text-end font-mono tabular text-brand-red">
                   {r.conversionPct}%
                 </td>
               </tr>
@@ -71,36 +75,42 @@ const TONE = {
 
 export default async function ExecPage() {
   await requireRole(["admin", "boss"]);
-  const o = await getExecOverview();
+  const [o, lang] = await Promise.all([getExecOverview(), getConsoleLang()]);
+  const L = CONSOLE_STR[lang];
+  const late = (t: string) => (lang === "ar" ? EXEC_LATE_AR[t] ?? t : t);
 
   return (
     <div className="flex flex-col gap-8">
       <div>
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Executive
+          {L.exec_kicker}
         </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">How are we doing?</h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          Aggregate view — enquiries, pipeline, where things are running late, and
-          the money position. No personal records on this screen.
-        </p>
+        <h1 className="font-serif text-3xl font-medium text-ink">{L.exec_title}</h1>
+        <p className="mt-2 text-sm text-ink-soft">{L.exec_subtitle}</p>
       </div>
 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Enquiries (all time)" value={o.leads.total} />
-        <Stat label="New this week" value={o.leads.new7d} />
-        <Stat label="Enrolled" value={o.funnel.enrolled} />
-        <Stat label="Conversion" value={`${o.funnel.conversionPct}%`} sub="enquiry → enrolled" />
+        <Stat label={L.exec_enquiries_all} value={o.leads.total} />
+        <Stat label={L.exec_new_week} value={o.leads.new7d} />
+        <Stat label={L.exec_enrolled} value={o.funnel.enrolled} />
+        <Stat label={L.exec_conversion} value={`${o.funnel.conversionPct}%`} sub={L.exec_conversion_sub} />
       </div>
 
       {/* Quick status check — name / passport lookup for on-the-spot answers */}
-      <ExecStatusLookup />
+      <ExecStatusLookup
+        labels={{
+          title: L.exec_lookup_title,
+          placeholder: L.exec_lookup_placeholder,
+          button: L.exec_lookup_button,
+          none: L.exec_lookup_none,
+        }}
+      />
 
       {/* Where things are late */}
       <section>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Running late
+          {L.exec_running_late}
         </p>
         <div className="overflow-hidden rounded-card border border-border-warm">
           {o.lateness.map((l) => (
@@ -109,8 +119,8 @@ export default async function ExecPage() {
               className="flex items-center justify-between gap-3 border-b border-border-warm/60 bg-paper px-4 py-3 last:border-0"
             >
               <div>
-                <p className="text-sm font-medium text-ink">{l.dept}</p>
-                <p className="text-xs text-ink-muted">{l.metric}</p>
+                <p className="text-sm font-medium text-ink">{late(l.dept)}</p>
+                <p className="text-xs text-ink-muted">{late(l.metric)}</p>
               </div>
               <span className={`rounded-md px-2.5 py-1 font-mono text-sm tabular ${TONE[l.level]}`}>
                 {l.count}
@@ -123,11 +133,11 @@ export default async function ExecPage() {
       {/* Pipeline by stage */}
       <section>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Applications by stage
+          {L.exec_by_stage}
         </p>
         {o.appsByStage.length === 0 ? (
           <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-            No applications yet.
+            {L.exec_no_apps}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -141,29 +151,29 @@ export default async function ExecPage() {
       {/* Money position */}
       <section>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Money position
+          {L.exec_money}
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Stat label="Fees outstanding" value={formatMoney(o.money.outstandingFees)} />
-          <Stat label="Commission we owe" value={formatMoney(o.money.commissionPayable)} />
-          <Stat label="Commission owed to us" value={formatMoney(o.money.collectable)} />
+          <Stat label={L.exec_fees_outstanding} value={formatMoney(o.money.outstandingFees)} />
+          <Stat label={L.exec_commission_owe} value={formatMoney(o.money.commissionPayable)} />
+          <Stat label={L.exec_commission_owed} value={formatMoney(o.money.collectable)} />
         </div>
       </section>
 
       {/* Performance — who's bringing leads in and converting them */}
-      <PerfTable title="Agent / referral performance" rows={o.agents} />
-      <PerfTable title="Marketing source performance" rows={o.marketing} />
-      <PerfTable title="Campaign performance" rows={o.campaigns} />
+      <PerfTable title={L.exec_perf_agents} rows={o.agents} L={L} />
+      <PerfTable title={L.exec_perf_marketing} rows={o.marketing} L={L} />
+      <PerfTable title={L.exec_perf_campaigns} rows={o.campaigns} L={L} />
       <PerfTable
-        title="By track"
+        title={L.exec_perf_track}
         rows={o.byTrack}
+        L={L}
         label={(n) => TRACK_TITLE[n] ?? n}
       />
 
       {o.agents.length === 0 && o.marketing.length === 0 && (
         <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-          No source data yet — performance tables populate as enquiries come in
-          with agent codes, UTM tags, or track selections.
+          {L.exec_no_sources}
         </p>
       )}
     </div>

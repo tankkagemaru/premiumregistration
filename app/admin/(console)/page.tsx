@@ -5,7 +5,8 @@ import { listLeads } from "@/lib/admin/leads";
 import { getStalenessDays } from "@/lib/admin/settings";
 import { leadStaleness } from "@/lib/config/staleness";
 import { TRACKS } from "@/lib/config/tracks";
-import { StatusBadge, statusLabel } from "@/components/admin/StatusBadge";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
 const FUNNEL: LeadStatus[] = ["new", "contacted", "enrolled"];
@@ -26,6 +27,13 @@ export default async function Dashboard() {
   const profile = await getProfile();
   if (profile?.role === "boss") redirect("/admin/exec");
   if (profile?.role === "agent") redirect("/agent");
+  const lang = await getConsoleLang();
+  const L = CONSOLE_STR[lang];
+  const funnelLabel: Record<string, string> = {
+    new: L.dash_status_new,
+    contacted: L.dash_status_contacted,
+    enrolled: L.dash_status_enrolled,
+  };
   const leads = await listLeads();
   const total = leads.length;
   const by = (s: string) => leads.filter((l) => l.status === s).length;
@@ -70,16 +78,14 @@ export default async function Dashboard() {
         >
           <div>
             <p className="font-serif text-lg font-medium text-brand-red">
-              {staleLeads.length} lead{staleLeads.length === 1 ? "" : "s"} need
-              attention
+              {staleLeads.length}{" "}
+              {staleLeads.length === 1 ? L.dash_lead : L.dash_leads}{" "}
+              {L.dash_leads_need_attention}
             </p>
-            <p className="text-sm text-ink-soft">
-              Going cold — uncontacted, overdue, or missing a follow-up. Dismissing
-              one requires recording why.
-            </p>
+            <p className="text-sm text-ink-soft">{L.dash_going_cold}</p>
           </div>
           <span className="shrink-0 text-sm font-medium text-brand-red">
-            Review →
+            {L.dash_review}
           </span>
         </Link>
       )}
@@ -110,22 +116,22 @@ export default async function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Total leads" value={total} />
-        <Stat label="New" value={by("new")} />
-        <Stat label="Enrolled" value={enrolled} />
-        <Stat label="Conversion" value={`${conversion}%`} />
+        <Stat label={L.dash_total_leads} value={total} />
+        <Stat label={L.dash_new} value={by("new")} />
+        <Stat label={L.dash_enrolled} value={enrolled} />
+        <Stat label={L.dash_conversion} value={`${conversion}%`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Funnel */}
         <section className="rounded-card border border-border-warm bg-paper p-5">
           <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            Funnel
+            {L.dash_funnel}
           </p>
           <div className="flex flex-col gap-3">
             {FUNNEL.map((s) => (
               <div key={s} className="flex items-center gap-3">
-                <span className="w-20 text-sm text-ink-soft">{statusLabel(s)}</span>
+                <span className="w-20 text-sm text-ink-soft">{funnelLabel[s] ?? s}</span>
                 <div className="h-6 flex-1 overflow-hidden rounded-md bg-cream-50">
                   <div
                     className="h-full rounded-md bg-brand-red/80"
@@ -143,7 +149,7 @@ export default async function Dashboard() {
         {/* Source breakdown */}
         <section className="rounded-card border border-border-warm bg-paper p-5">
           <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            Sources
+            {L.dash_sources}
           </p>
           <div className="flex flex-col gap-3">
             {sources.map(([name, n]) => (
@@ -168,7 +174,7 @@ export default async function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-card border border-border-warm bg-paper p-5">
           <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            By track
+            {L.dash_by_track}
           </p>
           <div className="grid grid-cols-3 gap-3">
             {TRACKS.map((t) => (
@@ -184,15 +190,15 @@ export default async function Dashboard() {
 
         <section className="rounded-card border border-border-warm bg-paper p-5">
           <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            Needs attention
+            {L.dash_needs_attention}
           </p>
           <div className="flex flex-col gap-2 text-sm">
             <Link href="/admin/leads?stage=new" className="flex justify-between hover:text-brand-red">
-              <span className="text-ink-soft">Unassigned new leads</span>
+              <span className="text-ink-soft">{L.dash_unassigned}</span>
               <span className="font-medium text-ink">{unassigned.length}</span>
             </Link>
             <Link href="/admin/follow-ups" className="flex justify-between hover:text-brand-red">
-              <span className="text-ink-soft">Overdue follow-ups</span>
+              <span className="text-ink-soft">{L.dash_overdue_followups}</span>
               <span className="font-medium text-brand-red">{overdue.length}</span>
             </Link>
           </div>
@@ -202,7 +208,7 @@ export default async function Dashboard() {
       {/* Recent */}
       <section>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Recent leads
+          {L.dash_recent}
         </p>
         <div className="overflow-hidden rounded-card border border-border-warm">
           {recent.map((l) => (

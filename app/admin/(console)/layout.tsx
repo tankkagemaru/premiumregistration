@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { ConsoleShell } from "@/components/admin/ConsoleShell";
 import { listNotifications } from "@/lib/admin/notifications";
+import { getConsoleLang } from "@/lib/admin/console-i18n";
 
 export default async function ConsoleLayout({
   children,
@@ -10,7 +11,10 @@ export default async function ConsoleLayout({
 }) {
   const profile = await getProfile();
   if (!profile) redirect("/admin/login");
-  const notifications = await listNotifications(profile.id);
+  const [notifications, lang] = await Promise.all([
+    listNotifications(profile.id),
+    getConsoleLang(),
+  ]);
 
   return (
     <ConsoleShell
@@ -18,6 +22,7 @@ export default async function ConsoleLayout({
       userName={profile.full_name}
       userId={profile.id}
       notifications={notifications}
+      lang={lang}
     >
       {children}
     </ConsoleShell>

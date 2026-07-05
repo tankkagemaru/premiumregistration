@@ -46,7 +46,17 @@ function HitCard({ h }: { h: StatusHit }) {
   );
 }
 
-export function ExecStatusLookup() {
+export function ExecStatusLookup({
+  labels,
+}: {
+  labels?: { title: string; placeholder: string; button: string; none: string };
+}) {
+  const l = labels ?? {
+    title: "Quick status check",
+    placeholder: "Look up a student by name or passport / ID…",
+    button: "Check",
+    none: "No one matches",
+  };
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<StatusHit[] | null>(null);
   const [pending, start] = useTransition();
@@ -61,7 +71,7 @@ export function ExecStatusLookup() {
   return (
     <section>
       <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-        Quick status check
+        {l.title}
       </p>
       <form
         onSubmit={run}
@@ -71,7 +81,7 @@ export function ExecStatusLookup() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Look up a student by name or passport / ID…"
+          placeholder={l.placeholder}
           className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted/70"
         />
         <button
@@ -79,7 +89,7 @@ export function ExecStatusLookup() {
           disabled={pending || q.trim().length < 2}
           className="shrink-0 rounded-md bg-inkbtn px-3 py-1.5 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft disabled:opacity-50"
         >
-          {pending ? "…" : "Check"}
+          {pending ? "…" : l.button}
         </button>
       </form>
 
@@ -87,7 +97,7 @@ export function ExecStatusLookup() {
         <div className="mt-3">
           {hits.length === 0 ? (
             <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-              No one matches “{q.trim()}”.
+              {l.none} “{q.trim()}”.
             </p>
           ) : (
             <div className="overflow-hidden rounded-card border border-border-warm">
