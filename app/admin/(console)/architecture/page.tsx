@@ -317,8 +317,10 @@ export default async function ArchitecturePage() {
         <Down />
 
         {/* 05 — Academic */}
-        <Phase n="05" title="Academic" actors="Academic team — Academic tab">
+        <Phase n="05" title="Academic" actors="Academic team — Academic + Intakes tabs">
           <Row>
+            <Node variant="io" title="Intake calendar" sub="PEP levels (45/30d), exam prep (~10–16d), summer camp (1mo) scheduled against MY public holidays — marketing advises start dates" />
+            <Arrow />
             <Node variant="decision" title="Fees cleared for class entry?" icon={HelpCircle} />
           </Row>
           <Branch answer="No" tone="no">
