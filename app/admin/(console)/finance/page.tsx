@@ -13,6 +13,7 @@ import { listCommissionRules } from "@/lib/admin/commission-rules";
 import { listBillableItems } from "@/lib/admin/billables";
 import { listUsers } from "@/lib/admin/users";
 import { SearchBox } from "@/components/admin/SearchBox";
+import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import {
   FeeStatusSelect,
   CommissionStatusSelect,
@@ -79,6 +80,18 @@ export default async function FinancePage({
     .filter((c) => c.direction === "receivable" && c.status !== "paid")
     .reduce((s, c) => s + (c.amount ?? 0), 0);
 
+  // Stage tabs.
+  const stage = (Array.isArray(sp.stage) ? sp.stage[0] : sp.stage) ?? "outstanding";
+  const outstandingFees = fees.filter((f) => f.status === "unpaid" || f.status === "partial");
+  const paidFees = fees.filter((f) => f.status === "paid" || f.status === "waived");
+  const feeRows = stage === "paid" ? paidFees : outstandingFees;
+  const tabs: StageTab[] = [
+    { id: "outstanding", label: "Outstanding", attention: true, count: outstandingFees.length },
+    { id: "paid", label: "Paid", count: paidFees.length },
+    { id: "commissions", label: "Commissions", count: commissions.length },
+    { id: "catalogue", label: "Price list & rules" },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -104,11 +117,11 @@ export default async function FinancePage({
         <Stat label="Commission receivable" value={formatMoney(receivable)} />
       </div>
 
-      {/* Fees */}
+      <StageTabs tabs={tabs} active={stage} />
+
+      {/* Fees — Outstanding / Paid */}
+      {(stage === "outstanding" || stage === "paid") && (
       <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Fees
-        </p>
         <div className="overflow-x-auto rounded-card border border-border-warm">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
@@ -123,7 +136,10 @@ export default async function FinancePage({
               </tr>
             </thead>
             <tbody>
-              {fees.map((f) => (
+              {feeRows.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-ink-muted">Nothing here.</td></tr>
+              )}
+              {feeRows.map((f) => (
                 <tr key={f.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
                     <Link
@@ -170,12 +186,11 @@ export default async function FinancePage({
           </table>
         </div>
       </section>
+      )}
 
       {/* Commissions */}
+      {stage === "commissions" && (
       <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Commission
-        </p>
         <div className="overflow-x-auto rounded-card border border-border-warm">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
@@ -224,13 +239,14 @@ export default async function FinancePage({
           </table>
         </div>
       </section>
+      )}
 
-      {/* Billable items — the price list fees are created from */}
+      {/* Price list & rules */}
+      {stage === "catalogue" && (
+      <>
       <section>
         <BillableItemsManager items={billables} />
       </section>
-
-      {/* Commission rules */}
       <section>
         <CommissionRulesManager
           rules={rules}
@@ -241,6 +257,8 @@ export default async function FinancePage({
           automation will read these to fill in accrued amounts.
         </p>
       </section>
+      </>
+      )}
     </div>
   );
 }

@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
+import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
+
+// The Visa module is viewable by everyone, but only the visa team + admin edit.
+async function canEditVisa() {
+  const p = await getProfile();
+  return !!p && ["admin", "visa"].includes(p.role);
+}
 
 export async function updateVisaCase(
   id: string,
@@ -20,7 +27,7 @@ export async function updateVisaCase(
     student_pass_expiry?: string | null;
   },
 ) {
-  if (!authConfigured) return;
+  if (!authConfigured || !(await canEditVisa())) return;
   const supabase = await createClient();
   await supabase
     .from("visa_cases")
@@ -34,7 +41,7 @@ export async function createVisaCase(
   applicationId: string,
   submittedBy: "university" | "pecsb",
 ) {
-  if (!authConfigured) return;
+  if (!authConfigured || !(await canEditVisa())) return;
   const supabase = await createClient();
   const { data: app } = await supabase
     .from("applications")

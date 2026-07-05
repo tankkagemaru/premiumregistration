@@ -35,6 +35,7 @@ export function VisaCaseDrawer({
   requirements = [],
   docRequests = [],
   events = [],
+  canEdit = true,
 }: {
   vc: VisaCase;
   contact: AppContact;
@@ -43,6 +44,7 @@ export function VisaCaseDrawer({
   requirements?: DocRequirement[];
   docRequests?: AppDocRequest[];
   events?: ApplicationEvent[];
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -112,7 +114,8 @@ export function VisaCaseDrawer({
             </ul>
           </div>
 
-          {/* Editable fields */}
+          {/* Editable fields — disabled (read-only) for non-visa viewers */}
+          <fieldset disabled={!canEdit} className="contents">
           <div className="grid grid-cols-2 gap-3">
             <label className="col-span-2 text-xs font-medium text-ink-soft">
               Stage
@@ -163,13 +166,16 @@ export function VisaCaseDrawer({
               <input type="date" value={form.student_pass_expiry} onChange={(e) => set("student_pass_expiry", e.target.value)} className={`mt-1 ${FIELD}`} />
             </label>
           </div>
-          <button
-            onClick={save}
-            disabled={pending}
-            className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save changes"}
-          </button>
+          {canEdit && (
+            <button
+              onClick={save}
+              disabled={pending}
+              className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+            >
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+          )}
+          </fieldset>
 
           {/* Documents — review the pack, verify/reject, request extras */}
           <div>

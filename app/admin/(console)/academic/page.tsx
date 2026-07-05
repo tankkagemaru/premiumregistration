@@ -6,6 +6,7 @@ import { listRequests } from "@/lib/admin/requests";
 import { listVisaCases, VISA_STAGE_LABEL } from "@/lib/admin/visa";
 import { TRACKS } from "@/lib/config/tracks";
 import { SearchBox } from "@/components/admin/SearchBox";
+import { StageTabs } from "@/components/admin/StageTabs";
 import { AcademicControls } from "@/components/admin/AcademicControls";
 import { PlanEditor } from "@/components/admin/PlanEditor";
 
@@ -38,6 +39,23 @@ export default async function AcademicPage({
       `${a.student_name} ${a.program_name ?? ""}`.toLowerCase().includes(q),
     );
   }
+
+  // Stage tabs.
+  const stage = (Array.isArray(sp.stage) ? sp.stage[0] : sp.stage) ?? "toplan";
+  const inClass = (a: (typeof students)[number]) => ["enrolled", "active"].includes(a.stage);
+  const bucketOf = (a: (typeof students)[number]) => {
+    if (a.stage === "completed") return "completed";
+    if (inClass(a)) return "active";
+    if (a.class_start) return "scheduled";
+    return "toplan"; // pre-enrolment, no dates yet — needs planning
+  };
+  const tabs = [
+    { id: "toplan", label: "To plan", attention: true, count: students.filter((a) => bucketOf(a) === "toplan").length },
+    { id: "scheduled", label: "Scheduled", count: students.filter((a) => bucketOf(a) === "scheduled").length },
+    { id: "active", label: "Enrolled / Active", count: students.filter((a) => bucketOf(a) === "active").length },
+    { id: "completed", label: "Completed", count: students.filter((a) => bucketOf(a) === "completed").length },
+  ];
+  students = students.filter((a) => bucketOf(a) === stage);
 
   /** Finance gate: any unpaid/partial registration or tuition blocks class entry. */
   function outstanding(appId: string) {
@@ -78,6 +96,8 @@ export default async function AcademicPage({
           </p>
         </div>
       )}
+
+      <StageTabs tabs={tabs} active={stage} />
 
       <div className="overflow-x-auto rounded-card border border-border-warm">
         <table className="w-full min-w-[920px] text-sm">
@@ -138,6 +158,11 @@ export default async function AcademicPage({
                   </td>
                   <td className="px-4 py-3 text-xs text-ink">
                     {STAGE_LABEL[a.stage] ?? a.stage}
+                    {a.is_international && (
+                      <span className={`mt-1 block w-fit rounded px-1.5 py-0.5 text-[10px] font-medium ${vc ? (VISA_READY.has(vc.stage) ? "bg-status-present-bg text-status-present" : "bg-status-late-bg text-brand-gold") : "bg-brand-red-bg text-brand-red"}`}>
+                        Visa: {vc ? VISA_STAGE_LABEL[vc.stage] ?? vc.stage : "not filed"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {due.length === 0 ? (
