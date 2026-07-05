@@ -110,15 +110,77 @@ Console & roles
       entries are server-recorded English → needs server-side i18n).
 - [ ] **Native review** of the zh / ar / ja translations before wider launch.
 
-## 🟡 P2 — Competitive polish
+## 🔮 Phase 7 — Integrations & automation (future vision)
 
-- [ ] Bulk actions (assign/status/export selected); saved filters; column sorting.
-- [ ] CSV **import** of leads/students (only export exists).
-- [ ] **Optimistic updates** (actions round-trip + full `router.refresh()` today).
-- [ ] **Loading states** (Suspense/skeletons) on data pages.
-- [ ] **e-signature** on offers; **payment gateway** (FPX/Billplz/iPay88).
-- [ ] **WhatsApp Business API** (beyond `wa.me`); **Google Drive mirror**
-      (`lib/drive.ts` still inert — Phase 6).
+Strategy: build **two clean seams** and let **n8n** orchestrate everything else,
+rather than many brittle point-to-point integrations.
+
+- [ ] **Outbound event webhooks** — emit `lead.created`, `status.changed`,
+      `stage.changed`, `payment.received`, `visa.expiring`, `followup.due` to a
+      configured n8n URL (Supabase DB webhooks for simple cases; an app-side
+      dispatcher for shaped payloads). n8n fans out to WhatsApp / Meta+TikTok
+      audiences / Slack / Sheets / drip sequences — change a workflow, no redeploy.
+- [ ] **Inbound lead ingest API** — `/api/ingest/lead`, API-key + rate-limited,
+      validate → **dedupe** → service-role insert. One front door for Meta/TikTok
+      Lead Ads, web chat, WhatsApp, and email; leads land in the normal
+      stale-lead/follow-up machinery with `utm_source` set.
+- [ ] **Email → leads** — n8n Gmail/IMAP trigger on `marketing@` → AI classify +
+      extract → ingest. High-confidence auto-create; low-confidence to a review
+      queue. ⚠️ Treat email bodies as **untrusted data** — extract only, never
+      execute instructions embedded in them.
+- [ ] **QuickBooks (Online) sync** — via the outbound seam + n8n's QuickBooks node:
+      fee/payment events create/update Customer + Invoice + Payment; n8n writes the
+      QB invoice id + PDF back onto the fee. Store `students.qb_customer_id` /
+      `fees.qb_invoice_id` for idempotency. QB = system of record for paid/unpaid;
+      today's manual invoice attach stays as fallback. **Confirm QuickBooks Online
+      (API-friendly) vs Desktop (Web Connector — much harder)**; enable MYR + map
+      SST from the `billable_items.taxable` flag.
+- [ ] **WhatsApp Business API** — inbound + outbound automation; the highest-value
+      channel for SEA recruitment. Supersedes the `wa.me` click-to-chat links.
+- [ ] **Payment gateway** (FPX/Billplz/iPay88) — online payment + auto-reconcile to
+      `fees`, reflected back to QuickBooks. Optional **e-signature** on offers.
+- [ ] **Ad-spend → ROI** — pull Meta/TikTok spend into the Executive view for
+      cost-per-enrolment per campaign (leads-out + conversion already tracked).
+- [ ] **AI assists** — lead scoring (convert-likelihood from source/nationality/
+      track), multilingual **first-reply drafting** (en/zh/ar/ja), passport/
+      transcript **OCR** to prefill fields + flag name mismatches.
+- [ ] **Google Drive mirror** — `lib/drive.ts` still inert; mirror sensitive docs to
+      a Shared Drive (original Phase 6 carry-over).
+
+## 😊 Team experience / quality-of-life
+
+Make the daily driving experience faster and less manual for staff — often where
+real day-to-day happiness (and adoption) comes from.
+
+- [ ] **Command palette (Ctrl/⌘-K)** — jump to any student/lead/application and run
+      quick actions from anywhere. The single biggest speed win for heavy daily use.
+- [ ] **Global search** — one box across leads + students + applications by name /
+      email / phone / passport / tracking code.
+- [ ] **"My day" home** — a personalised start screen per staff: my follow-ups due,
+      my leads needing action, requests for my team, docs to review. Builds on the
+      urgent sign-in popup + red pending indicator that already exist.
+- [ ] **Auto-assignment + escalation** — round-robin new leads to marketing (or by
+      language/nationality); escalate to a manager if untouched past the staleness
+      threshold (SLA timers layered on the existing staleness engine).
+- [ ] **Notification preferences UI** — wire the existing `profiles.notify_prefs`:
+      instant vs digest, which events, which channels, per user.
+- [ ] **@mentions in internal notes** — tag a colleague on a lead/application; they
+      get a notification. Turns the timeline into lightweight collaboration.
+- [ ] **Quick actions from the list row** — call / WhatsApp / email / advance stage
+      without opening the drawer. **Inline edit** a field in place; **undo toast** on
+      quick or destructive actions.
+- [ ] **Duplicate warning on create** — match / warn / merge across the three entry
+      points (public form, Add enquiry, Add student). Also a correctness item.
+- [ ] **Bulk actions + saved views** — assign / status / tag / export selected;
+      save a filter as a named view; column sorting.
+- [ ] **Mobile PWA** — installable, push notifications, fast lead-capture for
+      counsellors at education fairs / on the go.
+- [ ] **Loading skeletons + empty-state guidance** — perceived speed, and a clear
+      "what to do next" for new staff (onboarding tooltips / a short guided tour).
+- [ ] **Data-quality nudges** — flag missing phone / passport / next-action so
+      records stay complete without a manual audit.
+- [ ] **CSV import** of leads/students (only export exists today).
+- [ ] **2FA for staff logins** — a low-friction security win.
 
 ## ⚪ Testing / quality / ops
 
