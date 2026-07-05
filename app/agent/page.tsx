@@ -18,7 +18,11 @@ import { AgentReferForm } from "@/components/agent/AgentReferForm";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
 
 /** Roll up an application's fees into one payment badge. */
 function feeSummary(fees: Fee[]): { label: string; tone: "paid" | "due" | "none" } {

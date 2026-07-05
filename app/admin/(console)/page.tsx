@@ -22,9 +22,10 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export default async function Dashboard() {
-  // Boss sees aggregates only — their landing screen is the executive view.
+  // Role-appropriate landing: boss → executive view, agent → partner portal.
   const profile = await getProfile();
   if (profile?.role === "boss") redirect("/admin/exec");
+  if (profile?.role === "agent") redirect("/agent");
   const leads = await listLeads();
   const total = leads.length;
   const by = (s: string) => leads.filter((l) => l.status === s).length;
