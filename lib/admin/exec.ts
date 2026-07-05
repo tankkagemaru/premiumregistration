@@ -6,6 +6,13 @@ import { authConfigured } from "./applications-shared";
  * service-role client because the boss role deliberately has no row access
  * under RLS; the page that calls this is gated to admin + boss.
  */
+export interface PerfRow {
+  name: string;
+  leads: number;
+  enrolled: number;
+  conversionPct: number;
+}
+
 export interface ExecOverview {
   leads: { total: number; new7d: number; uncontacted3d: number };
   funnel: { newCount: number; contacted: number; enrolled: number; conversionPct: number };
@@ -17,7 +24,14 @@ export interface ExecOverview {
     level: "ok" | "warn" | "alert";
   }[];
   money: { outstandingFees: number; commissionPayable: number; collectable: number };
-  agents: { name: string; leads: number }[];
+  /** Referral-agent performance: leads sourced and how many enrolled. */
+  agents: PerfRow[];
+  /** Marketing-source performance (utm_source, or "agent referral" / "direct"). */
+  marketing: PerfRow[];
+  /** Campaign performance (utm_campaign). */
+  campaigns: PerfRow[];
+  /** Interest by track — leads and enrolments per selected track. */
+  byTrack: PerfRow[];
 }
 
 const DAY = 86_400_000;
@@ -31,6 +45,9 @@ export async function getExecOverview(): Promise<ExecOverview> {
       lateness: [],
       money: { outstandingFees: 0, commissionPayable: 0, collectable: 0 },
       agents: [],
+      marketing: [],
+      campaigns: [],
+      byTrack: [],
     };
   }
   const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -44,7 +61,9 @@ export async function getExecOverview(): Promise<ExecOverview> {
     { data: fees },
     { data: commissions },
   ] = await Promise.all([
-    admin.from("registrations").select("id, status, created_at, agent_code"),
+    admin
+      .from("registrations")
+      .select("id, status, created_at, agent_code, utm_source, utm_campaign, tracks"),
     admin.from("applications").select("id, stage, created_at, class_start, track"),
     admin.from("visa_cases").select("id, stage, created_at"),
     admin.from("fees").select("amount, status, due_date"),
@@ -107,14 +126,41 @@ export async function getExecOverview(): Promise<ExecOverview> {
   const collectable = C.filter((c) => c.direction === "receivable" && c.status !== "paid")
     .reduce((s, c) => s + Number(c.amount ?? 0), 0);
 
-  const agentCounts = L.reduce<Record<string, number>>((acc, l) => {
-    if (l.agent_code) acc[l.agent_code] = (acc[l.agent_code] ?? 0) + 1;
-    return acc;
-  }, {});
-  const agents = Object.entries(agentCounts)
-    .map(([name, count]) => ({ name, leads: count }))
-    .sort((a, b) => b.leads - a.leads)
-    .slice(0, 8);
+  // Group leads by a key (skipping null keys) into a performance row —
+  // leads sourced, how many enrolled, and the conversion rate. Ranked by
+  // enrolments first, then volume; capped so the exec view stays scannable.
+  const perf = (
+    keyOf: (l: (typeof L)[number]) => string | string[] | null | undefined,
+    limit = 8,
+  ): PerfRow[] => {
+    const map = new Map<string, { leads: number; enrolled: number }>();
+    for (const l of L) {
+      const raw = keyOf(l);
+      const keys = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      for (const k of keys) {
+        const row = map.get(k) ?? { leads: 0, enrolled: 0 };
+        row.leads += 1;
+        if (l.status === "enrolled") row.enrolled += 1;
+        map.set(k, row);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, r]) => ({
+        name,
+        leads: r.leads,
+        enrolled: r.enrolled,
+        conversionPct: r.leads ? Math.round((r.enrolled / r.leads) * 100) : 0,
+      }))
+      .sort((a, b) => b.enrolled - a.enrolled || b.leads - a.leads)
+      .slice(0, limit);
+  };
+
+  const agents = perf((l) => l.agent_code);
+  const marketing = perf((l) =>
+    l.utm_source ?? (l.agent_code ? "agent referral" : "direct"),
+  );
+  const campaigns = perf((l) => l.utm_campaign);
+  const byTrack = perf((l) => (l.tracks as string[] | null) ?? [], 12);
 
   return {
     leads: {
@@ -132,5 +178,8 @@ export async function getExecOverview(): Promise<ExecOverview> {
     lateness,
     money: { outstandingFees, commissionPayable, collectable },
     agents,
+    marketing,
+    campaigns,
+    byTrack,
   };
 }

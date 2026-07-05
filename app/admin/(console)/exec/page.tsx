@@ -1,7 +1,55 @@
 import { requireRole } from "@/lib/auth";
-import { getExecOverview } from "@/lib/admin/exec";
+import { getExecOverview, type PerfRow } from "@/lib/admin/exec";
 import { STAGE_LABEL } from "@/lib/admin/applications-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
+import { TRACKS } from "@/lib/config/tracks";
+import { ExecStatusLookup } from "@/components/admin/ExecStatusLookup";
+
+const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
+
+/** Ranked leads → enrolled → conversion table for a performance dimension. */
+function PerfTable({
+  title,
+  rows,
+  label = (n) => n,
+}: {
+  title: string;
+  rows: PerfRow[];
+  label?: (name: string) => string;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <section>
+      <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+        {title}
+      </p>
+      <div className="overflow-x-auto rounded-card border border-border-warm">
+        <table className="w-full min-w-[420px] text-sm">
+          <thead>
+            <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
+              <th className="px-4 py-2.5 font-medium">Name</th>
+              <th className="px-4 py-2.5 text-right font-medium">Leads</th>
+              <th className="px-4 py-2.5 text-right font-medium">Enrolled</th>
+              <th className="px-4 py-2.5 text-right font-medium">Conversion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.name} className="border-b border-border-warm/60 bg-paper last:border-0">
+                <td className="px-4 py-2.5 text-ink">{label(r.name)}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular text-ink-soft">{r.leads}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular text-ink">{r.enrolled}</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular text-brand-red">
+                  {r.conversionPct}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -45,6 +93,9 @@ export default async function ExecPage() {
         <Stat label="Enrolled" value={o.funnel.enrolled} />
         <Stat label="Conversion" value={`${o.funnel.conversionPct}%`} sub="enquiry → enrolled" />
       </div>
+
+      {/* Quick status check — name / passport lookup for on-the-spot answers */}
+      <ExecStatusLookup />
 
       {/* Where things are late */}
       <section>
@@ -99,24 +150,21 @@ export default async function ExecPage() {
         </div>
       </section>
 
-      {/* Top agents */}
-      {o.agents.length > 0 && (
-        <section>
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            Top referral codes
-          </p>
-          <div className="overflow-hidden rounded-card border border-border-warm">
-            {o.agents.map((a) => (
-              <div
-                key={a.name}
-                className="flex items-center justify-between border-b border-border-warm/60 bg-paper px-4 py-2.5 text-sm last:border-0"
-              >
-                <span className="font-mono text-ink">{a.name}</span>
-                <span className="font-mono text-xs text-ink-muted tabular">{a.leads} leads</span>
-              </div>
-            ))}
-          </div>
-        </section>
+      {/* Performance — who's bringing leads in and converting them */}
+      <PerfTable title="Agent / referral performance" rows={o.agents} />
+      <PerfTable title="Marketing source performance" rows={o.marketing} />
+      <PerfTable title="Campaign performance" rows={o.campaigns} />
+      <PerfTable
+        title="By track"
+        rows={o.byTrack}
+        label={(n) => TRACK_TITLE[n] ?? n}
+      />
+
+      {o.agents.length === 0 && o.marketing.length === 0 && (
+        <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
+          No source data yet — performance tables populate as enquiries come in
+          with agent codes, UTM tags, or track selections.
+        </p>
       )}
     </div>
   );
