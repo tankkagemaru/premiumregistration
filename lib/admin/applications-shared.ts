@@ -163,6 +163,88 @@ export interface StudyPlan {
   summary?: string;
   steps: { title: string; start?: string; end?: string; note?: string }[];
   updated_at?: string;
+  workflow?: PlanWorkflow | null; // cross-department review/handover state
+}
+
+/** One department's verification as the plan moves down the handover chain. */
+export interface PlanSignoff {
+  role: string; // department that signed off (admissions | visa | academic)
+  by?: string; // person's name
+  at: string; // ISO timestamp
+  note?: string;
+}
+
+/** Handover/verification state for a study plan. The plan is always drafted by
+ *  admissions; `route` is the ordered list of departments that review it after,
+ *  each verifying before handing on. Finalised when the last one signs off. */
+export interface PlanWorkflow {
+  route: string[]; // reviewing roles after admissions, e.g. ["visa","academic"]
+  step: number; // index of the current holder in route; === route.length ⇒ finalised
+  signoffs: PlanSignoff[];
+  started_by?: string;
+  started_at?: string;
+}
+
+export const PLAN_ROLE_LABEL: Record<string, string> = {
+  admissions: "Admissions",
+  visa: "Visa",
+  academic: "Academic",
+};
+
+export interface PlanRoutePreset {
+  key: string;
+  label: string;
+  route: string[];
+  desc: string;
+}
+
+/** The handover paths admissions can choose when sending a plan for review. */
+export const PLAN_ROUTES: PlanRoutePreset[] = [
+  {
+    key: "via_visa",
+    label: "Visa → Academic",
+    route: ["visa", "academic"],
+    desc: "Admissions drafts → Visa checks → Academic finalises (international / visa needed)",
+  },
+  {
+    key: "academic_first",
+    label: "Academic → Visa",
+    route: ["academic", "visa"],
+    desc: "Admissions drafts → Academic checks → Visa finalises",
+  },
+  {
+    key: "no_visa",
+    label: "Academic only",
+    route: ["academic"],
+    desc: "Admissions drafts → Academic finalises (local student, no visa)",
+  },
+];
+
+export interface PlanState {
+  state: "none" | "draft" | "review" | "finalized";
+  holder: string | null; // role currently responsible (draft ⇒ admissions)
+  chain: string[]; // full display chain incl. admissions
+  signedRoles: string[]; // roles that have signed off, in order
+}
+
+/** Derive the human-facing status of a plan's handover from its workflow. */
+export function planStatus(plan?: StudyPlan | null): PlanState {
+  const wf = plan?.workflow ?? null;
+  const hasContent = Boolean(plan?.steps?.length);
+  if (!wf) {
+    return {
+      state: hasContent ? "draft" : "none",
+      holder: "admissions",
+      chain: ["admissions"],
+      signedRoles: [],
+    };
+  }
+  const chain = ["admissions", ...wf.route];
+  const signedRoles = wf.signoffs.map((s) => s.role);
+  if (wf.step >= wf.route.length) {
+    return { state: "finalized", holder: null, chain, signedRoles };
+  }
+  return { state: "review", holder: wf.route[wf.step], chain, signedRoles };
 }
 
 export interface ApplicationEvent {

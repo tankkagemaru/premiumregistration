@@ -18,7 +18,7 @@ export default async function AcademicPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(["admin", "academic", "admissions"]);
+  const profile = await requireRole(["admin", "academic", "admissions"]);
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
@@ -185,6 +185,7 @@ export default async function AcademicPage({
                       applicationId={a.id}
                       studentName={a.student_name}
                       plan={a.plan}
+                      role={profile.role}
                     />
                   </td>
                   <td className="px-4 py-3 align-top">

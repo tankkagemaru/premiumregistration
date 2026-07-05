@@ -208,6 +208,7 @@ export function ApplicationDrawer({
                 applicationId={app.id}
                 studentName={app.student_name}
                 plan={app.plan}
+                role={role}
               />
               {/* Handoff: admissions/marketing ask Academic to build the timeline */}
               {["admin", "admissions", "marketing", "counsellor"].includes(role) && (

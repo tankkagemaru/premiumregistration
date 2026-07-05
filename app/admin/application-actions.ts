@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { authConfigured } from "@/lib/admin/applications-shared";
+import {
+  authConfigured,
+  PLAN_ROUTES,
+  PLAN_ROLE_LABEL,
+  type StudyPlan,
+  type PlanWorkflow,
+} from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 import { runStageAutomation } from "@/lib/admin/automation";
+import { createActionRequest } from "./request-actions";
 
 export async function advanceApplicationStage(id: string, stage: string) {
   if (!authConfigured) return;
@@ -85,6 +92,13 @@ export async function saveStudyPlan(
   if (!authConfigured) return;
   const supabase = await createClient();
   const profile = await getProfile();
+  // Preserve any in-flight handover workflow when the content is edited.
+  const { data: existing } = await supabase
+    .from("applications")
+    .select("plan")
+    .eq("id", id)
+    .single();
+  const workflow = (existing?.plan as StudyPlan | null)?.workflow ?? undefined;
   const clean = {
     intake: plan.intake?.trim() || undefined,
     target_completion: plan.target_completion || undefined,
@@ -98,6 +112,7 @@ export async function saveStudyPlan(
         note: s.note?.trim() || undefined,
       })),
     updated_at: new Date().toISOString(),
+    workflow,
   };
   await supabase.from("applications").update({ plan: clean }).eq("id", id);
   await supabase.from("application_events").insert({
@@ -107,6 +122,156 @@ export async function saveStudyPlan(
     body: `Study plan updated (${clean.steps.length} steps${clean.intake ? `, intake ${clean.intake}` : ""})`,
   });
   await logAudit({ action: "plan_saved", target_type: "application", target_id: id, detail: clean.intake ?? "" });
+  revalidatePath("/admin", "layout");
+}
+
+/** Load a plan + student name for the handover actions below. */
+async function loadPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+): Promise<{ plan: StudyPlan | null; studentName: string }> {
+  const { data } = await supabase
+    .from("applications")
+    .select("plan, student_name")
+    .eq("id", id)
+    .single();
+  return {
+    plan: (data?.plan as StudyPlan | null) ?? null,
+    studentName: data?.student_name ?? "student",
+  };
+}
+
+const chainLabel = (route: string[]) =>
+  ["admissions", ...route].map((r) => PLAN_ROLE_LABEL[r] ?? r).join(" → ");
+
+/**
+ * Admissions (or admin) sends a drafted plan into review along one of the
+ * preset routes. Records admissions' sign-off and pings the first department.
+ */
+export async function sendPlanForReview(id: string, routeKey: string) {
+  if (!authConfigured) return;
+  const preset = PLAN_ROUTES.find((r) => r.key === routeKey);
+  if (!preset) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions"].includes(profile.role)) return;
+  const { plan, studentName } = await loadPlan(supabase, id);
+  if (!plan?.steps?.length || plan.workflow) return; // need a draft, not already in review
+  const now = new Date().toISOString();
+  const workflow: PlanWorkflow = {
+    route: preset.route,
+    step: 0,
+    signoffs: [
+      { role: "admissions", by: profile.full_name ?? undefined, at: now, note: "Drafted & sent for review" },
+    ],
+    started_by: profile.full_name ?? undefined,
+    started_at: now,
+  };
+  await supabase.from("applications").update({ plan: { ...plan, workflow } }).eq("id", id);
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile.id,
+    type: "note",
+    body: `Study plan sent for review — ${chainLabel(preset.route)}`,
+  });
+  await createActionRequest({
+    applicationId: id,
+    subject: studentName,
+    toRole: preset.route[0],
+    type: "handoff",
+    title: `Verify study plan — ${studentName}`,
+    detail: preset.desc,
+  });
+  await logAudit({ action: "plan_sent_for_review", target_type: "application", target_id: id, detail: routeKey });
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * The current holding department verifies the plan and hands it to the next
+ * one in the route — or finalises it if it's the last. Only that department
+ * (or admin) may act.
+ */
+export async function advancePlanReview(id: string, note?: string) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile) return;
+  const { plan, studentName } = await loadPlan(supabase, id);
+  const wf = plan?.workflow;
+  if (!plan || !wf || wf.step >= wf.route.length) return;
+  const holder = wf.route[wf.step];
+  if (profile.role !== "admin" && profile.role !== holder) return;
+  const now = new Date().toISOString();
+  const step = wf.step + 1;
+  const finalized = step >= wf.route.length;
+  const next: PlanWorkflow = {
+    ...wf,
+    step,
+    signoffs: [
+      ...wf.signoffs,
+      { role: holder, by: profile.full_name ?? undefined, at: now, note: note?.trim() || undefined },
+    ],
+  };
+  await supabase.from("applications").update({ plan: { ...plan, workflow: next } }).eq("id", id);
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile.id,
+    type: "note",
+    body: finalized
+      ? `Study plan finalised by ${PLAN_ROLE_LABEL[holder] ?? holder}`
+      : `Study plan verified by ${PLAN_ROLE_LABEL[holder] ?? holder} → handed to ${PLAN_ROLE_LABEL[wf.route[step]] ?? wf.route[step]}`,
+  });
+  if (!finalized) {
+    await createActionRequest({
+      applicationId: id,
+      subject: studentName,
+      toRole: wf.route[step],
+      type: "handoff",
+      title: `Verify study plan — ${studentName}`,
+      detail: note?.trim() || undefined,
+    });
+  }
+  await logAudit({
+    action: finalized ? "plan_finalized" : "plan_advanced",
+    target_type: "application",
+    target_id: id,
+    detail: holder,
+  });
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * Send a plan back to Admissions for rework (clears the review chain). Only the
+ * current holder (or admin) can bounce it; records why and pings admissions.
+ */
+export async function returnPlanToDraft(id: string, note?: string) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile) return;
+  const { plan, studentName } = await loadPlan(supabase, id);
+  const wf = plan?.workflow;
+  if (!plan || !wf) return;
+  const holder = wf.step < wf.route.length ? wf.route[wf.step] : null;
+  if (profile.role !== "admin" && profile.role !== holder) return;
+  const rest = { ...plan };
+  delete rest.workflow;
+  await supabase.from("applications").update({ plan: rest }).eq("id", id);
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile.id,
+    type: "note",
+    body: `Study plan returned to Admissions${note?.trim() ? ` — ${note.trim()}` : ""}`,
+  });
+  await createActionRequest({
+    applicationId: id,
+    subject: studentName,
+    toRole: "admissions",
+    type: "handoff",
+    title: `Study plan needs rework — ${studentName}`,
+    detail: note?.trim() || undefined,
+  });
+  await logAudit({ action: "plan_returned", target_type: "application", target_id: id });
   revalidatePath("/admin", "layout");
 }
 
