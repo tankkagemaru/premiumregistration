@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import {
   listFees,
@@ -24,6 +23,7 @@ import { CommissionRulesManager } from "@/components/admin/CommissionRulesManage
 import { BillableItemsManager } from "@/components/admin/BillableItemsManager";
 import { InvoiceAttach } from "@/components/admin/InvoiceAttach";
 import { PaymentControl } from "@/components/admin/PaymentControl";
+import { StudentNameButton } from "@/components/admin/StudentDetailModal";
 
 const FEE_BADGE: Record<FeeStatus, string> = {
   unpaid: "bg-brand-red-bg text-brand-red",
@@ -143,12 +143,7 @@ export default async function FinancePage({
               {feeRows.map((f) => (
                 <tr key={f.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/applications?app=${f.application_id}`}
-                      className="font-medium text-ink hover:text-brand-red"
-                    >
-                      {f.student_name}
-                    </Link>
+                    <StudentNameButton applicationId={f.application_id} name={f.student_name} />
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {FEE_TYPE_LABEL[f.type]}
@@ -211,7 +206,9 @@ export default async function FinancePage({
               {commissions.map((c) => (
                 <tr key={c.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3 font-medium text-ink">{c.agent_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-ink-soft">{c.student_name}</td>
+                  <td className="px-4 py-3 text-ink-soft">
+                    <StudentNameButton applicationId={c.application_id} name={c.student_name} />
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
