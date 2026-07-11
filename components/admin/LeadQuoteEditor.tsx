@@ -26,18 +26,23 @@ export function LeadQuoteEditor({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [items, setItems] = useState<QuoteItem[]>(initial);
-  const [pick, setPick] = useState(billables[0]?.id ?? "");
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const dirty = JSON.stringify(items) !== JSON.stringify(initial);
 
-  function addItem() {
-    const b = billables.find((x) => x.id === pick);
-    if (!b) return;
+  const filtered = billables
+    .filter((b) => b.name.toLowerCase().includes(query.trim().toLowerCase()))
+    .slice(0, 25);
+
+  function addItemFrom(b: BillableItem) {
     setItems((cur) => [
       ...cur,
       { name: b.name, fee_type: b.fee_type, amount: b.default_amount ?? 0, currency: b.currency ?? "MYR" },
     ]);
     setSaved(false);
+    setQuery("");
+    setOpen(false);
   }
   const setAmount = (i: number, v: string) => {
     setItems((cur) => cur.map((it, idx) => (idx === i ? { ...it, amount: Number(v) || 0 } : it)));
@@ -65,18 +70,40 @@ export function LeadQuoteEditor({
       ))}
 
       {billables.length > 0 && (
-        <div className="flex items-center gap-2">
-          <select value={pick} onChange={(e) => setPick(e.target.value)} className="min-w-0 flex-1 rounded-md border border-border-warm bg-cream-50 px-2 py-1.5 text-xs text-ink outline-none focus:border-brand-red">
-            {billables.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-                {b.default_amount != null ? ` — ${b.currency} ${b.default_amount}` : ""}
-              </option>
-            ))}
-          </select>
-          <button onClick={addItem} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border-warm bg-paper px-2 py-1.5 text-xs font-medium text-ink hover:bg-cream-50">
-            <Plus className="h-3.5 w-3.5" aria-hidden /> Add
-          </button>
+        <div className="relative">
+          <div className="flex items-center gap-1.5 rounded-md border border-border-warm bg-cream-50 px-2 py-1.5">
+            <Plus className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              placeholder="Search price list to add a fee…"
+              className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted/70"
+            />
+          </div>
+          {open && (
+            <div className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border-warm bg-paper shadow-lg">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-ink-muted">No match.</p>
+              ) : (
+                filtered.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addItemFrom(b)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs hover:bg-cream-50"
+                  >
+                    <span className="min-w-0 truncate text-ink">{b.name}</span>
+                    {b.default_amount != null && (
+                      <span className="shrink-0 font-mono text-ink-muted">{b.currency} {b.default_amount}</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
 
