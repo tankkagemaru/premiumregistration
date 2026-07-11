@@ -20,17 +20,23 @@ export async function listCalendarEvents(): Promise<CalEvent[]> {
   const supabase = await createClient();
   const events: CalEvent[] = [];
 
-  const [{ data: apps }, { data: visas }, { data: leads }] = await Promise.all([
-    supabase
-      .from("applications")
-      .select("id,student_name,next_action,next_action_due,class_start,class_end"),
-    supabase
-      .from("visa_cases")
-      .select("application_id,student_name,student_pass_expiry,arrival_date,medical_booked_date,medical_location"),
-    supabase
-      .from("registrations")
-      .select("id,full_name,next_action,next_action_due"),
-  ]);
+  const [{ data: apps }, { data: visas }, { data: leads }, { data: intakes }, { data: holidays }] =
+    await Promise.all([
+      supabase
+        .from("applications")
+        .select("id,student_name,next_action,next_action_due,class_start,class_end"),
+      supabase
+        .from("visa_cases")
+        .select("application_id,student_name,student_pass_expiry,arrival_date,medical_booked_date,medical_location"),
+      supabase
+        .from("registrations")
+        .select("id,full_name,next_action,next_action_due"),
+      // Academic team's program intakes + MY public holidays — open to all, so
+      // the academic calendar shows for every team here (incl. exec/visa/finance,
+      // who don't have the Intakes tab).
+      supabase.from("program_intakes").select("program,level,label,start_date,end_date,status"),
+      supabase.from("public_holidays").select("holiday_date,name"),
+    ]);
 
   for (const a of apps ?? []) {
     const href = `/admin/applications?app=${a.id}`;
@@ -68,6 +74,25 @@ export async function listCalendarEvents(): Promise<CalEvent[]> {
         kind: "followup",
         href: `/admin/leads?lead=${l.id}`,
       });
+  }
+
+  const PROGRAM_LABEL: Record<string, string> = {
+    pep: "PEP",
+    exam_prep: "Exam prep",
+    summer_camp: "Summer camp",
+    other: "Program",
+  };
+  for (const it of (intakes ?? []) as {
+    program: string; level?: number | null; label?: string | null;
+    start_date: string; end_date?: string | null; status: string;
+  }[]) {
+    if (it.status === "cancelled") continue;
+    const name = `${it.label ?? PROGRAM_LABEL[it.program] ?? it.program}${it.level ? ` L${it.level}` : ""}`;
+    events.push({ date: it.start_date, title: `Intake start — ${name}`, kind: "intake" });
+    if (it.end_date) events.push({ date: it.end_date, title: `Intake end — ${name}`, kind: "other" });
+  }
+  for (const h of (holidays ?? []) as { holiday_date: string; name: string }[]) {
+    events.push({ date: h.holiday_date, title: `Public holiday — ${h.name}`, kind: "holiday" });
   }
 
   return events;

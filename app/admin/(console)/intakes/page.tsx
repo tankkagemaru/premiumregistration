@@ -5,6 +5,7 @@ import { IntakeCalendar } from "@/components/admin/IntakeCalendar";
 export default async function IntakesPage() {
   await requireRole([
     "admin",
+    "boss",
     "academic",
     "marketing",
     "admissions",

@@ -6,6 +6,7 @@ export type CalEventKind =
   | "class_end"
   | "visa_expiry"
   | "intake"
+  | "holiday"
   | "arrival"
   | "other";
 
@@ -25,6 +26,7 @@ export const EVENT_STYLE: Record<
   class_end: { label: "Class end", dot: "bg-ink-muted", chip: "bg-cream-50 text-ink-muted" },
   visa_expiry: { label: "Pass expiry", dot: "bg-brand-gold", chip: "bg-status-late-bg text-brand-gold" },
   intake: { label: "Intake", dot: "bg-brand-red", chip: "bg-brand-red-bg text-brand-red" },
+  holiday: { label: "Holiday", dot: "bg-brand-gold", chip: "bg-status-late-bg text-brand-gold" },
   arrival: { label: "Arrival", dot: "bg-status-present", chip: "bg-status-present-bg text-status-present" },
   other: { label: "Event", dot: "bg-ink-muted", chip: "bg-cream-50 text-ink-muted" },
 };

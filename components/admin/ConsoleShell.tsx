@@ -21,7 +21,7 @@ const TABS: { href: string; key: keyof (typeof CONSOLE_STR)["en"]; roles: string
   { href: "/admin", key: "nav_dashboard", roles: ["*"] },
   { href: "/admin/exec", key: "nav_exec", roles: ["admin", "boss"] },
   { href: "/admin/calendar", key: "nav_calendar", roles: ["*"] },
-  { href: "/admin/intakes", key: "nav_intakes", roles: ["admin", "academic", "marketing", "admissions", "counsellor", "staff"] },
+  { href: "/admin/intakes", key: "nav_intakes", roles: ["admin", "boss", "academic", "marketing", "admissions", "counsellor", "staff"] },
   { href: "/admin/leads", key: "nav_leads", roles: ["admin", "marketing", "admissions", "counsellor", "staff"] },
   { href: "/admin/applications", key: "nav_applications", roles: ["admin", "admissions", "visa", "academic", "counsellor", "staff"] },
   { href: "/admin/programmes", key: "nav_programmes", roles: ["admin", "boss", "admissions", "marketing", "counsellor", "visa", "academic", "finance", "staff"] },
