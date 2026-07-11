@@ -168,6 +168,65 @@ async function ownedLead(registrationId: string) {
 
 const LEAD_DOC_KINDS = ["passport", "transcript", "certificate", "photo", "financial", "english_test", "other"];
 
+/** The application belongs to the calling agent — else null. */
+async function ownedApplication(applicationId: string) {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: a } = await admin
+    .from("applications")
+    .select("id, agent_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+  return a && a.agent_id === profile.id ? { admin, profile } : null;
+}
+
+/** Signed upload URL for a document on the agent's (converted) student. */
+export async function createStudentDocUploadUrl(
+  applicationId: string,
+  kind: string,
+  filename: string,
+): Promise<{ path: string; token: string } | { error: string }> {
+  if (!authConfigured) return { error: "dev" };
+  if (!LEAD_DOC_KINDS.includes(kind)) return { error: "kind" };
+  const ctx = await ownedApplication(applicationId);
+  if (!ctx) return { error: "forbidden" };
+  const safe = filename.replace(/[^\w.\-]/g, "_");
+  const path = `applications/${applicationId}/${kind}/${randomUUID()}-${safe}`;
+  const { data, error } = await ctx.admin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: "sign_failed" };
+  return { path, token: data.token };
+}
+
+/** Register an uploaded document on the agent's student. */
+export async function recordStudentDoc(
+  applicationId: string,
+  kind: string,
+  storagePath: string,
+): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: false };
+  const ctx = await ownedApplication(applicationId);
+  if (!ctx) return { ok: false };
+  await ctx.admin.from("application_documents").insert({
+    application_id: applicationId,
+    kind,
+    storage_path: storagePath,
+    uploaded_by: ctx.profile.id,
+    review_status: "pending",
+  });
+  await ctx.admin.from("application_events").insert({
+    application_id: applicationId,
+    actor_id: ctx.profile.id,
+    type: "note",
+    body: `Agent ${ctx.profile.full_name} uploaded ${kind.replace(/_/g, " ")}`,
+  });
+  await logAudit({ action: "agent_student_doc_uploaded", target_type: "application", target_id: applicationId, detail: kind });
+  revalidatePath("/agent");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 /** Mint a signed upload URL for a document on an agent's referred lead. */
 export async function createLeadDocUploadUrl(
   registrationId: string,

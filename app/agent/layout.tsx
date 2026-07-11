@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AgentNav } from "@/components/agent/AgentNav";
 import { signOut } from "../admin/actions";
 
 export default async function AgentLayout({
@@ -35,6 +36,7 @@ export default async function AgentLayout({
           </div>
         </div>
       </header>
+      <AgentNav />
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">{children}</div>
     </div>
   );
