@@ -118,12 +118,16 @@ const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
  * Same gate as the lookup (admin + boss); documents open through the audited
  * /api/admin/appdoc route.
  */
+const DETAIL_ROLES = [
+  "admin", "boss", "admissions", "visa", "finance", "academic", "counsellor", "staff", "marketing",
+];
+
 export async function getExecStudentDetail(
   applicationId: string,
 ): Promise<ExecStudentDetail | null> {
   if (!authConfigured) return null;
   const profile = await getProfile();
-  if (!profile || !["admin", "boss"].includes(profile.role)) return null;
+  if (!profile || !DETAIL_ROLES.includes(profile.role)) return null;
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
