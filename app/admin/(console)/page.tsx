@@ -57,10 +57,16 @@ export default async function Dashboard() {
   ).sort((a, b) => b[1] - a[1]);
   const maxSource = Math.max(1, ...sources.map(([, n]) => n));
 
+  // Active leads only for the "needs attention" / recent surfaces — converted
+  // (enrolled) and dropped leads are done, not work sitting on the dashboard.
+  const activeLeads = leads.filter(
+    (l) => l.status !== "enrolled" && l.status !== "dropped",
+  );
+
   // Stale leads (console-configured thresholds) — surfaced loudly up top.
   const stalenessDays = await getStalenessDays();
   const now = new Date();
-  const staleLeads = leads.filter(
+  const staleLeads = activeLeads.filter(
     (l) => leadStaleness(l, now, stalenessDays).level !== "ok",
   );
 
@@ -69,7 +75,7 @@ export default async function Dashboard() {
   const overdue = leads.filter(
     (l) => l.next_action_due && l.next_action_due < today && l.status !== "enrolled",
   );
-  const recent = [...leads]
+  const recent = [...activeLeads]
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
     .slice(0, 5);
 

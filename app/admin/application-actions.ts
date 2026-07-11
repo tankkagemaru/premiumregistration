@@ -445,11 +445,13 @@ export async function createApplicationFromLead(leadId: string) {
       student_email: reg.email,
       passport_no: student.passport_no,
       is_international: isInternational,
-      // University target / program captured by the agent on referral.
-      ...(track === "university" && reg.details?.university
+      // University target / program the agent typed on referral. Only a string —
+      // public-form leads store details.university as an object (the track's
+      // answers), which must NOT go into these text columns.
+      ...(track === "university" && typeof reg.details?.university === "string"
         ? { target_institution: reg.details.university }
         : {}),
-      ...(track === "university" && reg.details?.program
+      ...(track === "university" && typeof reg.details?.program === "string"
         ? { program_name: reg.details.program }
         : {}),
       agent_id: agentId,
