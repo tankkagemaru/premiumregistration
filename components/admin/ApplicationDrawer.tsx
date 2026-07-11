@@ -185,15 +185,18 @@ export function ApplicationDrawer({
             )}
           </div>
 
-          {/* Documents — upload, review, download */}
+          {/* Documents — upload/verify for doc-handling teams; others view only. */}
           <div>
             <SectionLabel>Documents</SectionLabel>
             <DocumentUploader
               applicationId={app.id}
               requirements={docRequirements}
               docs={documents}
+              readOnly={!["admin", "admissions", "visa"].includes(role)}
             />
-            <DocRequestControl applicationId={app.id} requests={docRequests} />
+            {["admin", "admissions", "visa"].includes(role) && (
+              <DocRequestControl applicationId={app.id} requests={docRequests} />
+            )}
           </div>
 
           {/* Study plan — pathway planning shared with the student */}
@@ -360,7 +363,9 @@ export function ApplicationDrawer({
             />
           </div>
 
-          {/* Message the student */}
+          {/* Message the student — front-line contact roles only (visa/academic
+              message from their own tab if needed). */}
+          {["admin", "marketing", "admissions", "counsellor"].includes(role) && (
           <div>
             <SectionLabel>Message</SectionLabel>
             <p className="mb-3 text-xs text-ink-muted">
@@ -383,6 +388,7 @@ export function ApplicationDrawer({
               }
             />
           </div>
+          )}
 
           {/* Activity */}
           <div>
