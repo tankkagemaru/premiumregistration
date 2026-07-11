@@ -30,6 +30,7 @@ export interface Fee {
   currency: string;
   due_date?: string | null;
   status: FeeStatus;
+  waive_reason?: string | null; // why a waived fee was waived (promo / scholarship)
   billable_item_id?: string | null; // catalogue item this fee came from
   invoice_doc_id?: string | null; // attached third-party invoice (QuickBooks)
 }

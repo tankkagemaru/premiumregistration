@@ -170,6 +170,9 @@ export default async function FinancePage({
                       </span>
                       <FeeStatusSelect id={f.id} status={f.status} />
                     </div>
+                    {f.status === "waived" && f.waive_reason && (
+                      <p className="mt-1 text-[11px] text-ink-muted">Waived — {f.waive_reason}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">
