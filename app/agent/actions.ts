@@ -87,8 +87,10 @@ export async function createAgentReferral(input: {
   whatsapp?: string;
   nationality?: string;
   tracks: string[];
+  university?: string;
+  program?: string;
   note?: string;
-}): Promise<{ ok: boolean; code?: string; error?: string }> {
+}): Promise<{ ok: boolean; code?: string; id?: string; error?: string }> {
   if (!authConfigured) return { ok: true, code: "DEV-MODE" };
   const profile = await getProfile();
   if (!profile || profile.role !== "agent" || !profile.agent_code) {
@@ -118,6 +120,8 @@ export async function createAgentReferral(input: {
       details: {
         agent_note: input.note?.trim() || undefined,
         referred_by_agent: profile.id,
+        university: input.university?.trim() || undefined,
+        program: input.program?.trim() || undefined,
       },
     })
     .select("id, access_code")
@@ -137,5 +141,66 @@ export async function createAgentReferral(input: {
     detail: `${input.full_name.trim()} · ${profile.agent_code}`,
   });
   revalidatePath("/agent");
-  return { ok: true, code: (row.access_code as string) ?? undefined };
+  return {
+    ok: true,
+    code: (row.access_code as string) ?? undefined,
+    id: row.id as string,
+  };
+}
+
+/** The lead was referred by the calling agent — else null. */
+async function ownedLead(registrationId: string) {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: reg } = await admin
+    .from("registrations")
+    .select("id, agent_code, details")
+    .eq("id", registrationId)
+    .maybeSingle();
+  const referredByMe =
+    reg &&
+    (reg.agent_code === profile.agent_code ||
+      (reg.details as { referred_by_agent?: string } | null)?.referred_by_agent === profile.id);
+  return referredByMe ? { admin, profile } : null;
+}
+
+const LEAD_DOC_KINDS = ["passport", "transcript", "certificate", "photo", "financial", "english_test", "other"];
+
+/** Mint a signed upload URL for a document on an agent's referred lead. */
+export async function createLeadDocUploadUrl(
+  registrationId: string,
+  kind: string,
+  filename: string,
+): Promise<{ path: string; token: string } | { error: string }> {
+  if (!authConfigured) return { error: "dev" };
+  if (!LEAD_DOC_KINDS.includes(kind)) return { error: "kind" };
+  const ctx = await ownedLead(registrationId);
+  if (!ctx) return { error: "forbidden" };
+  const safe = filename.replace(/[^\w.\-]/g, "_");
+  const path = `registrations/${registrationId}/${kind}/${randomUUID()}-${safe}`;
+  const { data, error } = await ctx.admin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: "sign_failed" };
+  return { path, token: data.token };
+}
+
+/** Register an uploaded lead document. */
+export async function recordLeadDoc(
+  registrationId: string,
+  kind: string,
+  storagePath: string,
+): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: false };
+  const ctx = await ownedLead(registrationId);
+  if (!ctx) return { ok: false };
+  await ctx.admin.from("registration_documents").insert({
+    registration_id: registrationId,
+    kind,
+    storage_path: storagePath,
+    review_status: "pending",
+  });
+  await logAudit({ action: "agent_lead_doc_uploaded", target_type: "lead", target_id: registrationId, detail: kind });
+  revalidatePath("/agent");
+  return { ok: true };
 }

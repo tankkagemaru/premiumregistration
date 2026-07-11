@@ -435,6 +435,13 @@ export async function createApplicationFromLead(leadId: string) {
       student_email: reg.email,
       passport_no: student.passport_no,
       is_international: isInternational,
+      // University target / program captured by the agent on referral.
+      ...(track === "university" && reg.details?.university
+        ? { target_institution: reg.details.university }
+        : {}),
+      ...(track === "university" && reg.details?.program
+        ? { program_name: reg.details.program }
+        : {}),
       agent_id: agentId,
       agent_name: agentName,
       // Keep the student's tracking code stable across lead → application.
