@@ -6,6 +6,7 @@ import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 import type { StalenessDays } from "@/lib/config/staleness";
+import type { GateMode } from "@/lib/admin/gates-shared";
 
 /** Save the stale-record day thresholds (admin only). */
 export async function saveStalenessDays(days: StalenessDays): Promise<{ ok: boolean }> {
@@ -30,6 +31,27 @@ export async function saveStalenessDays(days: StalenessDays): Promise<{ ok: bool
     action: "settings_updated",
     target_type: "settings",
     detail: `staleness: ${JSON.stringify(clean)}`,
+  });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Save the stage-handoff enforcement mode — hard (block) or soft (warn). */
+export async function saveGateMode(mode: GateMode): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (profile?.role !== "admin") return { ok: false };
+  if (mode !== "hard" && mode !== "soft") return { ok: false };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: "workflow", value: { gate_mode: mode }, updated_at: new Date().toISOString() });
+  if (error) return { ok: false };
+  await logAudit({
+    action: "settings_updated",
+    target_type: "settings",
+    detail: `gate_mode: ${mode}`,
   });
   revalidatePath("/admin", "layout");
   return { ok: true };

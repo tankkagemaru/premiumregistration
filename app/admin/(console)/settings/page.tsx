@@ -3,10 +3,11 @@ import { LOCALES } from "@/lib/i18n/config";
 import { requireRole } from "@/lib/auth";
 import { listInstitutions, listPrograms } from "@/lib/admin/catalog";
 import { listDocRules } from "@/lib/admin/doc-rules";
-import { getStalenessDays } from "@/lib/admin/settings";
+import { getStalenessDays, getGateMode } from "@/lib/admin/settings";
 import { CatalogManager } from "@/components/admin/CatalogManager";
 import { DocRulesManager } from "@/components/admin/DocRulesManager";
 import { StalenessSettings } from "@/components/admin/StalenessSettings";
+import { GateModeSettings } from "@/components/admin/GateModeSettings";
 
 function Card({
   title,
@@ -27,11 +28,12 @@ function Card({
 
 export default async function SettingsPage() {
   await requireRole(["admin"]);
-  const [institutions, programs, docRules, stalenessDays] = await Promise.all([
+  const [institutions, programs, docRules, stalenessDays, gateMode] = await Promise.all([
     listInstitutions(true),
     listPrograms(true),
     listDocRules(true),
     getStalenessDays(),
+    getGateMode(),
   ]);
 
   return (
@@ -83,6 +85,14 @@ export default async function SettingsPage() {
 
         <Card title="Stale-record flags">
           <StalenessSettings days={stalenessDays} />
+        </Card>
+
+        <Card title="Stage handoffs">
+          <p className="mb-2 text-xs text-ink-muted">
+            How strictly a student must meet a stage's exit conditions before it
+            hands off to the next team.
+          </p>
+          <GateModeSettings mode={gateMode} />
         </Card>
       </div>
     </div>

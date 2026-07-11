@@ -4,11 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   authConfigured,
+  stagesFor,
   PLAN_ROUTES,
   PLAN_ROLE_LABEL,
   type StudyPlan,
   type PlanWorkflow,
 } from "@/lib/admin/applications-shared";
+import { stageGate } from "@/lib/admin/gates-shared";
+import { loadGateSignals } from "@/lib/admin/gates";
+import { getGateMode } from "@/lib/admin/settings";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 import { runStageAutomation } from "@/lib/admin/automation";
@@ -20,9 +24,22 @@ export async function advanceApplicationStage(id: string, stage: string) {
   const profile = await getProfile();
   const { data: prev } = await supabase
     .from("applications")
-    .select("stage")
+    .select("stage, is_international, track")
     .eq("id", id)
     .single();
+
+  // Hard-gate enforcement (backstop for the UI): refuse a FORWARD handoff whose
+  // exit gate isn't met. Admin bypasses; backward moves are always allowed.
+  if (prev && profile?.role !== "admin") {
+    const list = stagesFor(Boolean(prev.is_international), prev.track);
+    const from = list.findIndex((s) => s.id === prev.stage);
+    const to = list.findIndex((s) => s.id === stage);
+    if (from >= 0 && to > from && (await getGateMode()) === "hard") {
+      const gate = stageGate(prev.stage, await loadGateSignals(id));
+      if (!gate.met) return; // gate not satisfied — refuse the handoff
+    }
+  }
+
   await supabase.from("applications").update({ stage }).eq("id", id);
   await supabase.from("application_events").insert({
     application_id: id,
@@ -35,6 +52,31 @@ export async function advanceApplicationStage(id: string, stage: string) {
   await logAudit({ action: "stage_change", target_type: "application", target_id: id, detail: `${prev?.stage ?? "?"} → ${stage}` });
   // Automation: scaffold fees, accrue commission at milestones, notify owner.
   if (prev?.stage !== stage) await runStageAutomation(id, stage, profile?.id);
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * Admissions flags a student ready to start the visa process — the exit gate for
+ * the Offer stage (international). Records it on the timeline; the Visa team then
+ * sees the handoff and can start EMGS.
+ */
+export async function flagReadyForVisa(id: string, ready = true) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions"].includes(profile.role)) return;
+  await supabase.from("applications").update({ ready_for_visa: ready }).eq("id", id);
+  await supabase.from("application_events").insert({
+    application_id: id,
+    actor_id: profile.id,
+    type: "note",
+    body: ready ? "Flagged ready for visa" : "Cleared the ready-for-visa flag",
+  });
+  await logAudit({
+    action: ready ? "flagged_ready_for_visa" : "unflagged_ready_for_visa",
+    target_type: "application",
+    target_id: id,
+  });
   revalidatePath("/admin", "layout");
 }
 

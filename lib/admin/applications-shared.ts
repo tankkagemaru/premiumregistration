@@ -181,6 +181,7 @@ export interface Application {
   class_start?: string | null;
   class_end?: string | null;
   offer_acknowledged_at?: string | null;
+  ready_for_visa?: boolean | null;
   plan?: StudyPlan | null;
 }
 
