@@ -64,8 +64,14 @@ export default async function FinancePage({
       listBillableItems(true),
       getFxRates(),
     ]);
+  // Broad fee search — student, fee type, custom label, status, amount, currency —
+  // so a specific fee is easy to find among many.
   const fees = q
-    ? allFees.filter((f) => f.student_name.toLowerCase().includes(q))
+    ? allFees.filter((f) =>
+        `${f.student_name} ${FEE_TYPE_LABEL[f.type]} ${f.label ?? ""} ${f.status} ${f.amount} ${f.currency}`
+          .toLowerCase()
+          .includes(q),
+      )
     : allFees;
   const commissions = q
     ? allCommissions.filter((c) =>
@@ -113,7 +119,7 @@ export default async function FinancePage({
             moves through the system.
           </p>
         </div>
-        <SearchBox placeholder="Search student or partner…" />
+        <SearchBox placeholder="Search fee — student, type, status, amount…" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

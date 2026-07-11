@@ -23,10 +23,14 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export default async function Dashboard() {
-  // Role-appropriate landing: boss → executive view, agent → partner portal.
+  // Role-appropriate landing: each role starts on its own workspace rather than
+  // the lead dashboard (which is empty for teams that don't handle leads).
   const profile = await getProfile();
   if (profile?.role === "boss") redirect("/admin/exec");
   if (profile?.role === "agent") redirect("/agent");
+  if (profile?.role === "finance") redirect("/admin/finance");
+  if (profile?.role === "visa") redirect("/admin/visa");
+  if (profile?.role === "academic") redirect("/admin/academic");
   const lang = await getConsoleLang();
   const L = CONSOLE_STR[lang];
   const funnelLabel: Record<string, string> = {
