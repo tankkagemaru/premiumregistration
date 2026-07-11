@@ -113,7 +113,7 @@ export async function lookupStatus(
         (reg.passport_no && String(reg.passport_no).toLowerCase() === v));
     if (!reg || !regMatches) return null;
     const leadStage: Record<string, string> =
-      { new: "application", contacted: "review", enrolled: "enrolled", dropped: "review" };
+      { new: "registration", contacted: "admissions", enrolled: "enrolled", dropped: "registration" };
     const track = (reg.tracks?.[0] as string) ?? "english";
     const isIntl = (reg.nationality ?? "").toLowerCase() !== "my";
     const requirements = await getDocRequirements({
@@ -128,7 +128,7 @@ export async function lookupStatus(
       track,
       qualification: null,
       is_international: isIntl,
-      stage: leadStage[reg.status as string] ?? "application",
+      stage: leadStage[reg.status as string] ?? "registration",
       flag: reg.status === "enrolled" ? "ok" : "progress",
       timeline: [
         { label: "Registration received", date: String(reg.created_at).slice(0, 10) },
@@ -169,7 +169,7 @@ export async function lookupStatus(
 
   // Visa-stage documents (e.g. flight ticket) only appear once the application
   // actually reaches the visa phase — no point asking for a ticket on day 1.
-  const visaPhase = ["accepted", "visa", "arrival", "enrolled", "active", "completed"].includes(
+  const visaPhase = ["offer", "visa", "arrival", "enrolled", "active", "completed"].includes(
     app.stage,
   );
   const ruleReqs = await getDocRequirements({

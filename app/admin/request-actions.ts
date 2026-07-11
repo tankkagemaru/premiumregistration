@@ -18,6 +18,10 @@ export async function createActionRequest(input: {
   if (!authConfigured || !input.title.trim()) return;
   const supabase = await createClient();
   const profile = await getProfile();
+  // A due date is a commitment for the receiving team — never accept a
+  // back-dated one (a typed value can bypass the picker's min). Clamp to today.
+  const today = new Date().toISOString().slice(0, 10);
+  const dueDate = input.dueDate && input.dueDate >= today ? input.dueDate : null;
   await supabase.from("action_requests").insert({
     application_id: input.applicationId ?? null,
     subject: input.subject ?? null,
@@ -27,7 +31,7 @@ export async function createActionRequest(input: {
     type: input.type,
     title: input.title.trim(),
     detail: input.detail?.trim() || null,
-    due_date: input.dueDate || null,
+    due_date: dueDate,
   });
   await logAudit({
     action: "request_raised",

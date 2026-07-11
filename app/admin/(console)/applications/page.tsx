@@ -15,17 +15,18 @@ import { TRACKS } from "@/lib/config/tracks";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 
-// Stage buckets per lane.
+// Stage buckets per lane. Old stage ids are listed alongside their new homes so
+// rows still route correctly in the window before the stage-rename migration runs.
 const STUDENT_BUCKETS: Record<string, string[]> = {
-  review: ["application", "review"],
-  offer: ["offer"],
-  accepted: ["accepted"],
+  registration: ["registration", "application"],
+  admissions: ["admissions", "review"],
+  offer: ["offer", "accepted"],
   visa: ["visa"],
   active: ["enrolled", "active"],
   completed: ["completed"],
 };
 const CORP_BUCKETS: Record<string, string[]> = {
-  proposal: ["application", "proposal"],
+  proposal: ["enquiry", "application", "proposal"],
   quote: ["quote"],
   hrdf: ["hrdf"],
   delivery: ["delivery"],
@@ -47,7 +48,7 @@ export default async function ApplicationsPage({
   const lane = one(sp.lane) === "corporate" ? "corporate" : "students";
   const view = one(sp.view) === "board" ? "board" : "list";
   const buckets = lane === "corporate" ? CORP_BUCKETS : STUDENT_BUCKETS;
-  const stage = one(sp.stage) ?? (lane === "corporate" ? "proposal" : "review");
+  const stage = one(sp.stage) ?? (lane === "corporate" ? "proposal" : "admissions");
 
   const laneApps = apps.filter((a) =>
     lane === "corporate" ? a.track === "corporate" : a.track !== "corporate",
@@ -64,9 +65,9 @@ export default async function ApplicationsPage({
           { id: "completed", label: "Completed" },
         ]
       : [
-          { id: "review", label: "To review", attention: true },
-          { id: "offer", label: "Offer" },
-          { id: "accepted", label: "Accepted" },
+          { id: "registration", label: "Registration" },
+          { id: "admissions", label: "Admissions", attention: true },
+          { id: "offer", label: "Offer / OL·COL" },
           { id: "visa", label: "Visa" },
           { id: "active", label: "Enrolled / Active" },
           { id: "completed", label: "Completed" },

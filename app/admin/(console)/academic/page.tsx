@@ -10,8 +10,9 @@ import { StageTabs } from "@/components/admin/StageTabs";
 import { AcademicControls } from "@/components/admin/AcademicControls";
 import { PlanEditor } from "@/components/admin/PlanEditor";
 
-/** Stages the Academic team cares about — offer holders and beyond. */
-const ACADEMIC_STAGES = ["accepted", "visa", "enrolled", "active", "completed", "offer"];
+/** Stages the Academic team cares about — study-plan collaboration during
+ *  Admissions review, then offer holders and beyond. */
+const ACADEMIC_STAGES = ["admissions", "offer", "visa", "enrolled", "active", "completed"];
 
 export default async function AcademicPage({
   searchParams,

@@ -29,6 +29,9 @@ export function RaiseRequest({
   const [type, setType] = useState("request");
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+  // Requests can't be back-dated — a handoff due date is a commitment for the
+  // receiving team, so it must be today or later.
+  const today = new Date().toISOString().slice(0, 10);
 
   if (!open) {
     return (
@@ -80,6 +83,7 @@ export function RaiseRequest({
         <input
           type="date"
           value={due}
+          min={today}
           onChange={(e) => setDue(e.target.value)}
           className={INPUT_CLS}
           aria-label="Due date"

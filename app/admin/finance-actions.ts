@@ -1,10 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
+
+/**
+ * Finance mutations write with the **service-role** client (like document
+ * uploads do), gated by an explicit role check here rather than by RLS. This
+ * ties write-permission to the same source of truth that lets a user reach the
+ * Finance page (getProfile → profiles.role), so a live RLS drift can't silently
+ * swallow the write — the earlier user-scoped writes failed with no error when
+ * the policy didn't match, leaving fees stuck on "unpaid".
+ */
+async function financeClient() {
+  const profile = await getProfile();
+  if (!profile || !["admin", "finance"].includes(profile.role)) return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  return { admin: createAdminClient(), profile };
+}
 
 export async function recordPayment(input: {
   applicationId: string;
@@ -15,8 +29,9 @@ export async function recordPayment(input: {
   receiptDocId?: string; // QuickBooks receipt uploaded as an application doc
 }) {
   if (!authConfigured || input.amount <= 0) return;
-  const supabase = await createClient();
-  const profile = await getProfile();
+  const ctx = await financeClient();
+  if (!ctx) return;
+  const { admin: supabase, profile } = ctx;
 
   await supabase.from("payments").insert({
     application_id: input.applicationId,
@@ -49,9 +64,32 @@ export async function recordPayment(input: {
 
 export async function setFeeStatus(feeId: string, status: string) {
   if (!authConfigured) return;
-  const supabase = await createClient();
-  await supabase.from("fees").update({ status }).eq("id", feeId);
+  const ctx = await financeClient();
+  if (!ctx) return;
+  await ctx.admin.from("fees").update({ status }).eq("id", feeId);
   await logAudit({ action: "fee_status_changed", target_type: "fee", target_id: feeId, detail: status });
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * Set a fee's amount. Fees scaffolded by stage automation land at MYR 0; this is
+ * how finance keys in the real figure (there was previously no way to, so fees
+ * stayed stuck at 0 / unpaid). Re-derives the paid/unpaid status against what's
+ * already been received so raising or lowering the amount stays consistent.
+ */
+export async function setFeeAmount(feeId: string, amount: number) {
+  if (!authConfigured || !Number.isFinite(amount) || amount < 0) return;
+  const ctx = await financeClient();
+  if (!ctx) return;
+  const { data: payments } = await ctx.admin
+    .from("payments")
+    .select("amount")
+    .eq("fee_id", feeId);
+  const received = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  const status =
+    amount > 0 && received >= amount ? "paid" : received > 0 ? "partial" : "unpaid";
+  await ctx.admin.from("fees").update({ amount, status }).eq("id", feeId);
+  await logAudit({ action: "fee_amount_set", target_type: "fee", target_id: feeId, detail: `MYR ${amount}` });
   revalidatePath("/admin", "layout");
 }
 
@@ -66,8 +104,9 @@ export async function setCommissionAmount(
   baseAmount?: number | null,
 ) {
   if (!authConfigured || !Number.isFinite(amount) || amount < 0) return;
-  const supabase = await createClient();
-  await supabase
+  const ctx = await financeClient();
+  if (!ctx) return;
+  await ctx.admin
     .from("commissions")
     .update({ amount, base_amount: baseAmount ?? null })
     .eq("id", id);
@@ -82,8 +121,9 @@ export async function setCommissionAmount(
 
 export async function setCommissionStatus(id: string, status: string) {
   if (!authConfigured) return;
-  const supabase = await createClient();
-  await supabase
+  const ctx = await financeClient();
+  if (!ctx) return;
+  await ctx.admin
     .from("commissions")
     .update({ status, ...(status === "paid" ? { paid_at: new Date().toISOString().slice(0, 10) } : {}) })
     .eq("id", id);
