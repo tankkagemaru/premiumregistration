@@ -103,13 +103,28 @@ student, none of the EMGS internals.
    create-actions, application-actions, applications/page, exec, status, academic/page,
    AcademicControls.
    → **Deploy + run migration 21 + eyeball before increment 2.**
-2. `workflow.gate_mode` setting + Settings toggle + gate engine (hard now / soft later).
-3. "Your next step" panel in the application drawer; hide non-owner controls; track-aware
-   stage-3 labels (Offer letter / OL·COL).
-4. Multiple `(university, program)` choices per student in the Add/convert flow + student
-   record; "accept one, others not selected".
-5. Marketing simplified visa view + nav/role tightening.
-6. Sweep the other screens for redundant buttons/dropdowns.
+2. ✅ **DONE — gate engine + `gate_mode` setting.** `gates-shared` (pure per-stage exit
+   gates, hard/advisory items) + `gates.ts` (service-role signal loader) + hard-gate
+   backstop in `advanceApplicationStage` (admin bypasses, backward always allowed) +
+   Settings hard/soft toggle. `ready_for_visa` column = migration 22 (applied).
+3. ✅ **DONE — "Your next step" panel** (`NextStepPanel`) replaces the free stage dropdown:
+   current stage + owning team + exit-gate checklist + one primary action (Advance /
+   Flag ready for visa); non-owners get read-only "with {team}, waiting on …"; admin keeps
+   a manual override. Offer-letter generation gated to Admissions; EMGS-case start gated to Visa.
+4. ✅ **DONE — multiple `(university, program)` choices** (`UniversityChoices` on the student
+   record + `choice-actions`): add many universities/programs; "Accept this" withdraws the
+   other active choices. Each choice is its own university-track application.
+5. ✅ **DONE — Marketing visa view**: status-only table for marketing (no EMGS internals /
+   drawer); marketing gets the Visa nav tab for status; editing stays visa/admin.
+6. **TODO — redundant-control sweep** (partly done: offer-letter + EMGS-start gating).
+
+## ⚠️ Operational note — hard gates vs existing data
+Hard mode blocks `registration → admissions` until a registration fee is **paid or waived**.
+The students migrated from the old `application` stage to `registration` have no registration
+fee yet, so non-admin users can't advance them until finance adds+clears (or waives) that fee.
+Escape hatches: admin **override** on the panel, finance marks a fee **waived**, or switch
+Settings → Stage handoffs to **soft**. Decide whether to seed/waive registration fees for the
+existing demo students so the pipeline flows freely for the demo.
 
 > Note: this environment has no node/npm and the Supabase/Vercel MCPs aren't
 > authenticated, so each increment is written here but **deployed + migrated + eyeballed
