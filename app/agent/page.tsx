@@ -15,6 +15,7 @@ import {
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
 import { AgentReferForm } from "@/components/agent/AgentReferForm";
+import { ClaimInvoiceUpload } from "@/components/agent/ClaimInvoiceUpload";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -185,6 +186,13 @@ export default async function AgentHome() {
                           <span className={`inline-flex w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${COMMISSION_TONE[comm.status]}`}>
                             {COMMISSION_LABEL[comm.status]}
                           </span>
+                          {comm.status !== "paid" && (
+                            <ClaimInvoiceUpload
+                              commissionId={comm.id}
+                              claimReady={Boolean(comm.claim_ready)}
+                              submitted={Boolean(comm.claim_invoice_doc_id)}
+                            />
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-ink-muted">—</span>

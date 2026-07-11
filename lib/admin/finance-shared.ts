@@ -60,6 +60,8 @@ export interface Commission {
   currency: string;
   milestone: string; // on_offer | on_enrolment | on_payment
   status: CommissionStatus;
+  claim_ready?: boolean; // finance has opened this for the agent to claim
+  claim_invoice_doc_id?: string | null; // the agent's uploaded claim invoice
 }
 
 export function formatMoney(
