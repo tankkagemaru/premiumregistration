@@ -29,8 +29,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** Full student record — shared by the console page and the printable report. */
-export function StudentRecordView({ record }: { record: StudentRecord }) {
+/** Full student record — shared by the console page and the printable report.
+ *  `detailed` = include the full activity timeline / work log (the "detailed"
+ *  report); summary omits it. */
+export function StudentRecordView({
+  record,
+  detailed = true,
+}: {
+  record: StudentRecord;
+  detailed?: boolean;
+}) {
   const { student: s, applications, documents, events, fees, payments, commissions, visas } = record;
 
   return (
@@ -126,11 +134,11 @@ export function StudentRecordView({ record }: { record: StudentRecord }) {
         </Section>
       )}
 
-      {events.length > 0 && (
-        <Section title="Timeline">
-          {events.slice(0, 25).map((e) => (
+      {detailed && events.length > 0 && (
+        <Section title="Timeline &amp; work log">
+          {events.map((e) => (
             <div key={e.id} className="flex justify-between gap-4 py-1 text-sm">
-              <span className="min-w-0 truncate text-ink">{e.body ?? e.type}</span>
+              <span className="min-w-0 text-ink">{e.body ?? e.type}</span>
               <span className="shrink-0 font-mono text-xs text-ink-muted">{d(e.created_at)}</span>
             </div>
           ))}

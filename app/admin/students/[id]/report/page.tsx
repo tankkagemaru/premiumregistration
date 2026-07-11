@@ -12,8 +12,10 @@ import { Wordmark } from "@/components/ui/Wordmark";
  */
 export default async function StudentReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireRole([
     "admin",
@@ -26,6 +28,9 @@ export default async function StudentReportPage({
     "staff",
   ]);
   const { id } = await params;
+  const sp = await searchParams;
+  // Detailed (default) includes the full timeline / work log; summary omits it.
+  const detailed = (Array.isArray(sp.mode) ? sp.mode[0] : sp.mode) !== "summary";
   const record = await getStudentRecord(id);
   if (!record) notFound();
 
@@ -37,7 +42,7 @@ export default async function StudentReportPage({
           <div>
             <Wordmark size="sm" />
             <p className="text-[10px] uppercase tracking-[0.2em] text-ink-muted">
-              Student record report
+              Student record report · {detailed ? "detailed" : "summary"}
             </p>
           </div>
         </div>
@@ -48,7 +53,7 @@ export default async function StudentReportPage({
           <PrintButton />
         </div>
       </div>
-      <StudentRecordView record={record} />
+      <StudentRecordView record={record} detailed={detailed} />
       <p className="mt-8 border-t border-border-warm pt-3 text-[10px] text-ink-muted">
         Internal record — Premium Entrepreneur Consultant Sdn Bhd / Premium Language
         Centre. Contains personal data; handle per PDPA.
