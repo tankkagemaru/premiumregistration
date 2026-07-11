@@ -8,6 +8,7 @@ import {
   recordApplicationDoc,
 } from "@/app/admin/document-actions";
 import { setFeeInvoice } from "@/app/admin/billables-actions";
+import { DocViewer } from "@/components/admin/DocViewer";
 
 const BUCKET = "registration-docs";
 
@@ -28,6 +29,7 @@ export function InvoiceAttach({
   const router = useRouter();
   const [, start] = useTransition();
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const input = useRef<HTMLInputElement | null>(null);
 
   async function upload(file: File) {
@@ -52,15 +54,14 @@ export function InvoiceAttach({
   return (
     <span className="inline-flex items-center gap-1">
       {invoiceDocId ? (
-        <a
-          href={`/api/admin/appdoc/${invoiceDocId}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => setViewing(true)}
           title="Open invoice"
           className="inline-flex items-center gap-1 rounded-md border border-status-present/50 bg-status-present-bg px-2 py-1 text-[11px] font-medium text-status-present hover:opacity-80"
         >
           <FileText className="h-3 w-3" aria-hidden /> Invoice
-        </a>
+        </button>
       ) : (
         <button
           type="button"
@@ -87,6 +88,9 @@ export function InvoiceAttach({
           e.target.value = "";
         }}
       />
+      {viewing && invoiceDocId && (
+        <DocViewer docId={invoiceDocId} label="Invoice" onClose={() => setViewing(false)} />
+      )}
     </span>
   );
 }

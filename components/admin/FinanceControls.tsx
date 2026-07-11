@@ -11,6 +11,7 @@ import {
   setCommissionClaimReady,
 } from "@/app/admin/finance-actions";
 import { formatMoney } from "@/lib/admin/finance-shared";
+import { DocViewer } from "@/components/admin/DocViewer";
 
 const SELECT_CLS =
   "rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none";
@@ -238,6 +239,7 @@ export function CommissionClaimControl({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [viewing, setViewing] = useState(false);
   return (
     <div className="flex flex-col items-start gap-1">
       <button
@@ -253,14 +255,16 @@ export function CommissionClaimControl({
         {claimReady ? "Open for claim ✓" : "Open for claim"}
       </button>
       {claimInvoiceDocId && (
-        <a
-          href={`/api/admin/appdoc/${claimInvoiceDocId}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => setViewing(true)}
           className="text-[10px] font-medium text-brand-red hover:underline"
         >
           View claim invoice →
-        </a>
+        </button>
+      )}
+      {viewing && claimInvoiceDocId && (
+        <DocViewer docId={claimInvoiceDocId} label="Claim invoice" onClose={() => setViewing(false)} />
       )}
     </div>
   );
