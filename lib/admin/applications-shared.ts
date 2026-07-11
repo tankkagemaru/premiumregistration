@@ -7,39 +7,66 @@
 export interface Stage {
   id: string;
   label: string;
+  /** The team that owns the work while an application sits in this stage. */
+  owner?: string;
   internationalOnly?: boolean;
 }
 
+/**
+ * The team-owned student pipeline. Each stage names the team responsible for
+ * the work in it; handoffs between teams are gated (see the gate engine). Stage 3
+ * ("offer") is track-aware in the UI — "Offer letter" for English, "OL / COL"
+ * for university (use `stageLabel(id, track)`).
+ */
 export const STAGES: Stage[] = [
-  { id: "application", label: "Application" },
-  { id: "review", label: "Review" },
-  { id: "offer", label: "Offer" },
-  { id: "accepted", label: "Accepted" },
-  { id: "visa", label: "Visa", internationalOnly: true },
-  { id: "enrolled", label: "Enrolled" },
-  { id: "active", label: "Active" },
+  { id: "registration", label: "Registration", owner: "finance" },
+  { id: "admissions", label: "Admissions review", owner: "admissions" },
+  { id: "offer", label: "Offer / OL·COL", owner: "admissions" },
+  { id: "visa", label: "Visa / EMGS", owner: "visa", internationalOnly: true },
+  { id: "enrolled", label: "Enrolled", owner: "academic" },
+  { id: "active", label: "Active", owner: "academic" },
   { id: "completed", label: "Completed" },
 ];
 
 /**
  * Corporate deals don't follow the student lane — they run
- * proposal → quote → HRDF approval → delivery → completed.
- * "application" doubles as the entry stage so lead conversion still lands
- * every track on a valid first stage.
+ * enquiry → proposal → quote → HRDF approval → delivery → completed.
+ * "enquiry" is the entry stage so lead conversion lands corporate on a valid
+ * first stage (students enter at "registration").
  */
 export const CORPORATE_STAGES: Stage[] = [
-  { id: "application", label: "Enquiry" },
-  { id: "proposal", label: "Proposal" },
-  { id: "quote", label: "Quotation" },
-  { id: "hrdf", label: "HRDF approval" },
-  { id: "delivery", label: "Delivery" },
+  { id: "enquiry", label: "Enquiry", owner: "marketing" },
+  { id: "proposal", label: "Proposal", owner: "admissions" },
+  { id: "quote", label: "Quotation", owner: "finance" },
+  { id: "hrdf", label: "HRDF approval", owner: "admissions" },
+  { id: "delivery", label: "Delivery", owner: "academic" },
   { id: "completed", label: "Completed" },
 ];
 
 export const STAGE_LABEL: Record<string, string> = {
   ...Object.fromEntries(STAGES.map((s) => [s.id, s.label])),
   ...Object.fromEntries(CORPORATE_STAGES.map((s) => [s.id, s.label])),
+  // Back-compat: pre-migration rows may still carry old stage ids in the window
+  // between deploying this code and running the stage-rename migration.
+  application: "Registration",
+  review: "Admissions review",
+  accepted: "Offer / OL·COL",
 };
+
+/** Track-aware label for a stage — stage 3 reads differently per track. */
+export function stageLabel(stageId: string, track?: string): string {
+  if (stageId === "offer") {
+    if (track === "english") return "Offer letter";
+    if (track === "university") return "OL / COL";
+  }
+  return STAGE_LABEL[stageId] ?? stageId;
+}
+
+/** The team that owns an application while it sits in `stageId`. */
+export function stageOwner(stageId: string, track?: string): string | undefined {
+  const list = track === "corporate" ? CORPORATE_STAGES : STAGES;
+  return list.find((s) => s.id === stageId)?.owner;
+}
 
 /** Stages that apply — corporate gets its own lane; students drop the visa
  *  stage when local. Track is optional so existing student-path callers keep
@@ -70,8 +97,8 @@ export type Flag = "ok" | "progress" | "action";
 
 /** Documents expected by the time a stage is reached (for the checklist). */
 export const STAGE_DOCS: Record<string, string[]> = {
-  application: ["passport", "transcript", "photo"],
-  accepted: ["financial"],
+  registration: ["passport", "transcript", "photo"],
+  offer: ["financial"],
   visa: ["medical", "eval"],
 };
 
@@ -112,7 +139,9 @@ export const STAGE_FEES: Record<
   string,
   { type: string; internationalOnly?: boolean }[]
 > = {
-  accepted: [{ type: "registration" }],
+  // Registration fee is scaffolded on entry to stage 1 so finance can price it
+  // immediately — paying it is the gate out of "registration".
+  registration: [{ type: "registration" }],
   visa: [
     { type: "visa_emgs", internationalOnly: true },
     { type: "medical", internationalOnly: true },
@@ -252,6 +281,9 @@ export interface ApplicationEvent {
   type: string;
   body?: string | null;
   created_at: string;
+  // Set on work-log entries that carry a proof attachment (WhatsApp screenshot,
+  // receipt, …) — the id of the application_document uploaded with the entry.
+  attachment_doc_id?: string | null;
 }
 
 /** Student contact fields for messaging (not denormalised onto applications). */

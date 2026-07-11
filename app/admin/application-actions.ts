@@ -282,18 +282,19 @@ export async function returnPlanToDraft(id: string, note?: string) {
  */
 export async function logWork(
   id: string,
-  input: { activity: string; date?: string; note?: string },
+  input: { activity: string; date?: string; note?: string; attachmentDocId?: string },
 ) {
   if (!authConfigured || !input.activity) return;
   const supabase = await createClient();
   const profile = await getProfile();
   const when = input.date || new Date().toISOString().slice(0, 10);
-  const body = `[${input.activity}] ${when}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}`;
+  const body = `[${input.activity}] ${when}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}${input.attachmentDocId ? " 📎" : ""}`;
   await supabase.from("application_events").insert({
     application_id: id,
     actor_id: profile?.id,
     type: "work",
     body,
+    meta: input.attachmentDocId ? { doc_id: input.attachmentDocId } : null,
   });
   await logAudit({ action: "work_logged", target_type: "application", target_id: id, detail: body });
   revalidatePath("/admin", "layout");
@@ -387,7 +388,7 @@ export async function createApplicationFromLead(leadId: string) {
       student_id: student.id,
       track,
       submitted_by: reg.agent_code ? "agent" : "staff",
-      stage: "application",
+      stage: track === "corporate" ? "enquiry" : "registration",
       student_name: reg.full_name,
       student_email: reg.email,
       passport_no: student.passport_no,

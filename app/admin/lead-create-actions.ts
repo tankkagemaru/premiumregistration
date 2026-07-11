@@ -16,6 +16,7 @@ export interface NewRecordInput {
   phone?: string;
   whatsapp?: string;
   nationality?: string; // ISO alpha-2 code (e.g. "my") to match the public form
+  passport_no?: string; // student mode — passport / national ID number
   tracks: string[];
   note?: string; // lead mode only
 }
@@ -154,6 +155,7 @@ export async function createStudentDirect(
       phone: input.phone?.trim() || null,
       whatsapp: input.whatsapp?.trim() || null,
       nationality: input.nationality || null,
+      passport_no: input.passport_no?.trim() || null,
       is_international: isInternational,
     })
     .select("id, passport_no")
@@ -166,7 +168,7 @@ export async function createStudentDirect(
       student_id: student.id,
       track,
       submitted_by: "staff",
-      stage: "application",
+      stage: track === "corporate" ? "enquiry" : "registration",
       student_name: input.full_name.trim(),
       student_email: input.email.trim(),
       passport_no: student.passport_no,

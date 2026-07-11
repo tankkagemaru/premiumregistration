@@ -46,6 +46,7 @@ export function AddRecordDialog({
     phone: "",
     whatsapp: "",
     nationality: "",
+    passport_no: "",
     tracks: [],
     note: "",
   });
@@ -190,7 +191,7 @@ export function AddRecordDialog({
                 placeholder="If different"
               />
             </div>
-            <div className="sm:col-span-2">
+            <div className={mode === "student" ? "" : "sm:col-span-2"}>
               <label className="mb-1.5 block text-xs font-medium text-ink-soft">
                 Nationality
               </label>
@@ -207,6 +208,19 @@ export function AddRecordDialog({
                 ))}
               </select>
             </div>
+            {mode === "student" && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink-soft">
+                  Passport / ID no.
+                </label>
+                <input
+                  className={field}
+                  value={form.passport_no}
+                  onChange={(e) => set("passport_no", e.target.value)}
+                  placeholder="As on passport / IC"
+                />
+              </div>
+            )}
             {mode === "lead" && (
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-medium text-ink-soft">

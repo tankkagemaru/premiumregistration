@@ -32,5 +32,6 @@ export const DOC_KIND_LABEL: Record<string, string> = {
   val: "VAL",
   ticket: "Flight ticket",
   receipt: "Payment receipt",
+  worklog: "Work log proof",
   other: "Other",
 };

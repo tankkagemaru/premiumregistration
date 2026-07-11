@@ -16,6 +16,7 @@ import { SearchBox } from "@/components/admin/SearchBox";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import {
   FeeStatusSelect,
+  FeeAmountControl,
   CommissionStatusSelect,
   CommissionAmountControl,
 } from "@/components/admin/FinanceControls";
@@ -153,8 +154,8 @@ export default async function FinancePage({
                     {FEE_TYPE_LABEL[f.type]}
                     {f.label ? ` · ${f.label}` : ""}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-ink tabular">
-                    {formatMoney(f.amount, f.currency)}
+                  <td className="px-4 py-3 text-right">
+                    <FeeAmountControl id={f.id} amount={f.amount} currency={f.currency} />
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs text-ink-soft tabular">
                     {formatMoney(paidTowards(f, payments), f.currency)}

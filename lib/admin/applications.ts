@@ -26,7 +26,7 @@ const MOCK: Application[] = [
     agent_id: "s-kucing",
     agent_name: "Kucing Oren",
     assigned_to: "s-waty",
-    stage: "review",
+    stage: "admissions",
     status: "active",
     flag: "action",
     next_action: "Verify transcript",
@@ -188,7 +188,7 @@ export async function getApplication(id: string): Promise<{
     await Promise.all([
       supabase
         .from("application_events")
-        .select("id,type,body,created_at")
+        .select("id,type,body,created_at,meta")
         .eq("application_id", id)
         .order("created_at", { ascending: false }),
       supabase
@@ -203,7 +203,9 @@ export async function getApplication(id: string): Promise<{
     ]);
   return {
     app: app as Application,
-    events: (events as ApplicationEvent[]) ?? [],
+    events: ((events as (ApplicationEvent & { meta?: { doc_id?: string } | null })[]) ?? []).map(
+      ({ meta, ...e }) => ({ ...e, attachment_doc_id: meta?.doc_id ?? null }),
+    ),
     documents: (documents as ApplicationDoc[]) ?? [],
     contact: {
       phone: (student as { phone?: string } | null)?.phone,

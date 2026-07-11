@@ -12,6 +12,7 @@ import {
   setAppDocReview,
   deleteApplicationDoc,
 } from "@/app/admin/document-actions";
+import { DocViewer } from "@/components/admin/DocViewer";
 
 const BUCKET = "registration-docs";
 const REVIEW = ["pending", "verified", "rejected"];
@@ -34,6 +35,7 @@ export function DocumentUploader({
   const [pending, start] = useTransition();
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ id: string; label: string } | null>(null);
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const byKind = (kind: string) => docs.filter((d) => d.kind === kind);
@@ -93,16 +95,15 @@ export function DocumentUploader({
         <div className="ml-auto flex items-center gap-1.5">
           {items.map((d) => (
             <span key={d.id} className="flex items-center gap-1">
-              <a
-                href={`/api/admin/appdoc/${d.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => setViewing({ id: d.id, label })}
                 className="rounded p-1 text-ink-muted hover:bg-cream-50 hover:text-ink"
-                aria-label="Open document"
-                title="Open"
+                aria-label="View document"
+                title="View"
               >
                 <Eye className="h-3.5 w-3.5" aria-hidden />
-              </a>
+              </button>
               <a
                 href={`/api/admin/appdoc/${d.id}?dl=1`}
                 className="rounded p-1 text-ink-muted hover:bg-cream-50 hover:text-ink"
@@ -168,6 +169,13 @@ export function DocumentUploader({
         ))}
       </ul>
       {error && <p className="mt-2 text-xs text-brand-red">{error}</p>}
+      {viewing && (
+        <DocViewer
+          docId={viewing.id}
+          label={viewing.label}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

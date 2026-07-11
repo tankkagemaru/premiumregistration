@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import {
   setFeeStatus,
+  setFeeAmount,
   setCommissionStatus,
   setCommissionAmount,
 } from "@/app/admin/finance-actions";
@@ -14,6 +15,71 @@ const SELECT_CLS =
   "rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none";
 const NUM_CLS =
   "w-20 rounded-md border border-border-warm bg-cream-50 px-2 py-1 text-xs text-ink outline-none focus:border-brand-red";
+
+/**
+ * Inline editor for a fee's amount. Fees scaffolded by automation start at MYR 0;
+ * this is how finance keys in the real figure. Click the amount to edit.
+ */
+export function FeeAmountControl({
+  id,
+  amount,
+  currency = "MYR",
+}: {
+  id: string;
+  amount: number;
+  currency?: string;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState(amount ? String(amount) : "");
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="group inline-flex items-center gap-1.5 font-mono text-xs text-ink tabular hover:text-brand-red"
+        title="Set fee amount"
+      >
+        {formatMoney(amount, currency)}
+        <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <input
+        type="number"
+        value={val}
+        autoFocus
+        onChange={(e) => setVal(e.target.value)}
+        placeholder="0"
+        aria-label="Fee amount (MYR)"
+        className={NUM_CLS}
+      />
+      <button
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            await setFeeAmount(id, Number(val));
+            setOpen(false);
+            router.refresh();
+          })
+        }
+        className="rounded-md bg-brand-red px-2 py-1 text-[11px] font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+      >
+        {pending ? "…" : "Save"}
+      </button>
+      <button
+        onClick={() => { setVal(amount ? String(amount) : ""); setOpen(false); }}
+        className="rounded-md border border-border-warm px-2 py-1 text-[11px] text-ink-muted hover:text-ink"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
 
 export function FeeStatusSelect({ id, status }: { id: string; status: string }) {
   const router = useRouter();

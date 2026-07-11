@@ -30,7 +30,7 @@ export function AcademicControls({
   const [s, setS] = useState(classStart ?? "");
   const [e, setE] = useState(classEnd ?? "");
   const dirty = s !== (classStart ?? "") || e !== (classEnd ?? "");
-  const canEnrol = feeCleared && ["accepted", "visa"].includes(stage);
+  const canEnrol = feeCleared && ["offer", "visa"].includes(stage);
 
   return (
     <div className="flex flex-wrap items-center gap-2">

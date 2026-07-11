@@ -93,13 +93,13 @@ export async function getExecOverview(): Promise<ExecOverview> {
 
   // Department lateness — day-granularity heuristics, tune as the team learns.
   const admissionsStuck = A.filter(
-    (a) => ["application", "review"].includes(a.stage) && olderThan(a.created_at, 7),
+    (a) => ["registration", "admissions"].includes(a.stage) && olderThan(a.created_at, 7),
   ).length;
   const visaStuck = V.filter(
     (v) => !["completed", "active"].includes(v.stage) && olderThan(v.created_at, 21),
   ).length;
   const academicMissing = A.filter(
-    (a) => ["accepted", "enrolled"].includes(a.stage) && !a.class_start,
+    (a) => ["visa", "enrolled"].includes(a.stage) && !a.class_start,
   ).length;
   const financeOverdue = F.filter(
     (f) =>
