@@ -14,7 +14,8 @@ import {
 } from "@/lib/admin/applications-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
-import { AgentReferForm } from "@/components/agent/AgentReferForm";
+import { AgentRegisterModal } from "@/components/agent/AgentRegisterModal";
+import { AgentStudentName } from "@/components/agent/AgentStudentName";
 import { ClaimInvoiceUpload } from "@/components/agent/ClaimInvoiceUpload";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 
@@ -84,7 +85,7 @@ export default async function AgentHome() {
           </p>
           <h1 className="font-serif text-3xl font-medium text-ink">Your students</h1>
         </div>
-        <AgentReferForm />
+        <AgentRegisterModal agentCode={agent.code} />
       </div>
 
       {/* Stat row */}
@@ -151,7 +152,13 @@ export default async function AgentHome() {
                 <Fragment key={a.id}>
                   <tr className={hasTodo ? "bg-paper" : "border-b border-border-warm/60 bg-paper last:border-0"}>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-ink">{a.student_name}</div>
+                      <AgentStudentName
+                        app={a}
+                        paymentLabel={pay.label}
+                        docs={docs
+                          .filter((d) => d.application_id === a.id)
+                          .map((d) => ({ kind: d.kind, review_status: d.review_status }))}
+                      />
                       <div className="text-xs text-ink-muted">
                         {TRACK_TITLE[a.track] ?? a.track}
                         {a.target_institution ? ` · ${a.target_institution}` : ""}
