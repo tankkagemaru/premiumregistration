@@ -42,6 +42,10 @@ export default async function VisaPage({
   ]);
   const profile = await getProfile();
   const canEdit = !!profile && ["admin", "visa"].includes(profile.role);
+  // Marketing gets a status-only view — where each student is in the visa
+  // process, nothing of the EMGS internals (refs, who filed, medical, the
+  // case drawer). Clear separation: marketing hands off, it doesn't case-manage.
+  const liteView = !!profile && profile.role === "marketing";
 
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
@@ -115,8 +119,9 @@ export default async function VisaPage({
           </p>
           <h1 className="font-serif text-3xl font-medium text-ink">Visa cases</h1>
           <p className="mt-2 text-sm text-ink-soft">
-            Visible to every team so anyone can see where a student is.{" "}
-            {canEdit ? "You can update cases." : "Only the visa team edits cases."}
+            {liteView
+              ? "Where each student is in the visa process — status only."
+              : `Visible to every team so anyone can see where a student is. ${canEdit ? "You can update cases." : "Only the visa team edits cases."}`}
           </p>
         </div>
         <SearchBox placeholder="Search student or EMGS ref…" />
@@ -130,8 +135,8 @@ export default async function VisaPage({
             <tr className="border-b border-border-warm bg-cream-50 text-left text-[11px] uppercase tracking-[0.14em] text-ink-muted">
               <th className="px-4 py-2.5 font-medium">Student</th>
               <th className="px-4 py-2.5 font-medium">Programme</th>
-              <th className="px-4 py-2.5 font-medium">Filed by</th>
-              <th className="px-4 py-2.5 font-medium">EMGS ref</th>
+              {!liteView && <th className="px-4 py-2.5 font-medium">Filed by</th>}
+              {!liteView && <th className="px-4 py-2.5 font-medium">EMGS ref</th>}
               <th className="px-4 py-2.5 font-medium">Stage</th>
               <th className="px-4 py-2.5 font-medium">Pass expiry</th>
             </tr>
@@ -139,7 +144,7 @@ export default async function VisaPage({
           <tbody>
             {cases.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-ink-muted">
+                <td colSpan={liteView ? 4 : 6} className="px-4 py-10 text-center text-ink-muted">
                   Nothing in this stage.
                 </td>
               </tr>
@@ -149,17 +154,25 @@ export default async function VisaPage({
               return (
                 <tr key={c.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/visa?visa=${c.id}`} className="font-medium text-ink hover:text-brand-red">
-                      {c.student_name}
-                    </Link>
+                    {liteView ? (
+                      <span className="font-medium text-ink">{c.student_name}</span>
+                    ) : (
+                      <Link href={`/admin/visa?visa=${c.id}`} className="font-medium text-ink hover:text-brand-red">
+                        {c.student_name}
+                      </Link>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-soft">{c.target ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${c.submitted_by === "pecsb" ? "bg-brand-red-bg text-brand-red" : "bg-cream-50 text-ink-soft border border-border-warm"}`}>
-                      {c.submitted_by === "pecsb" ? "PECSB" : "University"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-muted">{c.emgs_ref ?? "—"}</td>
+                  {!liteView && (
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${c.submitted_by === "pecsb" ? "bg-brand-red-bg text-brand-red" : "bg-cream-50 text-ink-soft border border-border-warm"}`}>
+                        {c.submitted_by === "pecsb" ? "PECSB" : "University"}
+                      </span>
+                    </td>
+                  )}
+                  {!liteView && (
+                    <td className="px-4 py-3 font-mono text-xs text-ink-muted">{c.emgs_ref ?? "—"}</td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-ink">{VISA_STAGE_LABEL[c.stage] ?? c.stage}</span>
@@ -184,7 +197,7 @@ export default async function VisaPage({
         </table>
       </div>
 
-      {selected && (
+      {selected && !liteView && (
         <VisaCaseDrawer
           vc={selected.vc}
           contact={selected.contact}
