@@ -1,9 +1,78 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { getProfile } from "@/lib/auth";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { logAudit } from "@/lib/admin/audit";
+
+const BUCKET = "registration-docs";
+
+/** The commission belongs to the calling agent and finance has opened it for
+ *  claiming — returns its application id, else null. */
+async function claimableCommission(commissionId: string) {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: c } = await admin
+    .from("commissions")
+    .select("id, application_id, agent_id, claim_ready")
+    .eq("id", commissionId)
+    .maybeSingle();
+  if (!c || c.agent_id !== profile.id || !c.claim_ready || !c.application_id) return null;
+  return { admin, profile, applicationId: c.application_id as string };
+}
+
+/** Mint a signed upload URL for an agent's commission claim invoice. */
+export async function createClaimUploadUrl(
+  commissionId: string,
+  filename: string,
+): Promise<{ path: string; token: string } | { error: string }> {
+  if (!authConfigured) return { error: "dev" };
+  const ctx = await claimableCommission(commissionId);
+  if (!ctx) return { error: "forbidden" };
+  const safe = filename.replace(/[^\w.\-]/g, "_");
+  const path = `applications/${ctx.applicationId}/claim_invoice/${randomUUID()}-${safe}`;
+  const { data, error } = await ctx.admin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: "sign_failed" };
+  return { path, token: data.token };
+}
+
+/** Register the uploaded claim invoice against the commission (→ 'invoiced'). */
+export async function recordClaimInvoice(
+  commissionId: string,
+  storagePath: string,
+): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: false };
+  const ctx = await claimableCommission(commissionId);
+  if (!ctx) return { ok: false };
+  const { data: doc } = await ctx.admin
+    .from("application_documents")
+    .insert({
+      application_id: ctx.applicationId,
+      kind: "claim_invoice",
+      storage_path: storagePath,
+      uploaded_by: ctx.profile.id,
+      review_status: "pending",
+    })
+    .select("id")
+    .single();
+  await ctx.admin
+    .from("commissions")
+    .update({ claim_invoice_doc_id: doc?.id ?? null, status: "invoiced" })
+    .eq("id", commissionId);
+  await ctx.admin.from("application_events").insert({
+    application_id: ctx.applicationId,
+    actor_id: ctx.profile.id,
+    type: "note",
+    body: `Agent ${ctx.profile.full_name} uploaded a commission claim invoice`,
+  });
+  await logAudit({ action: "claim_invoice_uploaded", target_type: "commission", target_id: commissionId });
+  revalidatePath("/agent");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
 
 /**
  * An agent submits a student directly from their portal. Inserted with the

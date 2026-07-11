@@ -201,6 +201,24 @@ export async function setCommissionAmount(
   revalidatePath("/admin", "layout");
 }
 
+/**
+ * Finance opens (or closes) a commission for the agent to claim. Only once this
+ * is set can the agent upload their claim invoice in the portal.
+ */
+export async function setCommissionClaimReady(id: string, ready: boolean) {
+  if (!authConfigured) return;
+  const ctx = await financeClient();
+  if (!ctx) return;
+  await ctx.admin.from("commissions").update({ claim_ready: ready }).eq("id", id);
+  await logAudit({
+    action: ready ? "commission_opened_for_claim" : "commission_claim_closed",
+    target_type: "commission",
+    target_id: id,
+  });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/agent");
+}
+
 export async function setCommissionStatus(id: string, status: string) {
   if (!authConfigured) return;
   const ctx = await financeClient();

@@ -19,6 +19,7 @@ import {
   FeeAmountControl,
   CommissionStatusSelect,
   CommissionAmountControl,
+  CommissionClaimControl,
 } from "@/components/admin/FinanceControls";
 import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
 import { BillableItemsManager } from "@/components/admin/BillableItemsManager";
@@ -246,7 +247,16 @@ export default async function FinancePage({
                     {c.milestone.replace(/_/g, " ")}
                   </td>
                   <td className="px-4 py-3">
-                    <CommissionStatusSelect id={c.id} status={c.status} />
+                    <div className="flex flex-col gap-1.5">
+                      <CommissionStatusSelect id={c.id} status={c.status} />
+                      {c.direction === "payable" && (
+                        <CommissionClaimControl
+                          id={c.id}
+                          claimReady={Boolean(c.claim_ready)}
+                          claimInvoiceDocId={c.claim_invoice_doc_id}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

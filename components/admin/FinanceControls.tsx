@@ -8,6 +8,7 @@ import {
   setFeeAmount,
   setCommissionStatus,
   setCommissionAmount,
+  setCommissionClaimReady,
 } from "@/app/admin/finance-actions";
 import { formatMoney } from "@/lib/admin/finance-shared";
 
@@ -217,6 +218,50 @@ export function CommissionAmountControl({
       >
         Cancel
       </button>
+    </div>
+  );
+}
+
+/**
+ * Open (or close) a commission for the agent to claim + view their uploaded
+ * claim invoice. Gating the claim to a finance action keeps agents from
+ * uploading before the deal is approved.
+ */
+export function CommissionClaimControl({
+  id,
+  claimReady,
+  claimInvoiceDocId,
+}: {
+  id: string;
+  claimReady: boolean;
+  claimInvoiceDocId?: string | null;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => start(async () => { await setCommissionClaimReady(id, !claimReady); router.refresh(); })}
+        className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+          claimReady
+            ? "bg-status-present-bg text-status-present"
+            : "border border-border-warm bg-paper text-ink-muted hover:text-ink"
+        }`}
+      >
+        {claimReady ? "Open for claim ✓" : "Open for claim"}
+      </button>
+      {claimInvoiceDocId && (
+        <a
+          href={`/api/admin/appdoc/${claimInvoiceDocId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-medium text-brand-red hover:underline"
+        >
+          View claim invoice →
+        </a>
+      )}
     </div>
   );
 }
