@@ -398,7 +398,13 @@ export function ApplicationDrawer({
             <div className="flex-1" />
             <ProgressRing percent={stagePercent(app.stage, app.is_international, app.track)} flag={app.flag ?? "progress"} size={56} sublabel="" />
           </div>
-          <NextStepPanel app={app} role={role} gateMode={gateMode} signals={signals} />
+          <NextStepPanel
+            app={app}
+            role={role}
+            gateMode={gateMode}
+            signals={signals}
+            hasRegistrationFee={fees.some((f) => f.type === "registration")}
+          />
 
           {/* Role-appropriate sections, in this team's workflow order. */}
           {order.map((k) => (sections[k] ? <Fragment key={k}>{sections[k]}</Fragment> : null))}

@@ -19,7 +19,9 @@ export interface Stage {
  * for university (use `stageLabel(id, track)`).
  */
 export const STAGES: Stage[] = [
-  { id: "registration", label: "Registration", owner: "finance" },
+  // Registration is Admissions' intake/review: they decide whether the student
+  // pays a registration fee (→ Finance collects) or not, then it advances.
+  { id: "registration", label: "Registration", owner: "admissions" },
   { id: "admissions", label: "Admissions review", owner: "admissions" },
   { id: "offer", label: "Offer / OL·COL", owner: "admissions" },
   { id: "visa", label: "Visa / EMGS", owner: "visa", internationalOnly: true },
@@ -139,9 +141,10 @@ export const STAGE_FEES: Record<
   string,
   { type: string; internationalOnly?: boolean }[]
 > = {
-  // Registration fee is scaffolded on entry to stage 1 so finance can price it
-  // immediately — paying it is the gate out of "registration".
-  registration: [{ type: "registration" }],
+  // Registration fee is NOT auto-scaffolded: in the review-first model Admissions
+  // decides whether the student pays at all (requireRegistrationPayment) or is
+  // waived (waiveRegistration), and that decision creates the fee. A marketing
+  // quote may also seed a registration line on conversion.
   visa: [
     { type: "visa_emgs", internationalOnly: true },
     { type: "medical", internationalOnly: true },

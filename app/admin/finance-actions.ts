@@ -20,6 +20,88 @@ async function financeClient() {
   return { admin: createAdminClient(), profile };
 }
 
+/**
+ * The pipeline moves on payment, not a manual push: when a registration fee
+ * clears (paid or waived) and the app is still at the Registration stage,
+ * auto-advance it to Admissions. Service-role — the actor may be finance (who has
+ * no Applications tab) or admissions (a non-owner of the Registration stage).
+ */
+async function autoAdvanceRegistration(applicationId: string) {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: app } = await admin
+    .from("applications")
+    .select("stage")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (app?.stage !== "registration") return;
+  const { data: fees } = await admin.from("fees").select("type, status").eq("application_id", applicationId);
+  const cleared = (fees ?? []).some(
+    (f) => f.type === "registration" && (f.status === "paid" || f.status === "waived"),
+  );
+  if (!cleared) return;
+  await admin.from("applications").update({ stage: "admissions" }).eq("id", applicationId);
+  await admin.from("application_events").insert({
+    application_id: applicationId,
+    type: "stage_change",
+    from_stage: "registration",
+    to_stage: "admissions",
+    body: "Auto-advanced to Admissions — registration cleared",
+  });
+  const { runStageAutomation } = await import("@/lib/admin/automation");
+  await runStageAutomation(applicationId, "admissions", null);
+}
+
+/**
+ * Admissions flags that this student must pay a registration fee: create the
+ * unpaid fee (if none) and raise a request so Finance invoices + collects it.
+ */
+export async function requireRegistrationPayment(
+  applicationId: string,
+): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions"].includes(profile.role)) return { ok: false };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: app } = await admin.from("applications").select("student_name").eq("id", applicationId).maybeSingle();
+  const { data: existing } = await admin
+    .from("fees")
+    .select("id")
+    .eq("application_id", applicationId)
+    .eq("type", "registration")
+    .limit(1)
+    .maybeSingle();
+  if (!existing) {
+    await admin.from("fees").insert({
+      application_id: applicationId,
+      student_name: app?.student_name ?? "",
+      type: "registration",
+      amount: 0,
+      currency: "MYR",
+      status: "unpaid",
+    });
+  }
+  const { createActionRequest } = await import("./request-actions");
+  await createActionRequest({
+    applicationId,
+    subject: app?.student_name,
+    toRole: "finance",
+    type: "request",
+    title: "Invoice & collect registration fee",
+    detail: "Admissions flagged this student for registration payment.",
+  });
+  await admin.from("application_events").insert({
+    application_id: applicationId,
+    actor_id: profile.id,
+    type: "note",
+    body: "Registration payment required — sent to Finance to invoice.",
+  });
+  await logAudit({ action: "registration_payment_required", target_type: "application", target_id: applicationId });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 export async function recordPayment(input: {
   applicationId: string;
   feeId: string;
@@ -58,6 +140,7 @@ export async function recordPayment(input: {
     fee && received >= Number(fee.amount) ? "paid" : received > 0 ? "partial" : "unpaid";
   await supabase.from("fees").update({ status }).eq("id", input.feeId);
 
+  await autoAdvanceRegistration(input.applicationId);
   await logAudit({ action: "payment_recorded", target_type: "fee", target_id: input.feeId, detail: `MYR ${input.amount}${input.reference ? " · " + input.reference : ""}` });
   revalidatePath("/admin", "layout");
 }
@@ -67,6 +150,8 @@ export async function setFeeStatus(feeId: string, status: string) {
   const ctx = await financeClient();
   if (!ctx) return;
   await ctx.admin.from("fees").update({ status }).eq("id", feeId);
+  const { data: fee } = await ctx.admin.from("fees").select("application_id").eq("id", feeId).maybeSingle();
+  if (fee?.application_id) await autoAdvanceRegistration(fee.application_id);
   await logAudit({ action: "fee_status_changed", target_type: "fee", target_id: feeId, detail: status });
   revalidatePath("/admin", "layout");
 }
@@ -91,6 +176,8 @@ export async function setFeeAmount(feeId: string, amount: number, currency?: str
   const patch: { amount: number; status: string; currency?: string } = { amount, status };
   if (currency) patch.currency = currency;
   await ctx.admin.from("fees").update(patch).eq("id", feeId);
+  const { data: fee } = await ctx.admin.from("fees").select("application_id").eq("id", feeId).maybeSingle();
+  if (fee?.application_id) await autoAdvanceRegistration(fee.application_id);
   await logAudit({ action: "fee_amount_set", target_type: "fee", target_id: feeId, detail: `${currency ?? "MYR"} ${amount}` });
   revalidatePath("/admin", "layout");
 }
@@ -125,6 +212,7 @@ export async function waiveFee(
       type: "note",
       body: `Fee waived (${fee.type ?? "fee"}) — ${reason.trim()}`,
     });
+    await autoAdvanceRegistration(fee.application_id);
   }
   await logAudit({ action: "fee_waived", target_type: "fee", target_id: feeId, detail: reason.trim() });
   revalidatePath("/admin", "layout");
@@ -170,6 +258,7 @@ export async function waiveRegistration(
     type: "note",
     body: `Registration fee waived — ${reason.trim()}`,
   });
+  await autoAdvanceRegistration(applicationId);
   await logAudit({ action: "registration_waived", target_type: "application", target_id: applicationId, detail: reason.trim() });
   revalidatePath("/admin", "layout");
   return { ok: true };

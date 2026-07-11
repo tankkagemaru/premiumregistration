@@ -42,7 +42,7 @@ export function stageGate(stage: string, s: GateSignals): StageGate {
   let items: GateItem[] = [];
   switch (stage) {
     case "registration":
-      items = [{ label: "Registration fee paid", met: s.registrationPaid, hard: true }];
+      items = [{ label: "Registration cleared (paid or waived)", met: s.registrationPaid, hard: true }];
       break;
     case "admissions":
       items = [

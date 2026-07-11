@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Circle, ArrowRight, ChevronDown, Flag, BadgePercent } from "lucide-react";
+import { Check, Circle, ArrowRight, ChevronDown, Flag, Wallet } from "lucide-react";
 import {
   stagesFor,
   stageLabel,
@@ -15,7 +15,7 @@ import {
   advanceApplicationStage,
   flagReadyForVisa,
 } from "@/app/admin/application-actions";
-import { waiveRegistration } from "@/app/admin/finance-actions";
+import { waiveRegistration, requireRegistrationPayment } from "@/app/admin/finance-actions";
 
 const team = (r?: string) => (r ? TEAM_LABEL[r] ?? r : "—");
 
@@ -30,11 +30,15 @@ export function NextStepPanel({
   role,
   gateMode,
   signals,
+  hasRegistrationFee,
 }: {
   app: Application;
   role: string;
   gateMode: GateMode;
   signals: GateSignals;
+  /** Whether a registration fee row already exists (from a quote or a prior
+   *  "require payment" decision) — drives the admissions review controls. */
+  hasRegistrationFee?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -51,12 +55,16 @@ export function NextStepPanel({
   const gate = stageGate(app.stage, signals);
 
   const blocked = gateMode === "hard" && !gate.met && role !== "admin";
-  // Admissions/finance can waive registration (promo / scholarship) with a reason —
-  // it clears the registration gate without a payment.
-  const showWaive =
-    app.stage === "registration" &&
+  // Registration is Admissions' intake review: they decide whether the student
+  // pays a registration fee. That decision — not a manual "advance" — is what
+  // moves the app on (via requireRegistrationPayment / waiveRegistration, which
+  // auto-advance once the fee clears). So the review controls replace the generic
+  // advance button while the app sits at registration with the gate unmet.
+  const isRegistration = app.stage === "registration";
+  const showReview =
+    isRegistration &&
     !signals.registrationPaid &&
-    ["admin", "admissions", "finance"].includes(role);
+    ["admin", "admissions"].includes(role);
   const showFlagReady =
     app.stage === "offer" &&
     app.is_international &&
@@ -98,24 +106,20 @@ export function NextStepPanel({
         </ul>
       )}
 
-      {/* Waive registration (promo / scholarship) — clears the gate with a reason */}
-      {showWaive && (
-        <div className="mt-3">
-          {!waiveOpen ? (
-            <button
-              type="button"
-              onClick={() => { setWaiveOpen(true); setWaiveErr(null); }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-gold hover:underline"
-            >
-              <BadgePercent className="h-3.5 w-3.5" aria-hidden />
-              Waive registration (promo)
-            </button>
-          ) : (
-            <div className="flex flex-col gap-2 rounded-md border border-brand-gold/30 bg-brand-gold/5 p-2.5">
+      {/* Admissions review — decide whether the student pays a registration fee.
+          "Require payment" hands off to Finance to invoice; "No payment needed"
+          waives with a reason. Either way it auto-advances once the fee clears. */}
+      {showReview && (
+        <div className="mt-3 rounded-md border border-border-warm bg-cream-50/60 p-3">
+          <p className="text-xs font-medium text-ink-soft">
+            Review — does this student pay a registration fee?
+          </p>
+          {waiveOpen ? (
+            <div className="mt-2 flex flex-col gap-2">
               <input
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Reason (e.g. agent promo, scholarship) — required"
+                placeholder="Reason no payment is needed (promo, scholarship, exemption) — required"
                 className="rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red"
               />
               {waiveErr && <p className="text-xs text-brand-red">{waiveErr}</p>}
@@ -132,7 +136,7 @@ export function NextStepPanel({
                   }
                   className="rounded-md bg-brand-gold px-3 py-1.5 text-xs font-medium text-oncolor hover:opacity-90 disabled:opacity-50"
                 >
-                  {pending ? "Waiving…" : "Waive registration"}
+                  {pending ? "Saving…" : "Confirm — no payment"}
                 </button>
                 <button
                   type="button"
@@ -143,11 +147,43 @@ export function NextStepPanel({
                 </button>
               </div>
             </div>
+          ) : hasRegistrationFee ? (
+            <div className="mt-2 flex flex-col gap-1.5">
+              <p className="text-xs text-ink-muted">
+                Registration invoiced — with Finance to collect. Advances to Admissions review automatically once paid.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setWaiveOpen(true); setWaiveErr(null); }}
+                className="self-start text-xs font-medium text-brand-gold hover:underline"
+              >
+                Actually, no payment needed →
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => start(async () => { await requireRegistrationPayment(app.id); router.refresh(); })}
+                className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
+              >
+                <Wallet className="h-3.5 w-3.5" aria-hidden />
+                Require payment → Finance
+              </button>
+              <button
+                type="button"
+                onClick={() => { setWaiveOpen(true); setWaiveErr(null); }}
+                className="rounded-md border border-border-warm bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
+              >
+                No payment needed
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {isOwner ? (
+      {showReview ? null : isOwner ? (
         <div className="mt-4 flex flex-col gap-2">
           {showFlagReady && (
             <button
