@@ -26,10 +26,12 @@ export function DocumentUploader({
   applicationId,
   requirements,
   docs,
+  readOnly = false,
 }: {
   applicationId: string;
   requirements: DocRequirement[];
   docs: ApplicationDoc[];
+  readOnly?: boolean; // viewers (e.g. non-visa teams) see docs without edit controls
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -112,46 +114,61 @@ export function DocumentUploader({
               >
                 <Download className="h-3.5 w-3.5" aria-hidden />
               </a>
-              <select
-                value={d.review_status}
-                disabled={pending}
-                onChange={(e) => start(async () => { await setAppDocReview(d.id, e.target.value); router.refresh(); })}
-                className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${REVIEW_TONE[d.review_status] ?? ""}`}
-              >
-                {REVIEW.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <button
-                onClick={() => start(async () => { await deleteApplicationDoc(d.id); router.refresh(); })}
-                aria-label="Delete"
-                className="rounded p-1 text-ink-muted hover:text-brand-red"
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-              </button>
+              {readOnly ? (
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${REVIEW_TONE[d.review_status] ?? ""}`}>
+                  {d.review_status}
+                </span>
+              ) : (
+                <>
+                  <select
+                    value={d.review_status}
+                    disabled={pending}
+                    onChange={(e) => start(async () => { await setAppDocReview(d.id, e.target.value); router.refresh(); })}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${REVIEW_TONE[d.review_status] ?? ""}`}
+                  >
+                    {REVIEW.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <button
+                    onClick={() => start(async () => { await deleteApplicationDoc(d.id); router.refresh(); })}
+                    aria-label="Delete"
+                    className="rounded p-1 text-ink-muted hover:text-brand-red"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </>
+              )}
             </span>
           ))}
-          <button
-            type="button"
-            onClick={() => inputs.current[kind]?.click()}
-            disabled={uploading === kind}
-            className="inline-flex items-center gap-1 rounded-md border border-border-warm bg-paper px-2 py-1 text-xs font-medium text-ink hover:bg-cream-50 disabled:opacity-50"
-          >
-            {uploading === kind ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Upload className="h-3.5 w-3.5" aria-hidden />
-            )}
-            {has ? "Add" : "Upload"}
-          </button>
-          <input
-            ref={(el) => { inputs.current[kind] = el; }}
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) upload(kind, f);
-              e.target.value = "";
-            }}
-          />
+          {readOnly && items.length === 0 && (
+            <span className="text-[11px] text-ink-muted">not provided</span>
+          )}
+          {!readOnly && (
+            <>
+              <button
+                type="button"
+                onClick={() => inputs.current[kind]?.click()}
+                disabled={uploading === kind}
+                className="inline-flex items-center gap-1 rounded-md border border-border-warm bg-paper px-2 py-1 text-xs font-medium text-ink hover:bg-cream-50 disabled:opacity-50"
+              >
+                {uploading === kind ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" aria-hidden />
+                )}
+                {has ? "Add" : "Upload"}
+              </button>
+              <input
+                ref={(el) => { inputs.current[kind] = el; }}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) upload(kind, f);
+                  e.target.value = "";
+                }}
+              />
+            </>
+          )}
         </div>
         {note && <p className="w-full pl-6 text-[11px] text-ink-muted">{note}</p>}
       </li>

@@ -27,6 +27,17 @@ import { WorkLog } from "@/components/admin/WorkLog";
 const FIELD =
   "w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
 
+/** Read-only key/value row for the non-visa viewer's detail list. */
+function RoRow({ k, v }: { k: string; v?: string | null }) {
+  if (!v) return null;
+  return (
+    <div className="flex justify-between gap-4 py-1.5 text-sm">
+      <span className="text-ink-muted">{k}</span>
+      <span className="text-end font-medium text-ink">{v}</span>
+    </div>
+  );
+}
+
 export function VisaCaseDrawer({
   vc,
   contact,
@@ -114,8 +125,25 @@ export function VisaCaseDrawer({
             </ul>
           </div>
 
-          {/* Editable fields — disabled (read-only) for non-visa viewers */}
-          <fieldset disabled={!canEdit} className="contents">
+          {/* Non-visa viewers get a clean read-only detail list, not disabled inputs. */}
+          {!canEdit ? (
+            <div>
+              <SectionLabel>Details</SectionLabel>
+              <div className="flex flex-col divide-y divide-border-warm/50">
+                <RoRow k="Stage" v={VISA_STAGES.find((s) => s.id === vc.stage)?.label ?? vc.stage} />
+                <RoRow k="EMGS reference" v={vc.emgs_ref} />
+                <RoRow k="Evaluation" v={vc.eval_status} />
+                <RoRow k="Medical" v={vc.medical_status} />
+                <RoRow k="Medical booked" v={vc.medical_booked_date} />
+                <RoRow k="Medical location" v={vc.medical_location} />
+                <RoRow k="VAL status" v={vc.val_status} />
+                <RoRow k="Single-entry visa" v={vc.single_entry_visa} />
+                <RoRow k="Arrival date" v={vc.arrival_date} />
+                <RoRow k="Pass expiry" v={vc.student_pass_expiry} />
+              </div>
+            </div>
+          ) : (
+          <fieldset className="contents">
           <div className="grid grid-cols-2 gap-3">
             <label className="col-span-2 text-xs font-medium text-ink-soft">
               Stage
@@ -166,35 +194,36 @@ export function VisaCaseDrawer({
               <input type="date" value={form.student_pass_expiry} onChange={(e) => set("student_pass_expiry", e.target.value)} className={`mt-1 ${FIELD}`} />
             </label>
           </div>
-          {canEdit && (
-            <button
-              onClick={save}
-              disabled={pending}
-              className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
-            >
-              {pending ? "Saving…" : "Save changes"}
-            </button>
-          )}
+          <button
+            onClick={save}
+            disabled={pending}
+            className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+          >
+            {pending ? "Saving…" : "Save changes"}
+          </button>
           </fieldset>
+          )}
 
-          {/* Documents — review the pack, verify/reject, request extras */}
+          {/* Documents — visa/admin review + upload; viewers see the pack read-only */}
           <div>
             <SectionLabel>Documents</SectionLabel>
             <DocumentUploader
               applicationId={vc.application_id}
               requirements={requirements}
               docs={documents}
+              readOnly={!canEdit}
             />
-            <DocRequestControl applicationId={vc.application_id} requests={docRequests} />
+            {canEdit && <DocRequestControl applicationId={vc.application_id} requests={docRequests} />}
           </div>
 
           {/* Work log — EMGS visits, university replies, queries */}
           <div>
             <SectionLabel>Work log</SectionLabel>
-            <WorkLog applicationId={vc.application_id} events={events} />
+            <WorkLog applicationId={vc.application_id} events={events} readOnly={!canEdit} />
           </div>
 
-          {/* Message the student */}
+          {/* Message the student — visa team only */}
+          {canEdit && (
           <div>
             <SectionLabel>Message</SectionLabel>
             <MessageComposer
@@ -208,6 +237,7 @@ export function VisaCaseDrawer({
               context="visa"
             />
           </div>
+          )}
         </div>
       </aside>
     </div>

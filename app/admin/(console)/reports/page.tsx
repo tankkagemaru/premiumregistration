@@ -59,6 +59,15 @@ export default async function ReportsPage() {
     return flag === "soon" || flag === "expired";
   });
 
+  /* Students for the printable-report picker (dedupe applications by student). */
+  const students = [
+    ...new Map(
+      apps.filter((a) => a.student_id).map((a) => [a.student_id as string, a.student_name]),
+    ).entries(),
+  ]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -69,6 +78,44 @@ export default async function ReportsPage() {
           Performance &amp; alerts
         </h1>
       </div>
+
+      {/* Student application reports — printable */}
+      <section>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+          Student application reports
+        </p>
+        <p className="mb-3 text-sm text-ink-soft">
+          Open a printable report — <span className="font-medium text-ink">Summary</span> (key
+          details only) or <span className="font-medium text-ink">Detailed</span> (with the full
+          activity timeline &amp; work log). Use the browser print dialog to save as PDF.
+        </p>
+        <div className="overflow-hidden rounded-card border border-border-warm">
+          {students.length === 0 && (
+            <p className="px-4 py-6 text-center text-sm text-ink-muted">No students yet.</p>
+          )}
+          {students.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-3 border-b border-border-warm/60 bg-paper px-4 py-2.5 last:border-0">
+              <span className="min-w-0 truncate text-sm font-medium text-ink">{s.name}</span>
+              <span className="flex shrink-0 gap-2">
+                <Link
+                  href={`/admin/students/${s.id}/report?mode=summary`}
+                  target="_blank"
+                  className="rounded-md border border-border-warm bg-paper px-3 py-1 text-xs font-medium text-ink hover:bg-cream-50"
+                >
+                  Summary
+                </Link>
+                <Link
+                  href={`/admin/students/${s.id}/report?mode=detailed`}
+                  target="_blank"
+                  className="rounded-md bg-inkbtn px-3 py-1 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
+                >
+                  Detailed
+                </Link>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Agent performance */}
       <section>

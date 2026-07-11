@@ -24,6 +24,7 @@ const TABS: { href: string; key: keyof (typeof CONSOLE_STR)["en"]; roles: string
   { href: "/admin/intakes", key: "nav_intakes", roles: ["admin", "academic", "marketing", "admissions", "counsellor", "staff"] },
   { href: "/admin/leads", key: "nav_leads", roles: ["admin", "marketing", "admissions", "counsellor", "staff"] },
   { href: "/admin/applications", key: "nav_applications", roles: ["admin", "admissions", "visa", "academic", "counsellor", "staff"] },
+  { href: "/admin/programmes", key: "nav_programmes", roles: ["admin", "boss", "admissions", "marketing", "counsellor", "visa", "academic", "finance", "staff"] },
   { href: "/admin/requests", key: "nav_requests", roles: ["admin", "marketing", "admissions", "visa", "finance", "academic", "counsellor", "staff"] },
   { href: "/admin/follow-ups", key: "nav_followups", roles: ["admin", "marketing", "admissions", "counsellor", "staff"] },
   { href: "/admin/academic", key: "nav_academic", roles: ["admin", "academic"] },

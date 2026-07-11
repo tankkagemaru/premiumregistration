@@ -4,7 +4,7 @@ import { UniversityManager } from "@/components/admin/UniversityManager";
 
 export default async function ProgrammesPage() {
   const profile = await requireRole([
-    "admin", "admissions", "marketing", "counsellor", "visa", "academic", "finance", "staff",
+    "admin", "boss", "admissions", "marketing", "counsellor", "visa", "academic", "finance", "staff",
   ]);
   const universities = await listUniversities();
   const canEdit = ["admin", "admissions"].includes(profile.role);

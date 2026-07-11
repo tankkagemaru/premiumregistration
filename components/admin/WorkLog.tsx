@@ -37,9 +37,11 @@ const ACTIVITIES = [
 export function WorkLog({
   applicationId,
   events,
+  readOnly = false,
 }: {
   applicationId: string;
   events?: ApplicationEvent[];
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -112,7 +114,9 @@ export function WorkLog({
         </div>
       )}
 
-      {!open ? (
+      {readOnly ? (
+        workEvents.length === 0 && <p className="text-xs text-ink-muted">No work logged yet.</p>
+      ) : !open ? (
         <button
           onClick={() => setOpen(true)}
           className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border-warm bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
