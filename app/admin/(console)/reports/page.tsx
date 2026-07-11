@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireRole } from "@/lib/auth";
 import { listApplications } from "@/lib/admin/applications";
 import {
   listFees,
@@ -12,6 +13,7 @@ import {
 import { listVisaCases, expiryFlag } from "@/lib/admin/visa";
 
 export default async function ReportsPage() {
+  await requireRole(["admin", "finance"]);
   const [apps, fees, payments, commissions, visaCases] = await Promise.all([
     listApplications(),
     listFees(),

@@ -19,7 +19,7 @@ export default async function AcademicPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const profile = await requireRole(["admin", "academic", "admissions"]);
+  const profile = await requireRole(["admin", "academic"]);
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 

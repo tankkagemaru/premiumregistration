@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProfile } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { listRequests, TEAM_LABEL, type ActionRequest } from "@/lib/admin/requests";
 import { ResolveButton } from "@/components/admin/RequestControls";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
@@ -67,7 +67,7 @@ export default async function RequestsPage({
 }) {
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-  const profile = await getProfile();
+  const profile = await requireRole(["admin", "marketing", "admissions", "visa", "finance", "academic", "counsellor", "staff"]);
   const role = profile?.role ?? "staff";
   const isAdmin = role === "admin";
   const all = await listRequests();

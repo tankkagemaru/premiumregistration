@@ -1,5 +1,5 @@
 import { listLeads, getLead, listStaff } from "@/lib/admin/leads";
-import { getProfile } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { getStalenessDays } from "@/lib/admin/settings";
 import { LeadsView } from "@/components/admin/LeadsView";
 
@@ -22,7 +22,7 @@ export default async function LeadsPage({
   const leads = await listLeads({ track: filters.track, q: filters.q });
   const selected = leadParam ? await getLead(leadParam) : null;
   const staff = await listStaff();
-  const profile = await getProfile();
+  const profile = await requireRole(["admin", "marketing", "admissions", "counsellor", "staff"]);
   const stalenessDays = await getStalenessDays();
 
   return (
