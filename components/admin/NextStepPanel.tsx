@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Circle, ArrowRight, ChevronDown, Flag } from "lucide-react";
+import { Check, Circle, ArrowRight, ChevronDown, Flag, BadgePercent } from "lucide-react";
 import {
   stagesFor,
   stageLabel,
@@ -15,6 +15,7 @@ import {
   advanceApplicationStage,
   flagReadyForVisa,
 } from "@/app/admin/application-actions";
+import { waiveRegistration } from "@/app/admin/finance-actions";
 
 const team = (r?: string) => (r ? TEAM_LABEL[r] ?? r : "—");
 
@@ -38,6 +39,9 @@ export function NextStepPanel({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [override, setOverride] = useState(false);
+  const [waiveOpen, setWaiveOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [waiveErr, setWaiveErr] = useState<string | null>(null);
 
   const list = stagesFor(Boolean(app.is_international), app.track);
   const idx = list.findIndex((s) => s.id === app.stage);
@@ -47,6 +51,12 @@ export function NextStepPanel({
   const gate = stageGate(app.stage, signals);
 
   const blocked = gateMode === "hard" && !gate.met && role !== "admin";
+  // Admissions/finance can waive registration (promo / scholarship) with a reason —
+  // it clears the registration gate without a payment.
+  const showWaive =
+    app.stage === "registration" &&
+    !signals.registrationPaid &&
+    ["admin", "admissions", "finance"].includes(role);
   const showFlagReady =
     app.stage === "offer" &&
     app.is_international &&
@@ -86,6 +96,55 @@ export function NextStepPanel({
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Waive registration (promo / scholarship) — clears the gate with a reason */}
+      {showWaive && (
+        <div className="mt-3">
+          {!waiveOpen ? (
+            <button
+              type="button"
+              onClick={() => { setWaiveOpen(true); setWaiveErr(null); }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-gold hover:underline"
+            >
+              <BadgePercent className="h-3.5 w-3.5" aria-hidden />
+              Waive registration (promo)
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-md border border-brand-gold/30 bg-brand-gold/5 p-2.5">
+              <input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Reason (e.g. agent promo, scholarship) — required"
+                className="rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red"
+              />
+              {waiveErr && <p className="text-xs text-brand-red">{waiveErr}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      const res = await waiveRegistration(app.id, reason);
+                      if (!res.ok) { setWaiveErr(res.error ?? "Failed."); return; }
+                      setWaiveOpen(false); setReason(""); router.refresh();
+                    })
+                  }
+                  className="rounded-md bg-brand-gold px-3 py-1.5 text-xs font-medium text-oncolor hover:opacity-90 disabled:opacity-50"
+                >
+                  {pending ? "Waiving…" : "Waive registration"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setWaiveOpen(false); setWaiveErr(null); }}
+                  className="rounded-md border border-border-warm px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {isOwner ? (

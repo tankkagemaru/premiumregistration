@@ -94,6 +94,86 @@ export async function setFeeAmount(feeId: string, amount: number) {
 }
 
 /**
+ * Waive a fee with a required reason (promo, scholarship, exemption…). Admissions
+ * as well as finance can waive — so it's a service-role write behind an explicit
+ * role gate (fee writes are finance-only under RLS). The reason is stored on the
+ * fee and logged to the student timeline.
+ */
+export async function waiveFee(
+  feeId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  if (!reason.trim()) return { ok: false, error: "Enter a reason for the waiver." };
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions", "finance"].includes(profile.role))
+    return { ok: false, error: "forbidden" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: fee } = await admin
+    .from("fees")
+    .select("application_id, type")
+    .eq("id", feeId)
+    .maybeSingle();
+  await admin.from("fees").update({ status: "waived", waive_reason: reason.trim() }).eq("id", feeId);
+  if (fee?.application_id) {
+    await admin.from("application_events").insert({
+      application_id: fee.application_id,
+      actor_id: profile.id,
+      type: "note",
+      body: `Fee waived (${fee.type ?? "fee"}) — ${reason.trim()}`,
+    });
+  }
+  await logAudit({ action: "fee_waived", target_type: "fee", target_id: feeId, detail: reason.trim() });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/**
+ * Waive the registration requirement for an application (promo / scholarship) —
+ * upserts a waived registration fee carrying the reason. Also the gate escape for
+ * registration → admissions when the student isn't charged registration.
+ */
+export async function waiveRegistration(
+  applicationId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  if (!reason.trim()) return { ok: false, error: "Enter a reason for the waiver." };
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions", "finance"].includes(profile.role))
+    return { ok: false, error: "forbidden" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const [{ data: existing }, { data: app }] = await Promise.all([
+    admin.from("fees").select("id").eq("application_id", applicationId).eq("type", "registration").limit(1).maybeSingle(),
+    admin.from("applications").select("student_name").eq("id", applicationId).maybeSingle(),
+  ]);
+  if (existing?.id) {
+    await admin.from("fees").update({ status: "waived", waive_reason: reason.trim() }).eq("id", existing.id);
+  } else {
+    await admin.from("fees").insert({
+      application_id: applicationId,
+      student_name: app?.student_name ?? "",
+      type: "registration",
+      amount: 0,
+      currency: "MYR",
+      status: "waived",
+      waive_reason: reason.trim(),
+    });
+  }
+  await admin.from("application_events").insert({
+    application_id: applicationId,
+    actor_id: profile.id,
+    type: "note",
+    body: `Registration fee waived — ${reason.trim()}`,
+  });
+  await logAudit({ action: "registration_waived", target_type: "application", target_id: applicationId, detail: reason.trim() });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/**
  * Set a commission's payable/receivable amount, optionally recording the base
  * fee it was computed from (base × rate). Lets finance price a single deal up or
  * down for promotions without touching the underlying rule.
