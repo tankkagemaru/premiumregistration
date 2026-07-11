@@ -14,6 +14,7 @@ import { leadStaleness, type StalenessDays } from "@/lib/config/staleness";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import { LeadDrawer } from "@/components/admin/LeadDrawer";
+import type { BillableItem } from "@/lib/admin/billables-shared";
 import { AddRecordDialog, type AddMode } from "@/components/admin/AddRecordDialog";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -56,6 +57,7 @@ export function LeadsView({
   selected,
   filters,
   staff,
+  billables = [],
   officerName,
   stalenessDays,
 }: {
@@ -63,6 +65,7 @@ export function LeadsView({
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
   filters: { status?: string; track?: string; q?: string };
   staff: Staff[];
+  billables?: BillableItem[];
   officerName?: string;
   stalenessDays?: StalenessDays;
 }) {
@@ -262,6 +265,7 @@ export function LeadsView({
         <LeadDrawer
           data={selected}
           staff={staff}
+          billables={billables}
           officerName={officerName}
           stalenessDays={stalenessDays}
           onClose={() => setParam("lead", undefined)}

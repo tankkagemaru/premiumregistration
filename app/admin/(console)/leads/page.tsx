@@ -1,6 +1,7 @@
 import { listLeads, getLead, listStaff } from "@/lib/admin/leads";
 import { requireRole } from "@/lib/auth";
 import { getStalenessDays } from "@/lib/admin/settings";
+import { listBillableItems } from "@/lib/admin/billables";
 import { LeadsView } from "@/components/admin/LeadsView";
 
 export default async function LeadsPage({
@@ -24,6 +25,7 @@ export default async function LeadsPage({
   const staff = await listStaff();
   const profile = await requireRole(["admin", "marketing", "admissions", "counsellor", "staff"]);
   const stalenessDays = await getStalenessDays();
+  const billables = selected ? await listBillableItems(true) : [];
 
   return (
     <LeadsView
@@ -31,6 +33,7 @@ export default async function LeadsPage({
       selected={selected}
       filters={filters}
       staff={staff}
+      billables={billables}
       officerName={profile?.full_name}
       stalenessDays={stalenessDays}
     />
