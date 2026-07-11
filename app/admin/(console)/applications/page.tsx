@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProfile } from "@/lib/auth";
+import { getProfile, requireRole } from "@/lib/auth";
 import { listApplications, getApplication, STAGE_LABEL } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listAppDocRequests } from "@/lib/admin/doc-requests";
@@ -39,6 +39,7 @@ export default async function ApplicationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireRole(["admin", "admissions", "visa", "academic", "counsellor", "staff"]);
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 

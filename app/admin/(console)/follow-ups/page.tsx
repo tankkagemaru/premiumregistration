@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProfile } from "@/lib/auth";
+import { getProfile, requireRole } from "@/lib/auth";
 import { listLeads, listStaff } from "@/lib/admin/leads";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import type { Lead } from "@/lib/admin/leads-shared";
@@ -44,6 +44,7 @@ export default async function FollowUpsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireRole(["admin", "marketing", "admissions", "counsellor", "staff"]);
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const scope = one(sp.scope) ?? "mine";
