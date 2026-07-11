@@ -22,6 +22,11 @@ import {
 import { createApplicationFromLead } from "@/app/admin/application-actions";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { PlanEditor } from "@/components/admin/PlanEditor";
+import { LeadQuoteEditor } from "@/components/admin/LeadQuoteEditor";
+import type { BillableItem } from "@/lib/admin/billables-shared";
+import type { QuoteItem } from "@/app/admin/lead-quote-actions";
+import Link from "next/link";
+import { Check } from "lucide-react";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
@@ -133,12 +138,14 @@ function StaleBanner({
 export function LeadDrawer({
   data,
   staff,
+  billables = [],
   onClose,
   officerName,
   stalenessDays,
 }: {
   data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
   staff: Staff[];
+  billables?: BillableItem[];
   onClose: () => void;
   officerName?: string;
   stalenessDays?: StalenessDays;
@@ -147,6 +154,10 @@ export function LeadDrawer({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [note, setNote] = useState("");
+  const [confirming, setConfirming] = useState(false);
+
+  const quote = ((lead.details?.quote ?? []) as QuoteItem[]);
+  const converted = lead.status === "enrolled";
   const [action, setAction] = useState(lead.next_action ?? "");
   const [due, setDue] = useState(lead.next_action_due ?? "");
 
@@ -232,19 +243,22 @@ export function LeadDrawer({
           </div>
 
           {/* Convert to application */}
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              start(async () => {
-                await createApplicationFromLead(lead.id);
-                router.push("/admin/applications");
-              })
-            }
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-inkbtn px-4 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft disabled:opacity-50"
-          >
-            Create application →
-          </button>
+          {converted ? (
+            <Link
+              href="/admin/applications"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-status-present/40 bg-status-present-bg px-4 py-2.5 text-sm font-medium text-status-present"
+            >
+              <Check className="h-4 w-4" aria-hidden /> Converted — view application
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-inkbtn px-4 py-2.5 text-sm font-medium text-oncolor transition-colors hover:bg-inkbtn-soft"
+            >
+              Create application →
+            </button>
+          )}
 
           {/* Contact */}
           <div>
@@ -288,6 +302,14 @@ export function LeadDrawer({
               }
             />
           </div>
+
+          {/* Quote — what marketing is selling (scaffolded as fees on conversion) */}
+          {!converted && (
+            <div>
+              <SectionLabel>Quote — what we&apos;re selling</SectionLabel>
+              <LeadQuoteEditor leadId={lead.id} initial={quote} billables={billables} />
+            </div>
+          )}
 
           {/* Track details */}
           {lead.tracks.includes("english") && (
@@ -491,6 +513,57 @@ export function LeadDrawer({
           </div>
         </div>
       </aside>
+
+      {/* Review before handing off to Admissions */}
+      {confirming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-inkbtn/50" onClick={() => setConfirming(false)} aria-hidden />
+          <div role="dialog" aria-label="Create application" className="relative z-10 flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-card border border-border-warm bg-paper shadow-xl">
+            <div className="border-b border-border-warm px-5 py-4">
+              <p className="font-serif text-lg font-medium text-ink">Create application?</p>
+              <p className="mt-1 text-xs text-ink-soft">
+                Creates {lead.full_name}&apos;s student record + application and hands it to
+                Admissions. Review first.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 overflow-y-auto px-5 py-4">
+              <Row k="Student" v={lead.full_name} />
+              <Row k="Email" v={lead.email} />
+              <Row k="Tracks" v={lead.tracks.join(", ")} />
+              {quote.length > 0 && (
+                <div className="mt-1">
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
+                    Quote → fees created
+                  </p>
+                  {quote.map((q, i) => (
+                    <div key={i} className="flex justify-between gap-3 py-0.5 text-xs">
+                      <span className="min-w-0 truncate text-ink-soft">{q.name}</span>
+                      <span className="shrink-0 font-mono text-ink">
+                        {q.currency} {q.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {lead.plan?.steps?.length ? (
+                <Row k="Study plan" v={`${lead.plan.steps.length} step(s) — carried over`} />
+              ) : null}
+            </div>
+            <div className="flex gap-2 border-t border-border-warm px-5 py-3">
+              <button
+                disabled={pending}
+                onClick={() => start(async () => { await createApplicationFromLead(lead.id); router.push("/admin/applications"); })}
+                className="rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+              >
+                {pending ? "Creating…" : "Confirm & send to Admissions"}
+              </button>
+              <button onClick={() => setConfirming(false)} className="rounded-md border border-border-warm px-4 py-2 text-sm text-ink-muted hover:text-ink">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
