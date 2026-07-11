@@ -6,20 +6,21 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import {
   STAGE_LABEL,
-  stagesFor,
   stagePercent,
+  planStatus,
   type Application,
   type ApplicationEvent,
   type ApplicationDoc,
   type AppContact,
   type AppDocRequest,
 } from "@/lib/admin/applications-shared";
+import type { GateSignals, GateMode } from "@/lib/admin/gates-shared";
 import type { DocRequirement } from "@/lib/config/documents";
 import {
-  advanceApplicationStage,
   addApplicationNote,
   logApplicationMessage,
 } from "@/app/admin/application-actions";
+import { NextStepPanel } from "@/components/admin/NextStepPanel";
 import { DocRequestControl } from "@/components/admin/DocRequestControl";
 import { WorkLog } from "@/components/admin/WorkLog";
 import { AddFeeControl } from "@/components/admin/AddFeeControl";
@@ -62,6 +63,7 @@ export function ApplicationDrawer({
   docRequests = [],
   billables = [],
   role = "staff",
+  gateMode = "hard",
   officerName,
 }: {
   data: {
@@ -77,6 +79,7 @@ export function ApplicationDrawer({
   docRequests?: AppDocRequest[];
   billables?: BillableItem[];
   role?: string;
+  gateMode?: GateMode;
   officerName?: string;
 }) {
   const { app, events, documents, contact } = data;
@@ -85,11 +88,22 @@ export function ApplicationDrawer({
   const [note, setNote] = useState("");
 
   const close = () => router.push("/admin/applications");
-  const applicable = stagesFor(app.is_international, app.track);
 
   // Required documents come pre-resolved from the editable rules (server-side).
   const have = new Set(documents.map((d) => d.kind));
   const missing = docRequirements.filter((r) => !r.optional && !have.has(r.kind));
+
+  // Signals for the stage gate / next-step panel (see gates-shared).
+  const cleared = (s?: string) => s === "paid" || s === "waived";
+  const signals: GateSignals = {
+    isInternational: app.is_international,
+    registrationPaid: fees.some((f) => f.type === "registration" && cleared(f.status)),
+    planFinalized: planStatus(app.plan).state === "finalized",
+    requiredDocsPresent: missing.length === 0,
+    allFeesCleared: fees.every((f) => cleared(f.status)),
+    readyForVisa: Boolean(app.ready_for_visa),
+    passIssued: visa?.stage === "pass_active",
+  };
 
   const messageVars: Record<string, string> = {
     full_name: app.student_name,
@@ -130,8 +144,7 @@ export function ApplicationDrawer({
         </div>
 
         <div className="flex flex-col gap-6 px-6 py-5">
-          {/* Stage control */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <span
               className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${
                 app.is_international
@@ -141,34 +154,17 @@ export function ApplicationDrawer({
             >
               {app.is_international ? "International" : "Local"}
             </span>
-            <select
-              value={app.stage}
-              disabled={pending}
-              onChange={(e) =>
-                start(async () => {
-                  await advanceApplicationStage(app.id, e.target.value);
-                  router.refresh();
-                })
-              }
-              className="rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs text-ink outline-none"
-            >
-              {applicable.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Progress ring */}
-          <div className="flex justify-center py-2">
+            <div className="flex-1" />
             <ProgressRing
               percent={stagePercent(app.stage, app.is_international, app.track)}
               flag={app.flag ?? "progress"}
-              size={120}
-              sublabel={STAGE_LABEL[app.stage]}
+              size={56}
+              sublabel=""
             />
           </div>
+
+          {/* Guided next step — replaces the free stage dropdown */}
+          <NextStepPanel app={app} role={role} gateMode={gateMode} signals={signals} />
 
           {/* Application */}
           <div>
@@ -241,8 +237,8 @@ export function ApplicationDrawer({
             <WorkLog applicationId={app.id} events={events} />
           </div>
 
-          {/* Offer letter (English) */}
-          {app.track === "english" && (
+          {/* Offer letter (English) — only Admissions generates it. */}
+          {app.track === "english" && ["admin", "admissions"].includes(role) && (
             <a
               href={`/api/offer?app=${app.id}`}
               target="_blank"
@@ -303,7 +299,7 @@ export function ApplicationDrawer({
               </a>
             </div>
           ) : (
-            app.is_international && (
+            app.is_international && ["admin", "visa"].includes(role) && (
               <div>
                 <SectionLabel>Visa / EMGS</SectionLabel>
                 <p className="mb-2 text-sm text-ink-muted">

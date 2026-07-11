@@ -7,6 +7,7 @@ import { listBillableItems } from "@/lib/admin/billables";
 import { listFeesForApp } from "@/lib/admin/finance";
 import { getVisaCaseForApp, listVisaCases, VISA_STAGE_LABEL } from "@/lib/admin/visa";
 import { listRequests } from "@/lib/admin/requests";
+import { getGateMode } from "@/lib/admin/settings";
 import { ApplicationsBoard } from "@/components/admin/ApplicationsBoard";
 import { ApplicationDrawer } from "@/components/admin/ApplicationDrawer";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
@@ -81,15 +82,16 @@ export default async function ApplicationsPage({
   // Detail drawer.
   const appParam = one(sp.app);
   const selected = appParam ? await getApplication(appParam) : null;
-  const [fees, visa, requests, profile, billables] = selected
+  const [fees, visa, requests, profile, billables, gateMode] = selected
     ? await Promise.all([
         listFeesForApp(appParam!),
         getVisaCaseForApp(appParam!),
         listRequests({ applicationId: appParam! }),
         getProfile(),
         listBillableItems(),
+        getGateMode(),
       ])
-    : [[], null, [], null, []];
+    : [[], null, [], null, [], "hard" as const];
   const [ruleReqs, docReqs] = selected
     ? await Promise.all([
         getDocRequirements({
@@ -222,6 +224,7 @@ export default async function ApplicationsPage({
           docRequests={docReqs}
           billables={billables}
           role={profile?.role ?? "staff"}
+          gateMode={gateMode}
           officerName={profile?.full_name}
         />
       )}
