@@ -24,45 +24,58 @@ export function FeeAmountControl({
   id,
   amount,
   currency = "MYR",
+  currencies = ["MYR"],
+  myrEquivalent,
 }: {
   id: string;
   amount: number;
   currency?: string;
+  currencies?: string[];
+  myrEquivalent?: number; // amount converted to MYR (live FX), when currency ≠ MYR
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState(amount ? String(amount) : "");
+  const [ccy, setCcy] = useState(currency);
 
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="group inline-flex items-center gap-1.5 font-mono text-xs text-ink tabular hover:text-brand-red"
-        title="Set fee amount"
+        className="group inline-flex flex-col items-end gap-0.5 font-mono text-xs text-ink tabular hover:text-brand-red"
+        title="Set fee amount / currency"
       >
-        {formatMoney(amount, currency)}
-        <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" aria-hidden />
+        <span className="inline-flex items-center gap-1.5">
+          {formatMoney(amount, currency)}
+          <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" aria-hidden />
+        </span>
+        {currency !== "MYR" && myrEquivalent != null && (
+          <span className="text-[10px] text-ink-muted">≈ {formatMoney(Math.round(myrEquivalent))}</span>
+        )}
       </button>
     );
   }
 
   return (
     <div className="flex items-center justify-end gap-1.5">
+      <select value={ccy} onChange={(e) => setCcy(e.target.value)} className={SELECT_CLS} aria-label="Currency">
+        {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
       <input
         type="number"
         value={val}
         autoFocus
         onChange={(e) => setVal(e.target.value)}
         placeholder="0"
-        aria-label="Fee amount (MYR)"
+        aria-label="Fee amount"
         className={NUM_CLS}
       />
       <button
         disabled={pending}
         onClick={() =>
           start(async () => {
-            await setFeeAmount(id, Number(val));
+            await setFeeAmount(id, Number(val), ccy);
             setOpen(false);
             router.refresh();
           })
@@ -72,7 +85,7 @@ export function FeeAmountControl({
         {pending ? "…" : "Save"}
       </button>
       <button
-        onClick={() => { setVal(amount ? String(amount) : ""); setOpen(false); }}
+        onClick={() => { setVal(amount ? String(amount) : ""); setCcy(currency); setOpen(false); }}
         className="rounded-md border border-border-warm px-2 py-1 text-[11px] text-ink-muted hover:text-ink"
       >
         Cancel

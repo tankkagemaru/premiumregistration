@@ -77,7 +77,7 @@ export async function setFeeStatus(feeId: string, status: string) {
  * stayed stuck at 0 / unpaid). Re-derives the paid/unpaid status against what's
  * already been received so raising or lowering the amount stays consistent.
  */
-export async function setFeeAmount(feeId: string, amount: number) {
+export async function setFeeAmount(feeId: string, amount: number, currency?: string) {
   if (!authConfigured || !Number.isFinite(amount) || amount < 0) return;
   const ctx = await financeClient();
   if (!ctx) return;
@@ -88,8 +88,10 @@ export async function setFeeAmount(feeId: string, amount: number) {
   const received = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
   const status =
     amount > 0 && received >= amount ? "paid" : received > 0 ? "partial" : "unpaid";
-  await ctx.admin.from("fees").update({ amount, status }).eq("id", feeId);
-  await logAudit({ action: "fee_amount_set", target_type: "fee", target_id: feeId, detail: `MYR ${amount}` });
+  const patch: { amount: number; status: string; currency?: string } = { amount, status };
+  if (currency) patch.currency = currency;
+  await ctx.admin.from("fees").update(patch).eq("id", feeId);
+  await logAudit({ action: "fee_amount_set", target_type: "fee", target_id: feeId, detail: `${currency ?? "MYR"} ${amount}` });
   revalidatePath("/admin", "layout");
 }
 

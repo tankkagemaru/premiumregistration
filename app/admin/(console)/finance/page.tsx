@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/finance";
 import { listCommissionRules } from "@/lib/admin/commission-rules";
 import { listBillableItems } from "@/lib/admin/billables";
+import { getFxRates, toMYR, CURRENCIES } from "@/lib/admin/fx";
 import { listUsers } from "@/lib/admin/users";
 import { SearchBox } from "@/components/admin/SearchBox";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
@@ -52,7 +53,7 @@ export default async function FinancePage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
-  const [allFees, payments, allCommissions, rules, people, billables] =
+  const [allFees, payments, allCommissions, rules, people, billables, fx] =
     await Promise.all([
       listFees(),
       listPayments(),
@@ -60,6 +61,7 @@ export default async function FinancePage({
       listCommissionRules(),
       listUsers(),
       listBillableItems(true),
+      getFxRates(),
     ]);
   const fees = q
     ? allFees.filter((f) => f.student_name.toLowerCase().includes(q))
@@ -70,16 +72,18 @@ export default async function FinancePage({
       )
     : allCommissions;
 
+  // Totals are reported in MYR — each fee/commission is converted from its own
+  // currency at the live rate (some universities bill in USD, etc.).
   const collected = payments.reduce((s, p) => s + p.amount, 0);
   const outstanding = fees
     .filter((f) => f.status === "unpaid" || f.status === "partial")
-    .reduce((s, f) => s + Math.max(0, f.amount - paidTowards(f, payments)), 0);
+    .reduce((s, f) => s + toMYR(Math.max(0, f.amount - paidTowards(f, payments)), f.currency, fx), 0);
   const payable = commissions
     .filter((c) => c.direction === "payable" && c.status !== "paid")
-    .reduce((s, c) => s + (c.amount ?? 0), 0);
+    .reduce((s, c) => s + toMYR(c.amount ?? 0, c.currency, fx), 0);
   const receivable = commissions
     .filter((c) => c.direction === "receivable" && c.status !== "paid")
-    .reduce((s, c) => s + (c.amount ?? 0), 0);
+    .reduce((s, c) => s + toMYR(c.amount ?? 0, c.currency, fx), 0);
 
   // Stage tabs.
   const stage = (Array.isArray(sp.stage) ? sp.stage[0] : sp.stage) ?? "outstanding";
@@ -117,6 +121,10 @@ export default async function FinancePage({
         <Stat label="Commission payable" value={formatMoney(payable)} />
         <Stat label="Commission receivable" value={formatMoney(receivable)} />
       </div>
+      <p className="-mt-4 text-[11px] text-ink-muted">
+        Totals in MYR{" "}
+        {fx.live ? "· converted at live rates" : "· FX unavailable, showing raw amounts"}.
+      </p>
 
       <StageTabs tabs={tabs} active={stage} />
 
@@ -150,7 +158,13 @@ export default async function FinancePage({
                     {f.label ? ` · ${f.label}` : ""}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <FeeAmountControl id={f.id} amount={f.amount} currency={f.currency} />
+                    <FeeAmountControl
+                      id={f.id}
+                      amount={f.amount}
+                      currency={f.currency}
+                      currencies={CURRENCIES}
+                      myrEquivalent={toMYR(f.amount, f.currency, fx)}
+                    />
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs text-ink-soft tabular">
                     {formatMoney(paidTowards(f, payments), f.currency)}
