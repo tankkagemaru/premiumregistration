@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import {
+  Menu, X, LayoutDashboard, TrendingUp, CalendarDays, CalendarRange, UserPlus,
+  FileText, GraduationCap, Inbox, BellRing, BookOpen, Wallet, Tags, Plane,
+  RefreshCw, BarChart3, Ticket, Users, ScrollText, Boxes, Settings,
+  type LucideIcon,
+} from "lucide-react";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { Clock } from "@/components/ui/Clock";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -16,6 +21,29 @@ import { signOut } from "@/app/admin/actions";
 import type { Notification } from "@/lib/admin/notifications-shared";
 import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 import { cn } from "@/lib/utils";
+
+const NAV_ICON: Record<string, LucideIcon> = {
+  nav_dashboard: LayoutDashboard,
+  nav_exec: TrendingUp,
+  nav_calendar: CalendarDays,
+  nav_intakes: CalendarRange,
+  nav_leads: UserPlus,
+  nav_applications: FileText,
+  nav_programmes: GraduationCap,
+  nav_requests: Inbox,
+  nav_followups: BellRing,
+  nav_academic: BookOpen,
+  nav_finance: Wallet,
+  nav_pricing: Tags,
+  nav_visa: Plane,
+  nav_renewals: RefreshCw,
+  nav_reports: BarChart3,
+  nav_agent_codes: Ticket,
+  nav_users: Users,
+  nav_logs: ScrollText,
+  nav_architecture: Boxes,
+  nav_settings: Settings,
+};
 
 const TABS: { href: string; key: keyof (typeof CONSOLE_STR)["en"]; roles: string[] }[] = [
   { href: "/admin", key: "nav_dashboard", roles: ["*"] },
@@ -64,7 +92,8 @@ export function ConsoleShell({
 
   const links = (
     <nav className="flex flex-col gap-0.5">
-      {tabs.map((t) => {
+      {tabs.map((t, i) => {
+        const Icon = NAV_ICON[t.key];
         // Visa vs Renewals share the /admin/visa path — split by the ?kind query.
         const active =
           t.href === "/admin"
@@ -79,13 +108,15 @@ export function ConsoleShell({
             key={t.href}
             href={t.href}
             onClick={() => setOpen(false)}
+            style={{ animationDelay: `${i * 28}ms` }}
             className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "group rise-on flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active
                 ? "bg-brand-red/10 text-brand-red"
                 : "text-ink-soft hover:bg-cream-50 hover:text-ink",
             )}
           >
+            {Icon && <Icon className="nav-ico h-4 w-4 shrink-0" aria-hidden />}
             {L[t.key]}
           </Link>
         );
@@ -169,7 +200,7 @@ export function ConsoleShell({
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <main key={pathname} className="rise-on mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
           {children}
         </main>
       </div>

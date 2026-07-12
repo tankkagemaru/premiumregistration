@@ -132,3 +132,32 @@ h3 {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* -----------------------------------------------------------------------
+   Console motion — subtle entrances + a little life on interaction. Kept
+   gentle, and fully disabled under prefers-reduced-motion.
+----------------------------------------------------------------------- */
+.rise-on { animation: rise-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Clickable cards (dashboard tiles, list rows) lift a touch on hover. */
+a.rounded-card,
+button.rounded-card {
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+a.rounded-card:hover,
+button.rounded-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px -10px rgba(27, 22, 18, 0.22);
+}
+
+/* Nav icon nudges toward its label on hover. */
+.nav-ico { transition: transform 0.16s ease; }
+.group:hover .nav-ico { transform: translateX(2px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-on,
+  [class*="animate-"] { animation: none !important; }
+  a.rounded-card:hover,
+  button.rounded-card:hover { transform: none; box-shadow: none; }
+  .group:hover .nav-ico { transform: none; }
+}
