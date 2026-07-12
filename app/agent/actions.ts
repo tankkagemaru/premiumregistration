@@ -9,6 +9,48 @@ import { logAudit } from "@/lib/admin/audit";
 const BUCKET = "registration-docs";
 
 /**
+ * An agent asks the office for a meeting — e.g. to discuss a special programme
+ * or arrangement. Raises a request to Marketing + Admissions with the agent's
+ * name. Service-role (agents don't write action_requests under RLS).
+ */
+export async function requestAgentMeeting(input: {
+  topic: string;
+  preferred?: string;
+  note?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return { ok: false, error: "forbidden" };
+  if (!input.topic.trim()) return { ok: false, error: "no_topic" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const who = profile.full_name ?? profile.email ?? "partner";
+  const detail = [
+    `Agent ${who} requests a meeting${input.topic.trim() ? ` about ${input.topic.trim()}` : ""}.`,
+    input.preferred?.trim() ? `Preferred: ${input.preferred.trim()}.` : "",
+    input.note?.trim() ? `Note: ${input.note.trim()}` : "",
+  ].filter(Boolean).join(" ");
+
+  const rows = ["marketing", "admissions"].map((toRole) => ({
+    application_id: null,
+    subject: who,
+    from_role: "agent",
+    from_user: profile.id,
+    to_role: toRole,
+    type: "request",
+    title: `Meeting request — ${input.topic.trim() || "discussion"}`,
+    detail,
+  }));
+  const { error } = await admin.from("action_requests").insert(rows);
+  if (error) return { ok: false, error: "insert_failed" };
+
+  await logAudit({ action: "agent_meeting_requested", target_type: "request", detail: `${who} · ${input.topic.trim()}` });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/**
  * An agent asks the office for more detail on a university/programme. Raises a
  * request to BOTH Marketing and Admissions (whoever picks it up first answers),
  * carrying the agent's name so they know who's asking. Service-role: agents

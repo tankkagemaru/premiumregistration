@@ -3,6 +3,7 @@ import { formatMoney } from "@/lib/admin/finance-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { AgentLink } from "@/components/agent/AgentLink";
 import { AgentRegisterModal } from "@/components/agent/AgentRegisterModal";
+import { AgentMeetingButton } from "@/components/agent/AgentMeetingButton";
 import { AgentStudents } from "@/components/agent/AgentStudents";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -33,7 +34,10 @@ export default async function AgentHome() {
           </p>
           <h1 className="font-serif text-3xl font-medium text-ink">Your students</h1>
         </div>
-        <AgentRegisterModal agentCode={agent.code} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AgentMeetingButton />
+          <AgentRegisterModal agentCode={agent.code} />
+        </div>
       </div>
 
       {/* Stat row */}
