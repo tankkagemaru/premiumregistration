@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { Clock } from "@/components/ui/Clock";
@@ -31,6 +31,7 @@ const TABS: { href: string; key: keyof (typeof CONSOLE_STR)["en"]; roles: string
   { href: "/admin/finance", key: "nav_finance", roles: ["admin", "finance"] },
   { href: "/admin/pricing", key: "nav_pricing", roles: ["admin", "finance"] },
   { href: "/admin/visa", key: "nav_visa", roles: ["admin", "visa", "admissions", "marketing", "academic", "finance", "counsellor", "staff"] },
+  { href: "/admin/visa?kind=renewals", key: "nav_renewals", roles: ["admin", "visa", "admissions", "academic", "counsellor", "staff"] },
   { href: "/admin/reports", key: "nav_reports", roles: ["admin", "finance"] },
   { href: "/admin/agent-codes", key: "nav_agent_codes", roles: ["admin", "finance", "marketing"] },
   { href: "/admin/users", key: "nav_users", roles: ["admin"] },
@@ -55,6 +56,8 @@ export function ConsoleShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isRenewals = pathname.startsWith("/admin/visa") && searchParams.get("kind") === "renewals";
   const [open, setOpen] = useState(false);
   const L = CONSOLE_STR[lang];
   const tabs = TABS.filter((t) => t.roles.includes("*") || t.roles.includes(role));
@@ -62,8 +65,15 @@ export function ConsoleShell({
   const links = (
     <nav className="flex flex-col gap-0.5">
       {tabs.map((t) => {
+        // Visa vs Renewals share the /admin/visa path — split by the ?kind query.
         const active =
-          t.href === "/admin" ? pathname === "/admin" : pathname.startsWith(t.href);
+          t.href === "/admin"
+            ? pathname === "/admin"
+            : t.href === "/admin/visa"
+              ? pathname.startsWith("/admin/visa") && !isRenewals
+              : t.href === "/admin/visa?kind=renewals"
+                ? isRenewals
+                : pathname.startsWith(t.href);
         return (
           <Link
             key={t.href}

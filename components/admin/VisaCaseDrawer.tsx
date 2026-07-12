@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { X, Check, Circle, RefreshCw, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { X, Check, Circle, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, UserPlus } from "lucide-react";
 import {
   EVAL_STATUSES,
   MEDICAL_STATUSES,
@@ -22,7 +22,7 @@ import type {
 } from "@/lib/admin/applications-shared";
 import type { DocRequirement } from "@/lib/config/documents";
 import type { BillableItem } from "@/lib/admin/billables-shared";
-import { updateVisaCase, startRenewal } from "@/app/admin/visa-actions";
+import { updateVisaCase, startRenewal, startDependant } from "@/app/admin/visa-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
@@ -84,8 +84,11 @@ export function VisaCaseDrawer({
   const toggleTask = (key: string) => setTasks((t) => ({ ...t, [key]: !t[key] }));
   const [showJump, setShowJump] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [depOpen, setDepOpen] = useState(false);
+  const [depName, setDepName] = useState("");
 
   const isRenewal = vc.kind === "renewal";
+  const isDependant = vc.kind === "dependant";
   const stages = stagesForKind(vc.kind);
   const stageIdx = stages.findIndex((s) => s.id === form.stage);
   const prevStage = stageIdx > 0 ? stages[stageIdx - 1] : null;
@@ -104,7 +107,8 @@ export function VisaCaseDrawer({
     done: ["student_pass_expiry"],
   };
   const show = (key: string) => showAll || (FIELD_VIS[bucket] ?? []).includes(key);
-  const close = () => router.push("/admin/visa");
+  const kindParam = useSearchParams().get("kind");
+  const close = () => router.push(kindParam === "renewals" ? "/admin/visa?kind=renewals" : "/admin/visa");
   const checklist = visaChecklist({ ...vc, ...form });
 
   function save() {
@@ -135,6 +139,11 @@ export function VisaCaseDrawer({
               {isRenewal && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-brand-gold/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-gold">
                   <RefreshCw className="h-3 w-3" aria-hidden /> Renewal
+                </span>
+              )}
+              {isDependant && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-brand-red-bg px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-red">
+                  <UserPlus className="h-3 w-3" aria-hidden /> Dependant
                 </span>
               )}
             </div>
@@ -330,16 +339,50 @@ export function VisaCaseDrawer({
             >
               {pending ? "Saving…" : "Save changes"}
             </button>
-            {!isRenewal && vc.stage === "done" && (
-              <button
-                onClick={() => start(async () => { await startRenewal(vc.id); router.refresh(); })}
-                disabled={pending}
-                className="inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-sm font-medium text-brand-gold hover:bg-brand-gold/20 disabled:opacity-50"
-              >
-                <RefreshCw className="h-4 w-4" aria-hidden /> Start renewal
-              </button>
+            {vc.kind !== "renewal" && vc.kind !== "dependant" && vc.stage === "done" && (
+              <>
+                <button
+                  onClick={() => start(async () => { await startRenewal(vc.id); router.refresh(); })}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-sm font-medium text-brand-gold hover:bg-brand-gold/20 disabled:opacity-50"
+                >
+                  <RefreshCw className="h-4 w-4" aria-hidden /> Start renewal
+                </button>
+                <button
+                  onClick={() => setDepOpen((o) => !o)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-4 py-2 text-sm font-medium text-ink hover:bg-cream-50"
+                >
+                  <UserPlus className="h-4 w-4" aria-hidden /> Add dependant
+                </button>
+              </>
             )}
           </div>
+          {/* Add dependant — starts once the principal's visa is complete. */}
+          {depOpen && vc.stage === "done" && !isRenewal && !isDependant && (
+            <div className="mt-2 flex flex-wrap items-end gap-2 rounded-md border border-border-warm bg-cream-50/60 p-2.5">
+              <label className="flex-1 text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+                Dependant name
+                <input
+                  value={depName}
+                  onChange={(e) => setDepName(e.target.value)}
+                  placeholder="Spouse / child name"
+                  className={`mt-1 ${FIELD}`}
+                />
+              </label>
+              <button
+                disabled={pending || !depName.trim()}
+                onClick={() =>
+                  start(async () => {
+                    await startDependant(vc.id, depName);
+                    setDepOpen(false); setDepName(""); router.refresh();
+                  })
+                }
+                className="rounded-md bg-brand-red px-3 py-2 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+              >
+                {pending ? "Adding…" : "Add"}
+              </button>
+            </div>
+          )}
           </fieldset>
           )}
 

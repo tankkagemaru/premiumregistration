@@ -88,7 +88,6 @@ export default async function VisaPage({
 
   // Two pipelines: initial applications vs pass renewals.
   const kind = (Array.isArray(sp.kind) ? sp.kind[0] : sp.kind) === "renewals" ? "renewals" : "applications";
-  const renewalCount = allCases.filter((c) => c.kind === "renewal").length;
   const all = allCases.filter((c) =>
     kind === "renewals" ? c.kind === "renewal" : c.kind !== "renewal",
   );
@@ -126,30 +125,18 @@ export default async function VisaPage({
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
             Visa / EMGS
           </p>
-          <h1 className="font-serif text-3xl font-medium text-ink">Visa cases</h1>
+          <h1 className="font-serif text-3xl font-medium text-ink">
+            {kind === "renewals" ? "Pass renewals" : "Visa cases"}
+          </h1>
           <p className="mt-2 text-sm text-ink-soft">
-            {liteView
-              ? "Where each student is in the visa process — status only."
-              : `Visible to every team so anyone can see where a student is. ${canEdit ? "You can update cases." : "Only the visa team edits cases."}`}
+            {kind === "renewals"
+              ? "Student-pass renewals in progress."
+              : liteView
+                ? "Where each student is in the visa process — status only."
+                : `New visa applications (incl. dependants). ${canEdit ? "You can update cases." : "Only the visa team edits cases."}`}
           </p>
         </div>
         <SearchBox placeholder="Search student or EMGS ref…" />
-      </div>
-
-      {/* Initial applications vs pass renewals — two pipelines. */}
-      <div className="inline-flex w-fit overflow-hidden rounded-md border border-border-warm">
-        {([
-          { id: "applications", label: "New applications" },
-          { id: "renewals", label: `Renewals${renewalCount ? ` (${renewalCount})` : ""}` },
-        ] as const).map((k) => (
-          <Link
-            key={k.id}
-            href={`/admin/visa?kind=${k.id}`}
-            className={`px-4 py-1.5 text-sm font-medium ${kind === k.id ? "bg-inkbtn text-oncolor" : "bg-paper text-ink-soft hover:bg-cream-50"}`}
-          >
-            {k.label}
-          </Link>
-        ))}
       </div>
 
       <StageTabs tabs={tabs} active={stage} />
@@ -182,9 +169,17 @@ export default async function VisaPage({
                     {liteView ? (
                       <span className="font-medium text-ink">{c.student_name}</span>
                     ) : (
-                      <Link href={`/admin/visa?visa=${c.id}`} className="font-medium text-ink hover:text-brand-red">
+                      <Link
+                        href={`/admin/visa?${kind === "renewals" ? "kind=renewals&" : ""}visa=${c.id}`}
+                        className="font-medium text-ink hover:text-brand-red"
+                      >
                         {c.student_name}
                       </Link>
+                    )}
+                    {c.kind === "dependant" && (
+                      <span className="ml-1.5 rounded bg-brand-red-bg px-1.5 py-0.5 text-[10px] font-medium uppercase text-brand-red">
+                        Dependant
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-soft">{c.target ?? "—"}</td>

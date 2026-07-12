@@ -147,3 +147,29 @@ export async function startRenewal(fromCaseId: string) {
   await logAudit({ action: "visa_renewal_started", target_type: "application", target_id: prev.application_id });
   revalidatePath("/admin", "layout");
 }
+
+/**
+ * Open a dependant's pass case (spouse / child) — starts once the principal
+ * holder's visa is complete. A `kind='dependant'` case on the same application,
+ * running the full EMGS journey for the dependant.
+ */
+export async function startDependant(fromCaseId: string, dependantName: string) {
+  if (!authConfigured || !(await canEditVisa()) || !dependantName.trim()) return;
+  const supabase = await createClient();
+  const { data: prev } = await supabase
+    .from("visa_cases")
+    .select("application_id, student_name, submitted_by")
+    .eq("id", fromCaseId)
+    .single();
+  if (!prev) return;
+  await supabase.from("visa_cases").insert({
+    application_id: prev.application_id,
+    submitted_by: prev.submitted_by,
+    stage: "emgs_submitted",
+    kind: "dependant",
+    student_name: dependantName.trim(),
+    target: `Dependant of ${prev.student_name ?? "principal"}`,
+  });
+  await logAudit({ action: "visa_dependant_started", target_type: "application", target_id: prev.application_id, detail: dependantName.trim() });
+  revalidatePath("/admin", "layout");
+}
