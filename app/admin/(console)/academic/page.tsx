@@ -38,7 +38,10 @@ export default async function AcademicPage({
     "passport_submission", "sticker_received", "done",
   ]);
 
-  let students = apps.filter((a) => ACADEMIC_STAGES.includes(a.stage));
+  // Academic runs English classes (PEP / exam prep / camps). University-track
+  // students with no English component go straight to the university, so they
+  // don't belong in the class-planning workspace — filter to the English track.
+  let students = apps.filter((a) => a.track === "english" && ACADEMIC_STAGES.includes(a.stage));
   if (q) {
     students = students.filter((a) =>
       `${a.student_name} ${a.program_name ?? ""}`.toLowerCase().includes(q),

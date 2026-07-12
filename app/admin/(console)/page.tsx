@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { FinanceDashboard } from "@/components/admin/FinanceDashboard";
 import { AdmissionsDashboard } from "@/components/admin/AdmissionsDashboard";
 import { VisaDashboard } from "@/components/admin/VisaDashboard";
+import { AcademicDashboard } from "@/components/admin/AcademicDashboard";
 import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
@@ -31,7 +32,8 @@ export default async function Dashboard() {
   const profile = await getProfile();
   if (profile?.role === "boss") redirect("/admin/exec");
   if (profile?.role === "agent") redirect("/agent");
-  if (profile?.role === "academic") redirect("/admin/academic");
+  // Academic lands on its own class overview (not straight onto the workspace).
+  if (profile?.role === "academic") return <AcademicDashboard />;
   // Visa lands on its own EMGS overview (not straight onto the case table).
   if (profile?.role === "visa") return <VisaDashboard />;
   // Finance lands on its own overview dashboard (not the empty lead dashboard,
