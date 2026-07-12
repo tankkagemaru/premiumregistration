@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { formatMoney } from "@/lib/admin/finance-shared";
 import type { Flag } from "@/lib/admin/applications-shared";
@@ -17,6 +17,8 @@ export interface AgentProgressStatus {
   nextActionDue?: string | null;
   missingDocs: string[];
   commissionLabel?: string | null;
+  visaLabel?: string | null;
+  flaggedReason?: string | null;
 }
 
 /** The progress ring — click it for a read-only status pop-up (where the
@@ -48,6 +50,18 @@ export function AgentProgress({ status }: { status: AgentProgressStatus }) {
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border-warm px-5 py-4">
+              {status.flaggedReason && (
+                <div className="flex items-start gap-2 rounded-md border border-brand-red/30 bg-brand-red-bg/60 px-3 py-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-brand-red" aria-hidden />
+                  <p className="text-xs text-ink-soft"><span className="font-medium text-brand-red">Flagged by the team:</span> {status.flaggedReason}</p>
+                </div>
+              )}
+              {status.visaLabel && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-ink-muted">Visa</span>
+                  <span className="font-medium text-ink">{status.visaLabel}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-ink-muted">Payment</span>
                 <span className="font-medium text-ink">{status.paymentLabel}</span>

@@ -14,7 +14,7 @@ const APP_URL =
     : "http://localhost:3000");
 
 export default async function AgentHome() {
-  const { agent, apps, commissions, fees, docs } = await getAgentPortal();
+  const { agent, apps, commissions, fees, docs, visaCases } = await getAgentPortal();
   const referral = `${APP_URL}/register?agent=${agent.code}`;
   const enrolled = apps.filter((a) =>
     ["enrolled", "active", "completed"].includes(a.stage),
@@ -93,7 +93,7 @@ export default async function AgentHome() {
 
       {/* Students — searchable / filterable, click a name to upload docs or the
           ring for a status pop-up. */}
-      <AgentStudents apps={apps} fees={fees} commissions={commissions} docs={docs} trackTitles={TRACK_TITLE} />
+      <AgentStudents apps={apps} fees={fees} commissions={commissions} docs={docs} visaCases={visaCases} trackTitles={TRACK_TITLE} />
 
       <p className="text-xs text-ink-muted">
         Commission status: <span className="font-medium text-ink-soft">Accrued</span> earned, pending our invoice ·{" "}

@@ -5,8 +5,10 @@ import {
   type ApplicationDocRow,
 } from "@/lib/admin/applications";
 import { listCommissions, listFees } from "@/lib/admin/finance";
+import { authConfigured } from "@/lib/admin/applications-shared";
 import type { Application } from "@/lib/admin/applications-shared";
 import type { Commission, Fee } from "@/lib/admin/finance-shared";
+import type { VisaCase } from "@/lib/admin/visa-shared";
 
 export interface AgentContext {
   id: string;
@@ -24,6 +26,7 @@ export async function getAgentPortal(): Promise<{
   commissions: Commission[];
   fees: Fee[];
   docs: ApplicationDocRow[];
+  visaCases: VisaCase[];
 }> {
   const profile = await getProfile();
   const agent: AgentContext =
@@ -42,5 +45,17 @@ export async function getAgentPortal(): Promise<{
   ]);
   const idSet = new Set(appIds);
   const fees = allFees.filter((f) => idSet.has(f.application_id));
-  return { agent, apps, commissions, fees, docs };
+
+  // Visa cases for the agent's own students. Agents have no RLS row access to
+  // visa_cases, so fetch via the service-role client scoped to their app ids —
+  // this is how the agent learns of a pending visa issue / flag.
+  let visaCases: VisaCase[] = [];
+  if (authConfigured && appIds.length > 0) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data } = await admin.from("visa_cases").select("*").in("application_id", appIds);
+    visaCases = (data as VisaCase[] | null) ?? [];
+  }
+
+  return { agent, apps, commissions, fees, docs, visaCases };
 }

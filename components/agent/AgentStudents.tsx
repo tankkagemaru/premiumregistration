@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
+import { VISA_STAGE_LABEL, type VisaCase } from "@/lib/admin/visa-shared";
 import {
   formatMoney,
   FEE_TYPE_LABEL,
@@ -52,14 +53,17 @@ export function AgentStudents({
   fees,
   commissions,
   docs,
+  visaCases,
   trackTitles,
 }: {
   apps: Application[];
   fees: Fee[];
   commissions: Commission[];
   docs: AgentDoc[];
+  visaCases: VisaCase[];
   trackTitles: Record<string, string>;
 }) {
+  const visaByApp = new Map(visaCases.map((v) => [v.application_id, v] as const));
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("all");
   const [pay, setPay] = useState("all");
@@ -140,6 +144,10 @@ export function AgentStudents({
                 .filter((f) => f.status === "unpaid" || f.status === "partial")
                 .map((f) => ({ label: f.label || FEE_TYPE_LABEL[f.type as FeeType] || "Fee", amount: f.amount, currency: f.currency }));
               const appDocs = docs.filter((d) => d.application_id === a.id).map((d) => ({ kind: d.kind, review_status: d.review_status }));
+              const vc = visaByApp.get(a.id);
+              const visaLabel = vc ? (VISA_STAGE_LABEL[vc.stage] ?? vc.stage) : (a.is_international ? "Not filed yet" : null);
+              const flagged = a.flag === "action";
+              const flaggedReason = flagged ? (a.next_action ?? "Needs attention — check with the office.") : null;
               return (
                 <Fragment key={a.id}>
                   <tr className="bg-paper">
@@ -148,6 +156,16 @@ export function AgentStudents({
                       <div className="text-xs text-ink-muted">
                         {trackTitles[a.track] ?? a.track}
                         {a.target_institution ? ` · ${a.target_institution}` : ""}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {visaLabel && (
+                          <span className="text-[11px] text-ink-muted">Visa: {visaLabel}</span>
+                        )}
+                        {flagged && (
+                          <span className="inline-flex items-center gap-1 rounded bg-brand-red-bg px-1.5 py-0.5 text-[10px] font-medium text-brand-red">
+                            <AlertTriangle className="h-3 w-3" aria-hidden /> Flagged
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -178,10 +196,12 @@ export function AgentStudents({
                           stageLabel: STAGE_LABEL[a.stage] ?? a.stage,
                           paymentLabel: summary.label,
                           outstandingFees,
-                          nextAction: a.next_action,
+                          nextAction: flagged ? null : a.next_action,
                           nextActionDue: a.next_action_due,
                           missingDocs: missingLabels,
                           commissionLabel: comm ? `${formatMoney(comm.amount, comm.currency)} · ${COMMISSION_LABEL[comm.status]}` : null,
+                          visaLabel,
+                          flaggedReason,
                         }} />
                       </div>
                     </td>
