@@ -20,6 +20,7 @@ import {
   toISO,
   type ProgramKind,
 } from "@/lib/config/program-schedule";
+import type { EnglishOffering } from "@/lib/admin/english-offerings-shared";
 import {
   createIntake,
   updateIntake,
@@ -57,10 +58,12 @@ export function IntakeCalendar({
   intakes,
   holidays,
   canEdit,
+  offerings = [],
 }: {
   intakes: ProgramIntake[];
   holidays: PublicHoliday[];
   canEdit: boolean;
+  offerings?: EnglishOffering[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -117,10 +120,14 @@ export function IntakeCalendar({
 
   // Add-intake form.
   const [open, setOpen] = useState(false);
+  const first = offerings[0];
   const [form, setForm] = useState({
-    program: "pep" as ProgramKind,
+    offeringId: first?.id ?? "__custom",
+    program: (first?.kind as ProgramKind) ?? ("pep" as ProgramKind),
     level: 1,
     route: "",
+    label: first?.kind === "other" ? first.name : "",
+    otherDays: first?.default_days ?? 30,
     start_date: "",
     end_date: "",
     capacity: "",
@@ -129,9 +136,23 @@ export function IntakeCalendar({
   const set = (k: keyof typeof form, v: string | number) =>
     setForm((f) => ({ ...f, [k]: v }) as typeof form);
 
-  const autoEnd = form.start_date
-    ? computeEndDate(form.start_date, defaultDurationDays(form.program, form.level))
-    : "";
+  // Pick a programme from the academic-managed offerings list. Built-in kinds
+  // (pep/exam_prep) keep their level/route logic; "other" carries a name + days.
+  function pickOffering(id: string) {
+    const o = offerings.find((x) => x.id === id);
+    if (!o) { setForm((f) => ({ ...f, offeringId: "__custom", program: "other" as ProgramKind, label: "" })); return; }
+    setForm((f) => ({
+      ...f,
+      offeringId: id,
+      program: o.kind as ProgramKind,
+      label: o.kind === "other" ? o.name : "",
+      otherDays: o.default_days ?? 30,
+    }));
+  }
+
+  const durationDays =
+    form.program === "other" ? form.otherDays || 30 : defaultDurationDays(form.program, form.level);
+  const autoEnd = form.start_date ? computeEndDate(form.start_date, durationDays) : "";
   const effEnd = form.end_date || autoEnd;
   const learning =
     form.start_date && effEnd ? learningDaysBetween(form.start_date, effEnd, holidaySet) : 0;
@@ -147,13 +168,14 @@ export function IntakeCalendar({
         program: form.program,
         level: form.program === "pep" ? form.level : null,
         route: form.program === "exam_prep" ? form.route : undefined,
+        label: form.program === "other" ? form.label : undefined,
         start_date: form.start_date,
         end_date: form.end_date || undefined,
         capacity: form.capacity ? Number(form.capacity) : null,
         notes: form.notes || undefined,
       });
       setOpen(false);
-      setForm({ ...form, route: "", capacity: "", notes: "", end_date: "" });
+      setForm({ ...form, route: "", label: "", capacity: "", notes: "", end_date: "" });
     });
   }
 
@@ -358,12 +380,10 @@ export function IntakeCalendar({
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <label className="text-xs font-medium text-ink-soft">
-              Program
-              <select value={form.program} onChange={(e) => set("program", e.target.value)} className={`mt-1 w-full ${F}`}>
-                <option value="pep">PEP (English levels)</option>
-                <option value="exam_prep">Exam Prep</option>
-                <option value="summer_camp">Summer Camp</option>
-                <option value="other">Other</option>
+              Programme
+              <select value={form.offeringId} onChange={(e) => pickOffering(e.target.value)} className={`mt-1 w-full ${F}`}>
+                {offerings.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                <option value="__custom">Other (one-off)…</option>
               </select>
             </label>
             {form.program === "pep" && (
@@ -380,6 +400,12 @@ export function IntakeCalendar({
               <label className="text-xs font-medium text-ink-soft">
                 Route
                 <input value={form.route} onChange={(e) => set("route", e.target.value)} placeholder="IELTS / MUET / …" className={`mt-1 w-full ${F}`} />
+              </label>
+            )}
+            {form.program === "other" && (
+              <label className="text-xs font-medium text-ink-soft">
+                Specify
+                <input value={form.label} onChange={(e) => set("label", e.target.value)} placeholder="Programme name" className={`mt-1 w-full ${F}`} />
               </label>
             )}
             <label className="text-xs font-medium text-ink-soft">

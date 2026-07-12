@@ -1,6 +1,8 @@
 import { getProfile, requireRole } from "@/lib/auth";
 import { listIntakes, listHolidays } from "@/lib/admin/intakes";
+import { listEnglishOfferings } from "@/lib/admin/english-offerings";
 import { IntakeCalendar } from "@/components/admin/IntakeCalendar";
+import { EnglishOfferingsManager } from "@/components/admin/EnglishOfferingsManager";
 
 export default async function IntakesPage() {
   await requireRole([
@@ -14,7 +16,11 @@ export default async function IntakesPage() {
   ]);
   const profile = await getProfile();
   const canEdit = !!profile && ["admin", "academic"].includes(profile.role);
-  const [intakes, holidays] = await Promise.all([listIntakes(), listHolidays()]);
+  const [intakes, holidays, offerings] = await Promise.all([
+    listIntakes(),
+    listHolidays(),
+    listEnglishOfferings(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,7 +38,9 @@ export default async function IntakesPage() {
         </p>
       </div>
 
-      <IntakeCalendar intakes={intakes} holidays={holidays} canEdit={canEdit} />
+      <EnglishOfferingsManager offerings={offerings} canEdit={canEdit} />
+
+      <IntakeCalendar intakes={intakes} holidays={holidays} canEdit={canEdit} offerings={offerings.filter((o) => o.active)} />
     </div>
   );
 }
