@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X, Check, Circle, RefreshCw } from "lucide-react";
+import { X, Check, Circle, RefreshCw, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import {
   EVAL_STATUSES,
   MEDICAL_STATUSES,
@@ -76,9 +76,14 @@ export function VisaCaseDrawer({
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const [tasks, setTasks] = useState<Record<string, boolean>>(vc.checklist ?? {});
   const toggleTask = (key: string) => setTasks((t) => ({ ...t, [key]: !t[key] }));
+  const [showJump, setShowJump] = useState(false);
 
   const isRenewal = vc.kind === "renewal";
   const stages = stagesForKind(vc.kind);
+  const stageIdx = stages.findIndex((s) => s.id === form.stage);
+  const prevStage = stageIdx > 0 ? stages[stageIdx - 1] : null;
+  const nextStage = stageIdx >= 0 && stageIdx < stages.length - 1 ? stages[stageIdx + 1] : null;
+  const curStageLabel = stages[stageIdx]?.label ?? form.stage;
   const close = () => router.push("/admin/visa");
   const checklist = visaChecklist({ ...vc, ...form });
 
@@ -159,14 +164,52 @@ export function VisaCaseDrawer({
           ) : (
           <fieldset className="contents">
           <div className="grid grid-cols-2 gap-3">
-            <label className="col-span-2 text-xs font-medium text-ink-soft">
+            <div className="col-span-2 text-xs font-medium text-ink-soft">
               Stage
-              <select value={form.stage} onChange={(e) => set("stage", e.target.value)} className={`mt-1 ${FIELD}`}>
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>{s.label}</option>
-                ))}
-              </select>
-            </label>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!prevStage}
+                  onClick={() => prevStage && set("stage", prevStage.id)}
+                  title={prevStage ? `Back to “${prevStage.label}”` : "At the first stage"}
+                  aria-label="Back one stage"
+                  className="rounded-md border border-border-warm bg-paper p-1.5 text-ink-soft hover:bg-cream-50 hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                </button>
+                <span className="flex-1 rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-center text-sm font-medium text-ink">
+                  {curStageLabel}
+                </span>
+                <button
+                  type="button"
+                  disabled={!nextStage}
+                  onClick={() => nextStage && set("stage", nextStage.id)}
+                  title={nextStage ? `Advance to “${nextStage.label}”` : "Final stage"}
+                  aria-label="Advance one stage"
+                  className="rounded-md border border-border-warm bg-paper p-1.5 text-ink-soft hover:bg-cream-50 hover:text-ink disabled:opacity-30"
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+              {form.stage !== vc.stage && (
+                <p className="mt-1 text-[11px] text-brand-gold">Unsaved — press “Save changes” to apply.</p>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowJump((o) => !o)}
+                className="mt-1 inline-flex items-center gap-1 text-[11px] font-normal text-ink-muted hover:text-ink"
+              >
+                <ChevronDown className={`h-3 w-3 transition-transform ${showJump ? "rotate-180" : ""}`} aria-hidden />
+                Correct stage manually
+              </button>
+              {showJump && (
+                <select value={form.stage} onChange={(e) => set("stage", e.target.value)} className={`mt-1 ${FIELD}`}>
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <label className="col-span-2 text-xs font-medium text-ink-soft">
               EMGS reference
               <input value={form.emgs_ref} onChange={(e) => set("emgs_ref", e.target.value)} className={`mt-1 ${FIELD}`} />
