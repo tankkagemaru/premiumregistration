@@ -203,6 +203,7 @@ export default async function AcademicPage({
                       classEnd={a.class_end ?? null}
                       stage={a.stage}
                       feeCleared={due.length === 0}
+                      checklist={a.class_checklist ?? null}
                     />
                     {visaClash && (
                       <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-brand-gold">

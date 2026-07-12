@@ -157,6 +157,15 @@ export const STAGE_MILESTONE: Record<string, string> = {
   enrolled: "on_enrolment",
 };
 
+/** English class onboarding checklist — Academic works through these before a
+ *  cohort starts. Stored as booleans in applications.class_checklist. */
+export const ENGLISH_CLASS_TASKS = [
+  { key: "platform", label: "Registered on online platform" },
+  { key: "class_assigned", label: "Class assigned" },
+  { key: "materials", label: "Materials prepared" },
+  { key: "books", label: "Books ordered (if needed)" },
+] as const;
+
 export type ApplicationStatus = "active" | "withdrawn" | "completed";
 
 export interface Application {
@@ -183,6 +192,7 @@ export interface Application {
   next_action_due?: string | null;
   class_start?: string | null;
   class_end?: string | null;
+  class_checklist?: Record<string, boolean> | null;
   offer_acknowledged_at?: string | null;
   ready_for_visa?: boolean | null;
   plan?: StudyPlan | null;

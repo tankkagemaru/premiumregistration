@@ -117,6 +117,19 @@ export async function setClassDates(
   revalidatePath("/admin", "layout");
 }
 
+/** Toggle one English-class onboarding checklist item (platform / class /
+ *  materials / books). Merges into applications.class_checklist. */
+export async function setClassChecklist(
+  id: string,
+  checklist: Record<string, boolean>,
+) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  await supabase.from("applications").update({ class_checklist: checklist }).eq("id", id);
+  await logAudit({ action: "class_checklist_set", target_type: "application", target_id: id });
+  revalidatePath("/admin", "layout");
+}
+
 /**
  * Save the study plan on an application. Admissions + academic use this to
  * plan pathways (e.g. English intensive → September university intake); the
