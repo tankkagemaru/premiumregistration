@@ -39,7 +39,7 @@ export default async function ApplicationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(["admin", "admissions", "visa", "academic", "counsellor", "staff"]);
+  const profile = await requireRole(["admin", "admissions", "visa", "academic", "counsellor", "staff"]);
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -50,7 +50,12 @@ export default async function ApplicationsPage({
   const lane = one(sp.lane) === "corporate" ? "corporate" : "students";
   const view = one(sp.view) === "board" ? "board" : "list";
   const buckets = lane === "corporate" ? CORP_BUCKETS : STUDENT_BUCKETS;
-  const stage = one(sp.stage) ?? (lane === "corporate" ? "proposal" : "admissions");
+  // Role-aware default tab so no team lands on an empty stage: visa opens on the
+  // Visa queue, academic on enrolled/active, everyone else on Registration (the
+  // review-first intake where new applications wait for the pay / no-pay call).
+  const defaultStudentStage =
+    profile.role === "visa" ? "visa" : profile.role === "academic" ? "active" : "registration";
+  const stage = one(sp.stage) ?? (lane === "corporate" ? "proposal" : defaultStudentStage);
 
   const laneApps = apps.filter((a) =>
     lane === "corporate" ? a.track === "corporate" : a.track !== "corporate",
@@ -67,8 +72,8 @@ export default async function ApplicationsPage({
           { id: "completed", label: "Completed" },
         ]
       : [
-          { id: "registration", label: "Registration" },
-          { id: "admissions", label: "Admissions", attention: true },
+          { id: "registration", label: "Registration", attention: true },
+          { id: "admissions", label: "Admissions" },
           { id: "offer", label: "Offer / OL·COL" },
           { id: "visa", label: "Visa" },
           { id: "active", label: "Enrolled / Active" },
@@ -121,7 +126,7 @@ export default async function ApplicationsPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-            Admissions
+            Pipeline
           </p>
           <h1 className="font-serif text-3xl font-medium text-ink">Applications</h1>
         </div>
