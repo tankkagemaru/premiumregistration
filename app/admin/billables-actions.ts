@@ -25,6 +25,7 @@ async function financeAdmin() {
 export async function createBillableItem(input: {
   name: string;
   fee_type: string;
+  category?: string;
   default_amount?: number | null;
   taxable?: boolean;
   commissionable?: boolean;
@@ -37,6 +38,7 @@ export async function createBillableItem(input: {
   const { error } = await supabase.from("billable_items").insert({
     name: input.name.trim(),
     fee_type: input.fee_type || "other",
+    category: input.category || "misc",
     default_amount: input.default_amount ?? null,
     taxable: !!input.taxable,
     commissionable: !!input.commissionable,
@@ -54,6 +56,7 @@ export async function updateBillableItem(
   patch: {
     name?: string;
     fee_type?: string;
+    category?: string;
     default_amount?: number | null;
     taxable?: boolean;
     commissionable?: boolean;
@@ -66,6 +69,7 @@ export async function updateBillableItem(
   const clean: Record<string, unknown> = {};
   if (patch.name !== undefined) clean.name = patch.name.trim();
   if (patch.fee_type !== undefined) clean.fee_type = patch.fee_type;
+  if (patch.category !== undefined) clean.category = patch.category;
   if (patch.default_amount !== undefined) clean.default_amount = patch.default_amount;
   if (patch.taxable !== undefined) clean.taxable = patch.taxable;
   if (patch.commissionable !== undefined) clean.commissionable = patch.commissionable;

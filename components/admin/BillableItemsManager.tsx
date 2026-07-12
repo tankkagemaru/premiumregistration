@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Pencil, Check, Search } from "lucide-react";
 import type { BillableItem } from "@/lib/admin/billables-shared";
+import { BILLABLE_CATEGORIES, BILLABLE_CATEGORY_LABEL } from "@/lib/admin/billables-shared";
 import { FEE_TYPE_LABEL, formatMoney, type FeeType } from "@/lib/admin/finance-shared";
 import {
   createBillableItem,
@@ -17,13 +18,14 @@ const FEE_TYPES = Object.keys(FEE_TYPE_LABEL) as FeeType[];
 
 interface Draft {
   name: string;
+  category: string;
   fee_type: string;
   default_amount: string;
   taxable: boolean;
   commissionable: boolean;
 }
 
-const EMPTY: Draft = { name: "", fee_type: "other", default_amount: "", taxable: false, commissionable: false };
+const EMPTY: Draft = { name: "", category: "misc", fee_type: "other", default_amount: "", taxable: false, commissionable: false };
 
 function ItemForm({
   initial,
@@ -49,6 +51,12 @@ function ItemForm({
         </label>
         <label className="text-xs font-medium text-ink-soft">
           Category
+          <select value={form.category} onChange={(e) => set("category", e.target.value)} className={`mt-1 w-full ${F}`}>
+            {BILLABLE_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-ink-soft">
+          Fee type
           <select value={form.fee_type} onChange={(e) => set("fee_type", e.target.value)} className={`mt-1 w-full ${F}`}>
             {FEE_TYPES.map((t) => <option key={t} value={t}>{FEE_TYPE_LABEL[t]}</option>)}
           </select>
@@ -89,20 +97,21 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [cat, setCat] = useState("all");
   const run = (fn: () => Promise<unknown>) =>
     start(async () => { await fn(); router.refresh(); });
 
   const q = query.trim().toLowerCase();
   const shown = useMemo(
     () =>
-      q
-        ? items.filter((i) =>
-            `${i.name} ${FEE_TYPE_LABEL[i.fee_type as FeeType] ?? i.fee_type}`
-              .toLowerCase()
-              .includes(q),
-          )
-        : items,
-    [items, q],
+      items.filter((i) => {
+        if (cat !== "all" && (i.category ?? "misc") !== cat) return false;
+        if (!q) return true;
+        return `${i.name} ${FEE_TYPE_LABEL[i.fee_type as FeeType] ?? i.fee_type} ${BILLABLE_CATEGORY_LABEL[i.category] ?? ""}`
+          .toLowerCase()
+          .includes(q);
+      }),
+    [items, q, cat],
   );
 
   return (
@@ -121,6 +130,10 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
               className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted/70"
             />
           </div>
+          <select value={cat} onChange={(e) => setCat(e.target.value)} className={`${F} text-xs`} aria-label="Filter by category">
+            <option value="all">All categories</option>
+            {BILLABLE_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
           <button
             onClick={() => { setAdding((o) => !o); setEditingId(null); }}
             className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
@@ -140,6 +153,7 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
             run(async () => {
               await createBillableItem({
                 name: d.name,
+                category: d.category,
                 fee_type: d.fee_type,
                 default_amount: d.default_amount ? Number(d.default_amount) : null,
                 taxable: d.taxable,
@@ -167,6 +181,7 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
                 <ItemForm
                   initial={{
                     name: i.name,
+                    category: i.category ?? "misc",
                     fee_type: i.fee_type,
                     default_amount: i.default_amount != null ? String(i.default_amount) : "",
                     taxable: i.taxable,
@@ -179,6 +194,7 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
                     run(async () => {
                       await updateBillableItem(i.id, {
                         name: d.name,
+                        category: d.category,
                         fee_type: d.fee_type,
                         default_amount: d.default_amount ? Number(d.default_amount) : null,
                         taxable: d.taxable,
@@ -194,6 +210,9 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">
                     {i.name}
+                    <span className="ml-1.5 rounded bg-cream-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-ink-muted">
+                      {BILLABLE_CATEGORY_LABEL[i.category] ?? i.category ?? "misc"}
+                    </span>
                     {i.taxable && <span className="ml-1.5 text-[10px] uppercase text-ink-muted">tax</span>}
                     {i.commissionable && (
                       <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] uppercase text-brand-gold">

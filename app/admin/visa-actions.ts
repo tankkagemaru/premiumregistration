@@ -22,6 +22,7 @@ async function canEditVisa() {
 export async function flagVisaPayment(input: {
   applicationId: string;
   type: string; // visa_emgs | immigration | medical
+  label?: string; // price-list item name, else the fee-type label
   amount?: number;
   note?: string;
 }): Promise<{ ok: boolean }> {
@@ -35,7 +36,7 @@ export async function flagVisaPayment(input: {
     .select("student_name")
     .eq("id", input.applicationId)
     .maybeSingle();
-  const label = FEE_TYPE_LABEL[input.type as FeeType] ?? "Visa payment";
+  const label = input.label?.trim() || FEE_TYPE_LABEL[input.type as FeeType] || "Visa payment";
   const amount = Number.isFinite(input.amount) && (input.amount ?? 0) > 0 ? input.amount! : 0;
 
   await admin.from("fees").insert({

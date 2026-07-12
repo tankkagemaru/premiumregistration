@@ -14,6 +14,7 @@ import { SearchBox } from "@/components/admin/SearchBox";
 import { getApplication } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listAppDocRequests } from "@/lib/admin/doc-requests";
+import { listBillableItems } from "@/lib/admin/billables";
 
 const bucketOf = stageBucket;
 
@@ -69,6 +70,12 @@ export default async function VisaPage({
       optional: r.optional,
     })),
   ];
+  // Visa-category price-list items — so visa flags standard EMGS/immigration
+  // fees straight from the list (and only flags custom for something new).
+  const visaBillables =
+    selected && canEdit
+      ? (await listBillableItems(true)).filter((b) => b.category === "visa")
+      : [];
 
   const allCases = await listVisaCases();
   const today = new Date().toISOString().slice(0, 10);
@@ -225,6 +232,7 @@ export default async function VisaPage({
           docRequests={visaDocRequests}
           events={appRecord?.events ?? []}
           canEdit={canEdit}
+          visaBillables={visaBillables}
         />
       )}
     </div>

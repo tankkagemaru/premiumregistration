@@ -21,6 +21,7 @@ import type {
   AppDocRequest,
 } from "@/lib/admin/applications-shared";
 import type { DocRequirement } from "@/lib/config/documents";
+import type { BillableItem } from "@/lib/admin/billables-shared";
 import { updateVisaCase, startRenewal } from "@/app/admin/visa-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { MessageComposer } from "@/components/admin/MessageComposer";
@@ -52,6 +53,7 @@ export function VisaCaseDrawer({
   docRequests = [],
   events = [],
   canEdit = true,
+  visaBillables = [],
 }: {
   vc: VisaCase;
   contact: AppContact;
@@ -61,6 +63,7 @@ export function VisaCaseDrawer({
   docRequests?: AppDocRequest[];
   events?: ApplicationEvent[];
   canEdit?: boolean;
+  visaBillables?: BillableItem[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -344,7 +347,7 @@ export function VisaCaseDrawer({
           {canEdit && (
             <div>
               <SectionLabel>Payments</SectionLabel>
-              <VisaPaymentFlag applicationId={vc.application_id} />
+              <VisaPaymentFlag applicationId={vc.application_id} billables={visaBillables} />
             </div>
           )}
 
