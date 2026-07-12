@@ -1,6 +1,9 @@
 import { getAgentPortal } from "@/lib/agent/portal";
+import { listResources } from "@/lib/admin/resources";
+import { RESOURCE_CATEGORIES } from "@/lib/admin/resources-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
 import { TRACKS } from "@/lib/config/tracks";
+import { ExternalLink } from "lucide-react";
 import { AgentLink } from "@/components/agent/AgentLink";
 import { AgentRegisterModal } from "@/components/agent/AgentRegisterModal";
 import { AgentMeetingButton } from "@/components/agent/AgentMeetingButton";
@@ -15,6 +18,7 @@ const APP_URL =
 
 export default async function AgentHome() {
   const { agent, apps, commissions, fees, docs, visaCases } = await getAgentPortal();
+  const resources = await listResources(true);
   const referral = `${APP_URL}/register?agent=${agent.code}`;
   const enrolled = apps.filter((a) =>
     ["enrolled", "active", "completed"].includes(a.stage),
@@ -100,6 +104,33 @@ export default async function AgentHome() {
         <span className="font-medium text-brand-gold">Invoiced</span> invoice submitted ·{" "}
         <span className="font-medium text-status-present">Paid</span> paid out to you.
       </p>
+
+      {/* Resources — marketing materials, documents, your agreement */}
+      {resources.length > 0 && (
+        <div className="rounded-card border border-border-warm bg-paper p-5">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">Resources</p>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {RESOURCE_CATEGORIES.map((cat) => {
+              const items = resources.filter((r) => r.category === cat.id);
+              if (items.length === 0) return null;
+              return (
+                <div key={cat.id}>
+                  <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-muted">{cat.label}</p>
+                  <ul className="flex flex-col gap-1">
+                    {items.map((r) => (
+                      <li key={r.id}>
+                        <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-brand-red hover:underline">
+                          {r.label} <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,6 +17,8 @@ export default async function IntakesPage() {
   ]);
   const profile = await getProfile();
   const canEdit = !!profile && ["admin", "academic"].includes(profile.role);
+  // Front-line advisers can ask Academic to plan a programme; exec/boss can't.
+  const canRequest = !!profile && ["marketing", "admissions", "counsellor", "staff"].includes(profile.role);
   const [intakes, holidays, offerings] = await Promise.all([
     listIntakes(),
     listHolidays(),
@@ -39,7 +41,7 @@ export default async function IntakesPage() {
             public holidays are shown so class-day counts stay honest.
           </p>
         </div>
-        {!canEdit && <ProgrammeRequestButton offerings={offerings.filter((o) => o.active)} />}
+        {canRequest && <ProgrammeRequestButton offerings={offerings.filter((o) => o.active)} />}
       </div>
 
       <EnglishOfferingsManager offerings={offerings} canEdit={canEdit} />
