@@ -21,9 +21,16 @@ export default async function AgentHome() {
   ).length;
   const payable = commissions.filter((c) => c.direction === "payable");
   const commissionTotal = payable.reduce((s, c) => s + (c.amount ?? 0), 0);
-  const commissionPaid = payable
-    .filter((c) => c.status === "paid")
-    .reduce((s, c) => s + (c.amount ?? 0), 0);
+  const sumBy = (st: string) =>
+    payable.filter((c) => c.status === st).reduce((s, c) => s + (c.amount ?? 0), 0);
+  const commissionPaid = sumBy("paid");
+  const commissionAccrued = sumBy("accrued");
+  const commissionInvoiced = sumBy("invoiced");
+  const commissionBar = [
+    { label: "Accrued", value: commissionAccrued, cls: "bg-ink-muted/40" },
+    { label: "Invoiced", value: commissionInvoiced, cls: "bg-brand-gold" },
+    { label: "Paid", value: commissionPaid, cls: "bg-status-present" },
+  ].filter((b) => b.value > 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -54,6 +61,26 @@ export default async function AgentHome() {
           </div>
         ))}
       </div>
+
+      {/* Commission breakdown — where your earnings stand */}
+      {commissionTotal > 0 && (
+        <div className="rounded-card border border-border-warm bg-paper p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">Commission</p>
+            <span className="font-serif text-lg text-ink tabular">{formatMoney(commissionTotal)}</span>
+          </div>
+          <div className="flex h-3 overflow-hidden rounded-full bg-cream-50">
+            {commissionBar.map((b) => (
+              <div key={b.label} className={b.cls} style={{ width: `${(b.value / commissionTotal) * 100}%` }} title={`${b.label}: ${formatMoney(b.value)}`} />
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+            <span className="text-ink-soft"><span className="inline-block h-2 w-2 rounded-sm bg-ink-muted/40 align-middle" /> Accrued <span className="font-medium text-ink">{formatMoney(commissionAccrued)}</span></span>
+            <span className="text-ink-soft"><span className="inline-block h-2 w-2 rounded-sm bg-brand-gold align-middle" /> Invoiced <span className="font-medium text-ink">{formatMoney(commissionInvoiced)}</span></span>
+            <span className="text-ink-soft"><span className="inline-block h-2 w-2 rounded-sm bg-status-present align-middle" /> Paid <span className="font-medium text-ink">{formatMoney(commissionPaid)}</span></span>
+          </div>
+        </div>
+      )}
 
       {/* Referral link */}
       <div className="rounded-card border border-border-warm bg-paper p-5">
