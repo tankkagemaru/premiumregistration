@@ -6,6 +6,7 @@ import {
   VISA_STAGE_LABEL,
   expiryFlag,
 } from "@/lib/admin/visa";
+import { stageBucket } from "@/lib/admin/visa-shared";
 import { VisaStageSelect } from "@/components/admin/VisaStageSelect";
 import { VisaCaseDrawer } from "@/components/admin/VisaCaseDrawer";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
@@ -14,23 +15,7 @@ import { getApplication } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listAppDocRequests } from "@/lib/admin/doc-requests";
 
-// Group the granular stages into phase buckets for the stage tabs.
-const STAGE_BUCKET: Record<string, string> = {
-  // initial journey
-  emgs_submitted: "emgs", emgs_review: "emgs", immigration_review: "emgs",
-  eval_process: "eval", eval_given: "eval",
-  arrival_planning: "arrival", evisa_application: "arrival", evisa_received: "arrival", arrived: "arrival",
-  health_checkup: "health", health_report: "health",
-  uni_submission: "final", passport_submission: "final", sticker_received: "final",
-  done: "done",
-  // renewal cycle
-  renewal_started: "emgs",
-  // back-compat coarse ids
-  docs_prep: "emgs", submitted: "emgs", medical: "health", val: "eval", sev: "arrival", pass_active: "done",
-};
-function bucketOf(stage: string): string {
-  return STAGE_BUCKET[stage] ?? "emgs";
-}
+const bucketOf = stageBucket;
 
 export default async function VisaPage({
   searchParams,

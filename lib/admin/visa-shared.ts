@@ -62,6 +62,32 @@ export function stagesForKind(kind?: string | null): readonly { id: string; labe
   return kind === "renewal" ? RENEWAL_STAGES : VISA_STAGES;
 }
 
+/** Group the granular stages into phase buckets (used for tabs + which detail
+ *  fields the case drawer surfaces). */
+export const STAGE_BUCKET: Record<string, string> = {
+  emgs_submitted: "emgs", emgs_review: "emgs", immigration_review: "emgs",
+  eval_process: "eval", eval_given: "eval",
+  arrival_planning: "arrival", evisa_application: "arrival", evisa_received: "arrival", arrived: "arrival",
+  health_checkup: "health", health_report: "health",
+  uni_submission: "final", passport_submission: "final", sticker_received: "final",
+  done: "done",
+  renewal_started: "emgs",
+  // back-compat coarse ids
+  docs_prep: "emgs", submitted: "emgs", medical: "health", val: "eval", sev: "arrival", pass_active: "done",
+};
+export function stageBucket(stage: string): string {
+  return STAGE_BUCKET[stage] ?? "emgs";
+}
+
+export const BUCKET_LABEL: Record<string, string> = {
+  emgs: "EMGS submission",
+  eval: "eVAL",
+  arrival: "Arrival & eVISA",
+  health: "Health check-up",
+  final: "Finalising",
+  done: "Completed",
+};
+
 export function isFinalVisaStage(stage: string): boolean {
   return stage === "done";
 }

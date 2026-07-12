@@ -8,7 +8,9 @@ import {
   MEDICAL_STATUSES,
   ARRIVAL_TASKS,
   VISA_STAGE_LABEL,
+  BUCKET_LABEL,
   stagesForKind,
+  stageBucket,
   visaChecklist,
   type VisaCase,
 } from "@/lib/admin/visa-shared";
@@ -77,6 +79,7 @@ export function VisaCaseDrawer({
   const [tasks, setTasks] = useState<Record<string, boolean>>(vc.checklist ?? {});
   const toggleTask = (key: string) => setTasks((t) => ({ ...t, [key]: !t[key] }));
   const [showJump, setShowJump] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const isRenewal = vc.kind === "renewal";
   const stages = stagesForKind(vc.kind);
@@ -84,6 +87,19 @@ export function VisaCaseDrawer({
   const prevStage = stageIdx > 0 ? stages[stageIdx - 1] : null;
   const nextStage = stageIdx >= 0 && stageIdx < stages.length - 1 ? stages[stageIdx + 1] : null;
   const curStageLabel = stages[stageIdx]?.label ?? form.stage;
+
+  // Only surface the detail fields for the current phase — the whole point of
+  // the granular stages. "Show all fields" reveals the rest for corrections.
+  const bucket = stageBucket(form.stage);
+  const FIELD_VIS: Record<string, string[]> = {
+    emgs: ["emgs_ref", "eval_status"],
+    eval: ["emgs_ref", "val_status"],
+    arrival: ["arrival_tasks", "single_entry_visa", "arrival_date"],
+    health: ["medical_status", "medical_booked_date", "medical_location"],
+    final: ["student_pass_expiry"],
+    done: ["student_pass_expiry"],
+  };
+  const show = (key: string) => showAll || (FIELD_VIS[bucket] ?? []).includes(key);
   const close = () => router.push("/admin/visa");
   const checklist = visaChecklist({ ...vc, ...form });
 
@@ -210,51 +226,80 @@ export function VisaCaseDrawer({
                 </select>
               )}
             </div>
-            <label className="col-span-2 text-xs font-medium text-ink-soft">
-              EMGS reference
-              <input value={form.emgs_ref} onChange={(e) => set("emgs_ref", e.target.value)} className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Evaluation
-              <select value={form.eval_status} onChange={(e) => set("eval_status", e.target.value)} className={`mt-1 ${FIELD}`}>
-                {EVAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Medical
-              <select value={form.medical_status} onChange={(e) => set("medical_status", e.target.value)} className={`mt-1 ${FIELD}`}>
-                {MEDICAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Medical booked
-              <input type="date" value={form.medical_booked_date} onChange={(e) => set("medical_booked_date", e.target.value)} className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Medical location
-              <input value={form.medical_location} onChange={(e) => set("medical_location", e.target.value)} placeholder="Clinic / centre" className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              VAL status
-              <input value={form.val_status} onChange={(e) => set("val_status", e.target.value)} placeholder="issued / pending" className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Single-entry visa
-              <input value={form.single_entry_visa} onChange={(e) => set("single_entry_visa", e.target.value)} className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Arrival date
-              <input type="date" value={form.arrival_date} onChange={(e) => set("arrival_date", e.target.value)} className={`mt-1 ${FIELD}`} />
-            </label>
-            <label className="text-xs font-medium text-ink-soft">
-              Pass expiry
-              <input type="date" value={form.student_pass_expiry} onChange={(e) => set("student_pass_expiry", e.target.value)} className={`mt-1 ${FIELD}`} />
-            </label>
+            <p className="col-span-2 -mb-1 text-[11px] text-ink-muted">
+              {showAll ? "Showing all fields." : <>Fields for <span className="font-medium text-ink-soft">{BUCKET_LABEL[bucket] ?? "this phase"}</span>.</>}
+            </p>
+            {show("emgs_ref") && (
+              <label className="col-span-2 text-xs font-medium text-ink-soft">
+                EMGS reference
+                <input value={form.emgs_ref} onChange={(e) => set("emgs_ref", e.target.value)} className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("eval_status") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Evaluation
+                <select value={form.eval_status} onChange={(e) => set("eval_status", e.target.value)} className={`mt-1 ${FIELD}`}>
+                  {EVAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </label>
+            )}
+            {show("medical_status") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Health check-up
+                <select value={form.medical_status} onChange={(e) => set("medical_status", e.target.value)} className={`mt-1 ${FIELD}`}>
+                  {MEDICAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </label>
+            )}
+            {show("medical_booked_date") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Check-up booked
+                <input type="date" value={form.medical_booked_date} onChange={(e) => set("medical_booked_date", e.target.value)} className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("medical_location") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Clinic / centre
+                <input value={form.medical_location} onChange={(e) => set("medical_location", e.target.value)} placeholder="Clinic / centre" className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("val_status") && (
+              <label className="text-xs font-medium text-ink-soft">
+                eVAL status
+                <input value={form.val_status} onChange={(e) => set("val_status", e.target.value)} placeholder="issued / pending" className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("single_entry_visa") && (
+              <label className="text-xs font-medium text-ink-soft">
+                eVISA
+                <input value={form.single_entry_visa} onChange={(e) => set("single_entry_visa", e.target.value)} placeholder="issued / pending" className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("arrival_date") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Arrival date
+                <input type="date" value={form.arrival_date} onChange={(e) => set("arrival_date", e.target.value)} className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            {show("student_pass_expiry") && (
+              <label className="text-xs font-medium text-ink-soft">
+                Pass expiry
+                <input type="date" value={form.student_pass_expiry} onChange={(e) => set("student_pass_expiry", e.target.value)} className={`mt-1 ${FIELD}`} />
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAll((o) => !o)}
+              className="col-span-2 mt-1 inline-flex items-center gap-1 text-[11px] font-normal text-ink-muted hover:text-ink"
+            >
+              <ChevronDown className={`h-3 w-3 transition-transform ${showAll ? "rotate-180" : ""}`} aria-hidden />
+              {showAll ? "Show only this phase" : "Show all fields"}
+            </button>
           </div>
 
           {/* Arrival planning sub-tasks — the errands to settle before/around
-              the student lands. Only relevant on the initial journey. */}
-          {!isRenewal && (
+              the student lands. Shown during the arrival phase (or Show all). */}
+          {!isRenewal && show("arrival_tasks") && (
             <div>
               <p className="mb-1.5 text-xs font-medium text-ink-soft">Arrival planning</p>
               <div className="flex flex-col gap-1.5 rounded-md border border-border-warm bg-cream-50/60 p-2.5">
