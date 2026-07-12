@@ -10,6 +10,7 @@ import { FinanceDashboard } from "@/components/admin/FinanceDashboard";
 import { AdmissionsDashboard } from "@/components/admin/AdmissionsDashboard";
 import { VisaDashboard } from "@/components/admin/VisaDashboard";
 import { AcademicDashboard } from "@/components/admin/AcademicDashboard";
+import { ExecDashboard } from "@/components/admin/ExecDashboard";
 import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
@@ -30,8 +31,9 @@ export default async function Dashboard() {
   // Role-appropriate landing: each role starts on its own workspace rather than
   // the lead dashboard (which is empty for teams that don't handle leads).
   const profile = await getProfile();
-  if (profile?.role === "boss") redirect("/admin/exec");
   if (profile?.role === "agent") redirect("/agent");
+  // Boss lands on the visual at-a-glance; the Executive tab has the detail.
+  if (profile?.role === "boss") return <ExecDashboard />;
   // Academic lands on its own class overview (not straight onto the workspace).
   if (profile?.role === "academic") return <AcademicDashboard />;
   // Visa lands on its own EMGS overview (not straight onto the case table).
