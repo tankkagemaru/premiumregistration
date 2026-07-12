@@ -56,14 +56,18 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     .eq("id", userId)
     .single();
 
-  return (
+  const profile =
     (data as Profile | null) ?? {
       id: userId,
       full_name: userEmail || "Staff",
       email: userEmail,
-      role: "staff",
-    }
-  );
+      role: "staff" as Role,
+    };
+  // Counsellor and Academic are the same team at PECSB — treat counsellor as
+  // academic everywhere (the RLS policies already grant them identical access),
+  // so the two roles share one experience: landing, nav and permissions.
+  if (profile.role === "counsellor") profile.role = "academic";
+  return profile;
 });
 
 /** Server-side page gate: returns the profile or redirects away. */
