@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Pencil, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, Search } from "lucide-react";
 import type { BillableItem } from "@/lib/admin/billables-shared";
 import { FEE_TYPE_LABEL, formatMoney, type FeeType } from "@/lib/admin/finance-shared";
 import {
@@ -88,8 +88,22 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
   const [pending, start] = useTransition();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const run = (fn: () => Promise<unknown>) =>
     start(async () => { await fn(); router.refresh(); });
+
+  const q = query.trim().toLowerCase();
+  const shown = useMemo(
+    () =>
+      q
+        ? items.filter((i) =>
+            `${i.name} ${FEE_TYPE_LABEL[i.fee_type as FeeType] ?? i.fee_type}`
+              .toLowerCase()
+              .includes(q),
+          )
+        : items,
+    [items, q],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,12 +111,23 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
           Billable items
         </p>
-        <button
-          onClick={() => { setAdding((o) => !o); setEditingId(null); }}
-          className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden /> Add item
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-[180px] items-center gap-2 rounded-md border border-border-warm bg-paper px-2.5 py-1.5">
+            <Search className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search items…"
+              className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted/70"
+            />
+          </div>
+          <button
+            onClick={() => { setAdding((o) => !o); setEditingId(null); }}
+            className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden /> Add item
+          </button>
+        </div>
       </div>
 
       {adding && (
@@ -130,9 +155,13 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
         <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
           No billable items yet — add the price list here.
         </p>
+      ) : shown.length === 0 ? (
+        <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
+          No items match your search.
+        </p>
       ) : (
         <div className="overflow-hidden rounded-card border border-border-warm">
-          {items.map((i) =>
+          {shown.map((i) =>
             editingId === i.id ? (
               <div key={i.id} className="border-b border-border-warm/60 p-2 last:border-0">
                 <ItemForm

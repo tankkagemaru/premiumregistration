@@ -6,6 +6,7 @@ import { getStalenessDays } from "@/lib/admin/settings";
 import { leadStaleness } from "@/lib/config/staleness";
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { FinanceDashboard } from "@/components/admin/FinanceDashboard";
 import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
@@ -28,9 +29,11 @@ export default async function Dashboard() {
   const profile = await getProfile();
   if (profile?.role === "boss") redirect("/admin/exec");
   if (profile?.role === "agent") redirect("/agent");
-  if (profile?.role === "finance") redirect("/admin/finance");
   if (profile?.role === "visa") redirect("/admin/visa");
   if (profile?.role === "academic") redirect("/admin/academic");
+  // Finance lands on its own overview dashboard (not the empty lead dashboard,
+  // and not shoved straight onto the raw fee table).
+  if (profile?.role === "finance") return <FinanceDashboard />;
   const lang = await getConsoleLang();
   const L = CONSOLE_STR[lang];
   const funnelLabel: Record<string, string> = {

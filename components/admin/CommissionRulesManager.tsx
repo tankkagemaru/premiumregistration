@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Search } from "lucide-react";
 import {
   SCOPE_LABEL,
   BASIS_LABEL,
@@ -20,11 +20,59 @@ import {
 } from "@/lib/admin/commission-rules-shared";
 import {
   createCommissionRule,
+  updateCommissionRule,
   toggleCommissionRule,
   deleteCommissionRule,
 } from "@/app/admin/commission-rules-actions";
 
 const F = "rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
+
+type RuleForm = {
+  scope: RuleScope;
+  label: string;
+  subject_id: string;
+  university: string;
+  track: string;
+  category: string;
+  basis: string;
+  rate: string;
+  our_share_pct: string;
+  min_students: string;
+  base_amount: string;
+  base_fee_type: string;
+};
+
+const BLANK_FORM: RuleForm = {
+  scope: "agent_payout",
+  label: "",
+  subject_id: "",
+  university: "",
+  track: "",
+  category: "",
+  basis: "percent",
+  rate: "",
+  our_share_pct: "",
+  min_students: "",
+  base_amount: "",
+  base_fee_type: "",
+};
+
+function formFromRule(r: CommissionRule): RuleForm {
+  return {
+    scope: r.scope,
+    label: r.label ?? "",
+    subject_id: r.subject_id ?? "",
+    university: r.university ?? "",
+    track: r.track ?? "",
+    category: r.category ?? "",
+    basis: r.basis,
+    rate: r.rate != null ? String(r.rate) : "",
+    our_share_pct: r.our_share_pct != null ? String(r.our_share_pct) : "",
+    min_students: r.min_students != null ? String(r.min_students) : "",
+    base_amount: r.base_amount != null ? String(r.base_amount) : "",
+    base_fee_type: r.base_fee_type ?? "",
+  };
+}
 
 export function CommissionRulesManager({
   rules,
@@ -36,64 +84,93 @@ export function CommissionRulesManager({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    scope: "agent_payout" as RuleScope,
-    label: "",
-    subject_id: "",
-    university: "",
-    track: "",
-    category: "",
-    basis: "percent",
-    rate: "",
-    our_share_pct: "",
-    min_students: "",
-    base_amount: "",
-    base_fee_type: "",
-  });
-  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [form, setForm] = useState<RuleForm>(BLANK_FORM);
+  const set = (k: keyof RuleForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const usesSubject = form.scope === "agent_payout" || form.scope === "handler_incentive";
   const usesUniversity = form.scope === "university_share";
   const usesTrack = form.scope === "consultant_markup" || form.scope === "university_share";
 
+  function openAdd() {
+    setForm(BLANK_FORM);
+    setEditingId(null);
+    setOpen(true);
+  }
+  function openEdit(r: CommissionRule) {
+    setForm(formFromRule(r));
+    setEditingId(r.id);
+    setOpen(true);
+  }
+  function closeForm() {
+    setOpen(false);
+    setEditingId(null);
+    setForm(BLANK_FORM);
+  }
+
   function submit() {
+    const payload = {
+      scope: form.scope,
+      label: form.label || undefined,
+      subject_id: form.subject_id || undefined,
+      university: form.university || undefined,
+      track: form.track || undefined,
+      category: form.category || undefined,
+      basis: form.basis,
+      rate: form.rate ? Number(form.rate) : null,
+      our_share_pct: form.our_share_pct ? Number(form.our_share_pct) : null,
+      min_students: form.min_students ? Number(form.min_students) : null,
+      base_amount: form.base_amount ? Number(form.base_amount) : null,
+      base_fee_type:
+        form.base_fee_type || (form.track === "english" ? "tuition" : undefined),
+    };
     start(async () => {
-      await createCommissionRule({
-        scope: form.scope,
-        label: form.label || undefined,
-        subject_id: form.subject_id || undefined,
-        university: form.university || undefined,
-        track: form.track || undefined,
-        category: form.category || undefined,
-        basis: form.basis,
-        rate: form.rate ? Number(form.rate) : null,
-        our_share_pct: form.our_share_pct ? Number(form.our_share_pct) : null,
-        min_students: form.min_students ? Number(form.min_students) : null,
-        base_amount: form.base_amount ? Number(form.base_amount) : null,
-        base_fee_type:
-          form.base_fee_type || (form.track === "english" ? "tuition" : undefined),
-      });
-      setForm({ ...form, label: "", rate: "", our_share_pct: "", min_students: "", base_amount: "", university: "", subject_id: "" });
-      setOpen(false);
+      if (editingId) await updateCommissionRule(editingId, payload);
+      else await createCommissionRule(payload);
+      closeForm();
       router.refresh();
     });
   }
 
-  const byScope = RULE_SCOPES.map((s) => ({ scope: s, list: rules.filter((r) => r.scope === s) }));
+  const q = query.trim().toLowerCase();
+  const shownRules = useMemo(
+    () =>
+      q
+        ? rules.filter((r) =>
+            `${r.label ?? ""} ${ruleTarget(r)} ${SCOPE_LABEL[r.scope] ?? r.scope} ${r.university ?? ""} ${r.track ?? ""}`
+              .toLowerCase()
+              .includes(q),
+          )
+        : rules,
+    [rules, q],
+  );
+  const byScope = RULE_SCOPES.map((s) => ({ scope: s, list: shownRules.filter((r) => r.scope === s) }));
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
           Commission rules
         </p>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          Add rule
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-[180px] items-center gap-2 rounded-md border border-border-warm bg-paper px-2.5 py-1.5">
+            <Search className="h-3.5 w-3.5 shrink-0 text-ink-muted" aria-hidden />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search rules…"
+              className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted/70"
+            />
+          </div>
+          <button
+            onClick={() => (open && !editingId ? closeForm() : openAdd())}
+            className="inline-flex items-center gap-1.5 rounded-md bg-inkbtn px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-inkbtn-soft"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            Add rule
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -189,13 +266,21 @@ export function CommissionRulesManager({
               adjust it for promotions or a lower/higher agent price.
             </p>
           )}
-          <button
-            onClick={submit}
-            disabled={pending}
-            className="mt-3 rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save rule"}
-          </button>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={submit}
+              disabled={pending}
+              className="rounded-md bg-brand-red px-4 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+            >
+              {pending ? "Saving…" : editingId ? "Save changes" : "Save rule"}
+            </button>
+            <button
+              onClick={closeForm}
+              className="rounded-md border border-border-warm px-4 py-2 text-sm text-ink-muted hover:text-ink"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -225,6 +310,13 @@ export function CommissionRulesManager({
                       {r.active ? "Active" : "Off"}
                     </button>
                     <button
+                      onClick={() => openEdit(r)}
+                      aria-label="Edit rule"
+                      className="text-ink-muted hover:text-ink"
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                    <button
                       onClick={() => start(async () => { await deleteCommissionRule(r.id); router.refresh(); })}
                       aria-label="Delete rule"
                       className="text-ink-muted hover:text-brand-red"
@@ -237,6 +329,11 @@ export function CommissionRulesManager({
             </div>
           </div>
         ),
+      )}
+      {shownRules.length === 0 && (
+        <p className="rounded-card border border-dashed border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
+          {rules.length === 0 ? "No commission rules yet." : "No rules match your search."}
+        </p>
       )}
     </div>
   );

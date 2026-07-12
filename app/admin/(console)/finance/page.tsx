@@ -8,10 +8,7 @@ import {
   FEE_TYPE_LABEL,
   type FeeStatus,
 } from "@/lib/admin/finance";
-import { listCommissionRules } from "@/lib/admin/commission-rules";
-import { listBillableItems } from "@/lib/admin/billables";
 import { getFxRates, toMYR, CURRENCIES } from "@/lib/admin/fx";
-import { listUsers } from "@/lib/admin/users";
 import { SearchBox } from "@/components/admin/SearchBox";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import {
@@ -21,8 +18,6 @@ import {
   CommissionAmountControl,
   CommissionClaimControl,
 } from "@/components/admin/FinanceControls";
-import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
-import { BillableItemsManager } from "@/components/admin/BillableItemsManager";
 import { InvoiceAttach } from "@/components/admin/InvoiceAttach";
 import { PaymentControl } from "@/components/admin/PaymentControl";
 import { StudentNameButton } from "@/components/admin/StudentDetailModal";
@@ -54,16 +49,12 @@ export default async function FinancePage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.toLowerCase();
 
-  const [allFees, payments, allCommissions, rules, people, billables, fx] =
-    await Promise.all([
-      listFees(),
-      listPayments(),
-      listCommissions(),
-      listCommissionRules(),
-      listUsers(),
-      listBillableItems(true),
-      getFxRates(),
-    ]);
+  const [allFees, payments, allCommissions, fx] = await Promise.all([
+    listFees(),
+    listPayments(),
+    listCommissions(),
+    getFxRates(),
+  ]);
   // Broad fee search — student, fee type, custom label, status, amount, currency —
   // so a specific fee is easy to find among many.
   const fees = q
@@ -101,7 +92,6 @@ export default async function FinancePage({
     { id: "outstanding", label: "Outstanding", attention: true, count: outstandingFees.length },
     { id: "paid", label: "Paid", count: paidFees.length },
     { id: "commissions", label: "Commissions", count: commissions.length },
-    { id: "catalogue", label: "Price list & rules" },
   ];
 
   return (
@@ -272,24 +262,6 @@ export default async function FinancePage({
       </section>
       )}
 
-      {/* Price list & rules */}
-      {stage === "catalogue" && (
-      <>
-      <section>
-        <BillableItemsManager items={billables} />
-      </section>
-      <section>
-        <CommissionRulesManager
-          rules={rules}
-          people={people.map((p) => ({ id: p.id, full_name: p.full_name }))}
-        />
-        <p className="mt-2 text-xs text-ink-muted">
-          Rules are the source of truth for how commission is calculated. Stage
-          automation will read these to fill in accrued amounts.
-        </p>
-      </section>
-      </>
-      )}
     </div>
   );
 }

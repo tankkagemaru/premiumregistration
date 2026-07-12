@@ -1,16 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 
 const FINANCE = ["admin", "finance"];
 
-async function permitted() {
+/**
+ * Billable/price-list writes use the **service-role** client behind an explicit
+ * finance gate — user-scoped writes silently no-op under RLS drift (the same
+ * failure that stuck fees on "unpaid"). Returns null when the caller isn't
+ * finance/admin.
+ */
+async function financeAdmin() {
   const p = await getProfile();
-  return !!p && FINANCE.includes(p.role);
+  if (!p || !FINANCE.includes(p.role)) return null;
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  return createAdminClient();
 }
 
 /* ---- catalogue management (finance/admin) ---- */
@@ -24,8 +31,9 @@ export async function createBillableItem(input: {
   notes?: string;
 }): Promise<{ ok: boolean }> {
   if (!authConfigured) return { ok: true };
-  if (!(await permitted()) || !input.name.trim()) return { ok: false };
-  const supabase = await createClient();
+  if (!input.name.trim()) return { ok: false };
+  const supabase = await financeAdmin();
+  if (!supabase) return { ok: false };
   const { error } = await supabase.from("billable_items").insert({
     name: input.name.trim(),
     fee_type: input.fee_type || "other",
@@ -52,8 +60,9 @@ export async function updateBillableItem(
     active?: boolean;
   },
 ) {
-  if (!authConfigured || !(await permitted())) return;
-  const supabase = await createClient();
+  if (!authConfigured) return;
+  const supabase = await financeAdmin();
+  if (!supabase) return;
   const clean: Record<string, unknown> = {};
   if (patch.name !== undefined) clean.name = patch.name.trim();
   if (patch.fee_type !== undefined) clean.fee_type = patch.fee_type;
@@ -68,8 +77,9 @@ export async function updateBillableItem(
 }
 
 export async function deleteBillableItem(id: string) {
-  if (!authConfigured || !(await permitted())) return;
-  const supabase = await createClient();
+  if (!authConfigured) return;
+  const supabase = await financeAdmin();
+  if (!supabase) return;
   await supabase.from("billable_items").delete().eq("id", id);
   await logAudit({ action: "billable_deleted", target_type: "billable_item", target_id: id });
   revalidatePath("/admin/finance");
@@ -85,8 +95,8 @@ export async function createFeeFromItem(input: {
   dueDate?: string | null;
 }): Promise<{ ok: boolean }> {
   if (!authConfigured) return { ok: true };
-  if (!(await permitted())) return { ok: false };
-  const supabase = await createClient();
+  const supabase = await financeAdmin();
+  if (!supabase) return { ok: false };
 
   const [{ data: item }, { data: app }] = await Promise.all([
     supabase.from("billable_items").select("*").eq("id", input.itemId).maybeSingle(),
@@ -124,8 +134,9 @@ export async function createFeeFromItem(input: {
 /* ---- invoice attach (uploaded via document actions, linked here) ---- */
 
 export async function setFeeInvoice(feeId: string, invoiceDocId: string) {
-  if (!authConfigured || !(await permitted())) return;
-  const supabase = await createClient();
+  if (!authConfigured) return;
+  const supabase = await financeAdmin();
+  if (!supabase) return;
   await supabase.from("fees").update({ invoice_doc_id: invoiceDocId }).eq("id", feeId);
   await logAudit({ action: "invoice_attached", target_type: "fee", target_id: feeId });
   revalidatePath("/admin", "layout");
