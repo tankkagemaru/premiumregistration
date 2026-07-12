@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "@/lib/admin/applications-shared";
+import { FEE_TYPE_LABEL, type FeeType } from "@/lib/admin/finance-shared";
 import { getProfile } from "@/lib/auth";
 import { logAudit } from "@/lib/admin/audit";
 
@@ -10,6 +11,62 @@ import { logAudit } from "@/lib/admin/audit";
 async function canEditVisa() {
   const p = await getProfile();
   return !!p && ["admin", "visa"].includes(p.role);
+}
+
+/**
+ * Visa flags a payment owed to EMGS / Immigration (or medical) on an
+ * application: creates the unpaid fee so it shows in Finance's outstanding list,
+ * and raises a request for Finance to invoice + collect. Service-role — fees are
+ * finance-write under RLS; the role gate here is the real control.
+ */
+export async function flagVisaPayment(input: {
+  applicationId: string;
+  type: string; // visa_emgs | immigration | medical
+  amount?: number;
+  note?: string;
+}): Promise<{ ok: boolean }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || !["admin", "visa"].includes(profile.role)) return { ok: false };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: app } = await admin
+    .from("applications")
+    .select("student_name")
+    .eq("id", input.applicationId)
+    .maybeSingle();
+  const label = FEE_TYPE_LABEL[input.type as FeeType] ?? "Visa payment";
+  const amount = Number.isFinite(input.amount) && (input.amount ?? 0) > 0 ? input.amount! : 0;
+
+  await admin.from("fees").insert({
+    application_id: input.applicationId,
+    student_name: app?.student_name ?? "",
+    type: input.type,
+    label,
+    amount,
+    currency: "MYR",
+    status: "unpaid",
+  });
+
+  const { createActionRequest } = await import("./request-actions");
+  await createActionRequest({
+    applicationId: input.applicationId,
+    subject: app?.student_name,
+    toRole: "finance",
+    type: "request",
+    title: `Collect ${label}`,
+    detail: input.note?.trim() || `Visa flagged a ${label} to invoice and collect${amount ? ` (approx MYR ${amount})` : ""}.`,
+  });
+
+  await admin.from("application_events").insert({
+    application_id: input.applicationId,
+    actor_id: profile.id,
+    type: "note",
+    body: `Visa flagged payment — ${label}${amount ? ` (MYR ${amount})` : ""}, sent to Finance.`,
+  });
+  await logAudit({ action: "visa_payment_flagged", target_type: "application", target_id: input.applicationId, detail: label });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
 }
 
 export async function updateVisaCase(

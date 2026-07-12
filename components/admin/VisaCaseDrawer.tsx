@@ -26,6 +26,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
 import { DocRequestControl } from "@/components/admin/DocRequestControl";
+import { VisaPaymentFlag } from "@/components/admin/VisaPaymentFlag";
 import { WorkLog } from "@/components/admin/WorkLog";
 
 const FIELD =
@@ -337,6 +338,14 @@ export function VisaCaseDrawer({
             )}
           </div>
           </fieldset>
+          )}
+
+          {/* Payments — visa flags EMGS / Immigration fees for Finance to collect */}
+          {canEdit && (
+            <div>
+              <SectionLabel>Payments</SectionLabel>
+              <VisaPaymentFlag applicationId={vc.application_id} />
+            </div>
           )}
 
           {/* Documents — visa/admin review + upload; viewers see the pack read-only */}

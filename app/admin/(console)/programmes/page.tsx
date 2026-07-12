@@ -5,7 +5,7 @@ import { ProgrammesView } from "@/components/admin/ProgrammesView";
 
 export default async function ProgrammesPage() {
   const profile = await requireRole([
-    "admin", "boss", "admissions", "marketing", "counsellor", "visa", "academic", "finance", "staff",
+    "admin", "boss", "admissions", "marketing", "counsellor", "academic", "finance", "staff",
   ]);
   const [universities, fx] = await Promise.all([listUniversities(), getFxRates()]);
   const canEdit = ["admin", "admissions"].includes(profile.role);

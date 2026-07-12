@@ -5,6 +5,7 @@ export type FeeType =
   | "application"
   | "registration"
   | "visa_emgs"
+  | "immigration"
   | "medical"
   | "insurance"
   | "tuition"
@@ -13,7 +14,8 @@ export type FeeType =
 export const FEE_TYPE_LABEL: Record<FeeType, string> = {
   application: "Application fee",
   registration: "Registration fee",
-  visa_emgs: "Visa / EMGS fee",
+  visa_emgs: "EMGS fee",
+  immigration: "Immigration fee",
   medical: "Medical screening",
   insurance: "Insurance",
   tuition: "Tuition",
