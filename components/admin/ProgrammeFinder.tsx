@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, Download, ExternalLink } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Search, Download, ExternalLink, Send } from "lucide-react";
 import type { University } from "@/lib/admin/universities-shared";
 import {
   SPECIALTIES,
@@ -29,6 +29,67 @@ const EMPTY: FinderFilters = {
   intake: "", duration: "", mode: "", accreditation: "", sort: "default",
 };
 
+/** Per-card "Request more information" — agents ask Marketing + Admissions about
+ *  a university without leaving the finder. */
+function RequestInfo({
+  university,
+  onRequestInfo,
+}: {
+  university: string;
+  onRequestInfo: (university: string, note: string) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  if (done) {
+    return <p className="text-xs font-medium text-status-present">Requested — the office will get back to you. ✓</p>;
+  }
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-red hover:underline"
+      >
+        <Send className="h-3.5 w-3.5" aria-hidden />
+        Request more information
+      </button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        rows={2}
+        placeholder={`What would you like to know about ${university}? (optional)`}
+        className="w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-xs text-ink outline-none focus:border-brand-red"
+      />
+      {err && <p className="text-xs text-brand-red">{err}</p>}
+      <div className="flex gap-2">
+        <button
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              const r = await onRequestInfo(university, note);
+              if (!r.ok) { setErr("Couldn't send — try again."); return; }
+              setDone(true);
+            })
+          }
+          className="rounded-md bg-brand-red px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+        >
+          {pending ? "Sending…" : "Send to office"}
+        </button>
+        <button onClick={() => { setOpen(false); setErr(null); }} className="rounded-md border border-border-warm px-3 py-1.5 text-xs text-ink-muted hover:text-ink">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * The Malaysia University Programme Finder — search the catalogue by specialty,
  * level, type, location, intake, duration, mode or keyword and see every
@@ -38,9 +99,13 @@ const EMPTY: FinderFilters = {
 export function ProgrammeFinder({
   universities,
   usdPerMyr,
+  onRequestInfo,
 }: {
   universities: University[];
   usdPerMyr: number;
+  /** When supplied (agent portal), each card shows a "Request more information"
+   *  action that raises a request to Marketing + Admissions. */
+  onRequestInfo?: (university: string, note: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [f, setF] = useState<FinderFilters>(EMPTY);
   const [currency, setCurrency] = useState("MYR");
@@ -240,6 +305,11 @@ export function ProgrammeFinder({
                     );
                   })}
                 </div>
+                {onRequestInfo && (
+                  <div className="border-t border-border-warm px-4 py-2.5">
+                    <RequestInfo university={u.name} onRequestInfo={onRequestInfo} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

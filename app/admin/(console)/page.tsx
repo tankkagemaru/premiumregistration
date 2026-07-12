@@ -7,6 +7,7 @@ import { leadStaleness } from "@/lib/config/staleness";
 import { TRACKS } from "@/lib/config/tracks";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { FinanceDashboard } from "@/components/admin/FinanceDashboard";
+import { AdmissionsDashboard } from "@/components/admin/AdmissionsDashboard";
 import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
@@ -34,6 +35,9 @@ export default async function Dashboard() {
   // Finance lands on its own overview dashboard (not the empty lead dashboard,
   // and not shoved straight onto the raw fee table).
   if (profile?.role === "finance") return <FinanceDashboard />;
+  // Admissions own the application pipeline, not the marketing lead funnel —
+  // give them an applications-focused overview.
+  if (profile?.role === "admissions") return <AdmissionsDashboard />;
   const lang = await getConsoleLang();
   const L = CONSOLE_STR[lang];
   const funnelLabel: Record<string, string> = {

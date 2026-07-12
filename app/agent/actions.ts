@@ -8,6 +8,52 @@ import { logAudit } from "@/lib/admin/audit";
 
 const BUCKET = "registration-docs";
 
+/**
+ * An agent asks the office for more detail on a university/programme. Raises a
+ * request to BOTH Marketing and Admissions (whoever picks it up first answers),
+ * carrying the agent's name so they know who's asking. Service-role: agents
+ * don't write to `action_requests` directly under RLS.
+ */
+export async function requestProgrammeInfo(input: {
+  university: string;
+  note?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return { ok: false, error: "forbidden" };
+  if (!input.university.trim()) return { ok: false, error: "no_university" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const detail = [
+    `Agent ${profile.full_name ?? profile.email ?? "partner"} requests more information about ${input.university.trim()}.`,
+    input.note?.trim() ? `Note: ${input.note.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const rows = ["marketing", "admissions"].map((toRole) => ({
+    application_id: null,
+    subject: input.university.trim(),
+    from_role: "agent",
+    from_user: profile.id,
+    to_role: toRole,
+    type: "request",
+    title: `Programme info — ${input.university.trim()}`,
+    detail,
+  }));
+  const { error } = await admin.from("action_requests").insert(rows);
+  if (error) return { ok: false, error: "insert_failed" };
+
+  await logAudit({
+    action: "agent_programme_info_requested",
+    target_type: "request",
+    detail: `${profile.full_name ?? profile.id} · ${input.university.trim()}`,
+  });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 /** The commission belongs to the calling agent and finance has opened it for
  *  claiming — returns its application id, else null. */
 async function claimableCommission(commissionId: string) {

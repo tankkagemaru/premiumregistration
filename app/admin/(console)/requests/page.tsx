@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { listRequests, TEAM_LABEL, type ActionRequest } from "@/lib/admin/requests";
 import { ResolveButton } from "@/components/admin/RequestControls";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
+import { GeneralRequestButton } from "@/components/admin/GeneralRequestButton";
 
 const TYPE_TONE: Record<string, string> = {
   blocker: "bg-brand-red-bg text-brand-red",
@@ -102,15 +103,20 @@ export default async function RequestsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Teamwork
-        </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">Requests</h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          Handoffs and blockers between Marketing, Admissions, Finance, Visa and
-          Academic — raised from any application, resolved by the receiving team.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
+            Teamwork
+          </p>
+          <h1 className="font-serif text-3xl font-medium text-ink">Requests</h1>
+          <p className="mt-2 max-w-2xl text-sm text-ink-soft">
+            Handoffs and blockers between Marketing, Admissions, Finance, Visa and
+            Academic — raised from any application, resolved by the receiving team.
+            Use <span className="font-medium text-ink">New request</span> for general
+            asks that aren&apos;t about a student.
+          </p>
+        </div>
+        <GeneralRequestButton defaultToRole={role === "admin" ? "admin" : undefined} />
       </div>
 
       <StageTabs tabs={tabs} active={stage} />
