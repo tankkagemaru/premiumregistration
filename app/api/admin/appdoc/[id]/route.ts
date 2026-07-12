@@ -33,18 +33,45 @@ export async function GET(
     .maybeSingle();
   if (!doc?.storage_path) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  // Default opens the file inline (new tab); ?dl=1 forces a download.
+  // ?dl=1 forces a download — a signed URL with the download flag is enough.
   const asDownload = new URL(req.url).searchParams.get("dl") === "1";
-  const { data: signed } = await admin.storage
-    .from(BUCKET)
-    .createSignedUrl(doc.storage_path, 60, asDownload ? { download: true } : undefined);
-  if (!signed) return NextResponse.json({ error: "sign_failed" }, { status: 500 });
+  if (asDownload) {
+    const { data: signed } = await admin.storage
+      .from(BUCKET)
+      .createSignedUrl(doc.storage_path, 60, { download: true });
+    if (!signed) return NextResponse.json({ error: "sign_failed" }, { status: 500 });
+    await logAudit({ action: "doc_downloaded", target_type: "document", target_id: id, detail: doc.storage_path });
+    return NextResponse.redirect(signed.signedUrl);
+  }
 
-  await logAudit({
-    action: asDownload ? "doc_downloaded" : "doc_viewed",
-    target_type: "document",
-    target_id: id,
-    detail: doc.storage_path,
+  // Inline preview: proxy the bytes ourselves with an explicit inline disposition
+  // and a content-type derived from the file extension. Uploads went through
+  // uploadToSignedUrl without a contentType, so many objects are stored as
+  // application/octet-stream — redirecting to the signed URL made the browser
+  // DOWNLOAD the file (blank <iframe> in the viewer float window) instead of
+  // rendering it. Serving the bytes with the right headers fixes the preview.
+  const { data: blob, error } = await admin.storage.from(BUCKET).download(doc.storage_path);
+  if (error || !blob) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const ext = (doc.storage_path.split(".").pop() ?? "").toLowerCase();
+  const byExt: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+    heic: "image/heic",
+  };
+  const stored = blob.type && blob.type !== "application/octet-stream" ? blob.type : "";
+  const contentType = byExt[ext] || stored || "application/octet-stream";
+
+  await logAudit({ action: "doc_viewed", target_type: "document", target_id: id, detail: doc.storage_path });
+  return new NextResponse(await blob.arrayBuffer(), {
+    headers: {
+      "content-type": contentType,
+      "content-disposition": "inline",
+      "cache-control": "private, max-age=60",
+    },
   });
-  return NextResponse.redirect(signed.signedUrl);
 }

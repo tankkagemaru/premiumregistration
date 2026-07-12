@@ -38,9 +38,34 @@ const FEE_TONE: Record<string, string> = {
   unpaid: "bg-brand-red-bg text-brand-red",
 };
 
+/**
+ * Which read-only sections each viewer sees in the shared popout. Keeps the
+ * drawer relevant to the team looking at it — finance collecting fees doesn't
+ * need the visa EMGS checklist or the counselling activity log. Roles absent
+ * from the map (admin/boss/admissions — the overview roles) see everything.
+ */
+const POPOUT_SECTIONS: Record<string, Set<string>> = {
+  finance: new Set(["fees", "documents"]),
+  visa: new Set(["visa", "documents", "fees"]),
+  academic: new Set(["plan", "documents", "activity"]),
+  counsellor: new Set(["plan", "documents", "activity"]),
+  marketing: new Set(["fees", "plan", "documents", "activity"]),
+};
+
 /** Read-only student popout — status, progress, plan, log and documents. Shared
- *  by the exec lookup and any list that shows a student name. */
-export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () => void }) {
+ *  by the exec lookup and any list that shows a student name. `viewer` (the
+ *  looking role) tailors which sections show; omit for the full overview. */
+export function DetailModal({
+  d,
+  viewer,
+  onClose,
+}: {
+  d: ExecStudentDetail;
+  viewer?: string;
+  onClose: () => void;
+}) {
+  const allowed = viewer ? POPOUT_SECTIONS[viewer] : null;
+  const show = (k: string) => !allowed || allowed.has(k);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-inkbtn/40" onClick={onClose} aria-hidden />
@@ -78,7 +103,7 @@ export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () 
         </div>
 
         <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4">
-          {d.visa && (
+          {d.visa && show("visa") && (
             <Section title={`Visa — ${d.visa.stageLabel}`}>
               <div className="flex flex-col gap-1.5">
                 {d.visa.checklist.map((c) => (
@@ -96,7 +121,7 @@ export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () 
             </Section>
           )}
 
-          {d.fees.length > 0 && (
+          {d.fees.length > 0 && show("fees") && (
             <Section title="Fees">
               <div className="flex flex-col gap-1.5">
                 {d.fees.map((f, i) => (
@@ -117,7 +142,7 @@ export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () 
             </Section>
           )}
 
-          {d.plan && (d.plan.steps.length > 0 || d.plan.summary) && (
+          {d.plan && (d.plan.steps.length > 0 || d.plan.summary) && show("plan") && (
             <Section title="Study plan">
               {d.plan.summary && <p className="mb-1.5 text-sm text-ink-soft">{d.plan.summary}</p>}
               <ol className="flex flex-col gap-1 text-sm">
@@ -149,7 +174,7 @@ export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () 
             </Section>
           )}
 
-          {d.documents.length > 0 && (
+          {d.documents.length > 0 && show("documents") && (
             <Section title="Documents">
               <div className="flex flex-col gap-1.5">
                 {d.documents.map((doc) => (
@@ -176,7 +201,7 @@ export function DetailModal({ d, onClose }: { d: ExecStudentDetail; onClose: () 
             </Section>
           )}
 
-          {d.events.length > 0 && (
+          {d.events.length > 0 && show("activity") && (
             <Section title="Recent activity">
               <div className="flex flex-col gap-1.5">
                 {d.events.map((e, i) => (
@@ -206,10 +231,13 @@ export function StudentNameButton({
   applicationId,
   name,
   className,
+  viewer,
 }: {
   applicationId: string;
   name: string;
   className?: string;
+  /** The looking role — tailors which sections the popout shows. */
+  viewer?: string;
 }) {
   const [detail, setDetail] = useState<ExecStudentDetail | null>(null);
   const [pending, start] = useTransition();
@@ -223,7 +251,7 @@ export function StudentNameButton({
       >
         {name}
       </button>
-      {detail && <DetailModal d={detail} onClose={() => setDetail(null)} />}
+      {detail && <DetailModal d={detail} viewer={viewer} onClose={() => setDetail(null)} />}
     </>
   );
 }

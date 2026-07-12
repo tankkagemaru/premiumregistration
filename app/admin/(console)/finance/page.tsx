@@ -158,11 +158,11 @@ export default async function FinancePage({
               {feeRows.map((f) => (
                 <tr key={f.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3">
-                    <StudentNameButton applicationId={f.application_id} name={f.student_name} />
+                    <StudentNameButton applicationId={f.application_id} name={f.student_name} viewer="finance" />
                   </td>
                   <td className="px-4 py-3 text-ink-soft">
                     {FEE_TYPE_LABEL[f.type]}
-                    {f.label ? ` · ${f.label}` : ""}
+                    {f.label && f.label !== FEE_TYPE_LABEL[f.type] ? ` · ${f.label}` : ""}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <FeeAmountControl
@@ -228,7 +228,7 @@ export default async function FinancePage({
                 <tr key={c.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                   <td className="px-4 py-3 font-medium text-ink">{c.agent_name ?? "—"}</td>
                   <td className="px-4 py-3 text-ink-soft">
-                    <StudentNameButton applicationId={c.application_id} name={c.student_name} />
+                    <StudentNameButton applicationId={c.application_id} name={c.student_name} viewer="finance" />
                   </td>
                   <td className="px-4 py-3">
                     <span
