@@ -39,7 +39,7 @@ export default async function ApplicationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const profile = await requireRole(["admin", "admissions", "visa", "academic", "counsellor", "staff"]);
+  const viewer = await requireRole(["admin", "admissions", "visa", "academic", "counsellor", "staff"]);
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -54,7 +54,7 @@ export default async function ApplicationsPage({
   // Visa queue, academic on enrolled/active, everyone else on Registration (the
   // review-first intake where new applications wait for the pay / no-pay call).
   const defaultStudentStage =
-    profile.role === "visa" ? "visa" : profile.role === "academic" ? "active" : "registration";
+    viewer.role === "visa" ? "visa" : viewer.role === "academic" ? "active" : "registration";
   const stage = one(sp.stage) ?? (lane === "corporate" ? "proposal" : defaultStudentStage);
 
   const laneApps = apps.filter((a) =>

@@ -56,8 +56,9 @@ export const VISA_STAGE_LABEL: Record<string, string> = {
 
 export type VisaKind = "initial" | "renewal";
 
-/** The ordered stage list for a case, by kind. */
-export function stagesForKind(kind?: string | null) {
+/** The ordered stage list for a case, by kind. Return type is widened to a
+ *  common shape so callers can `.map()` without a union-of-tuples error. */
+export function stagesForKind(kind?: string | null): readonly { id: string; label: string }[] {
   return kind === "renewal" ? RENEWAL_STAGES : VISA_STAGES;
 }
 
