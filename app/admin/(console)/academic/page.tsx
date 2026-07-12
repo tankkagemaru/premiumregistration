@@ -31,8 +31,12 @@ export default async function AcademicPage({
   ]);
   const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
   const visaByApp = new Map(visaCases.map((v) => [v.application_id, v] as const));
-  // Visa is considered "ready for class" once the VAL is issued (or later).
-  const VISA_READY = new Set(["val", "sev", "pass_active"]);
+  // Visa is considered "ready for class" once the eVAL is given (or later).
+  const VISA_READY = new Set([
+    "eval_given", "arrival_planning", "evisa_application", "evisa_received",
+    "arrived", "health_checkup", "health_report", "uni_submission",
+    "passport_submission", "sticker_received", "done",
+  ]);
 
   let students = apps.filter((a) => ACADEMIC_STAGES.includes(a.stage));
   if (q) {

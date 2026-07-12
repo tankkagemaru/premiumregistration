@@ -2,10 +2,18 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { VISA_STAGES } from "@/lib/admin/visa-shared";
+import { stagesForKind } from "@/lib/admin/visa-shared";
 import { updateVisaCase } from "@/app/admin/visa-actions";
 
-export function VisaStageSelect({ id, stage }: { id: string; stage: string }) {
+export function VisaStageSelect({
+  id,
+  stage,
+  kind,
+}: {
+  id: string;
+  stage: string;
+  kind?: string | null;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
@@ -20,7 +28,7 @@ export function VisaStageSelect({ id, stage }: { id: string; stage: string }) {
       }
       className="rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none"
     >
-      {VISA_STAGES.map((s) => (
+      {stagesForKind(kind).map((s) => (
         <option key={s.id} value={s.id}>
           {s.label}
         </option>

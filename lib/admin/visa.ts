@@ -13,7 +13,8 @@ const MOCK_CASES: VisaCase[] = [
     target: "Universiti Putra Malaysia (UPM)",
     submitted_by: "pecsb", // public university → PECSB files
     emgs_ref: "EMGS-2026-88123",
-    stage: "medical",
+    stage: "eval_process",
+    kind: "initial",
     medical_status: "pending",
   },
   {
@@ -22,7 +23,8 @@ const MOCK_CASES: VisaCase[] = [
     student_name: "Nguyen Van An",
     target: "General English (PLC)",
     submitted_by: "pecsb", // PLC's own course → PECSB files
-    stage: "docs_prep",
+    stage: "emgs_submitted",
+    kind: "initial",
   },
   {
     id: "v3",
@@ -31,7 +33,8 @@ const MOCK_CASES: VisaCase[] = [
     target: "IELTS Preparation (PLC)",
     submitted_by: "pecsb",
     emgs_ref: "EMGS-2025-41077",
-    stage: "pass_active",
+    stage: "done",
+    kind: "initial",
     medical_status: "passed",
     student_pass_expiry: "2026-08-15",
   },

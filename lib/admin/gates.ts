@@ -40,6 +40,6 @@ export async function loadGateSignals(appId: string): Promise<GateSignals> {
     requiredDocsPresent: true,
     allFeesCleared: feeRows.every((f) => CLEARED.has(f.status)),
     readyForVisa: Boolean(app?.ready_for_visa),
-    passIssued: (visa as { stage?: string } | null)?.stage === "pass_active",
+    passIssued: (visa as { stage?: string } | null)?.stage === "done",
   };
 }

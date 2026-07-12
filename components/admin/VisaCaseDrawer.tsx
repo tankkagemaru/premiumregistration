@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X, Check, Circle } from "lucide-react";
+import { X, Check, Circle, RefreshCw } from "lucide-react";
 import {
-  VISA_STAGES,
   EVAL_STATUSES,
   MEDICAL_STATUSES,
+  ARRIVAL_TASKS,
+  VISA_STAGE_LABEL,
+  stagesForKind,
   visaChecklist,
   type VisaCase,
 } from "@/lib/admin/visa-shared";
@@ -17,7 +19,7 @@ import type {
   AppDocRequest,
 } from "@/lib/admin/applications-shared";
 import type { DocRequirement } from "@/lib/config/documents";
-import { updateVisaCase } from "@/app/admin/visa-actions";
+import { updateVisaCase, startRenewal } from "@/app/admin/visa-actions";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { MessageComposer } from "@/components/admin/MessageComposer";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
@@ -72,7 +74,11 @@ export function VisaCaseDrawer({
     student_pass_expiry: vc.student_pass_expiry ?? "",
   });
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const [tasks, setTasks] = useState<Record<string, boolean>>(vc.checklist ?? {});
+  const toggleTask = (key: string) => setTasks((t) => ({ ...t, [key]: !t[key] }));
 
+  const isRenewal = vc.kind === "renewal";
+  const stages = stagesForKind(vc.kind);
   const close = () => router.push("/admin/visa");
   const checklist = visaChecklist({ ...vc, ...form });
 
@@ -80,6 +86,7 @@ export function VisaCaseDrawer({
     start(async () => {
       await updateVisaCase(vc.id, {
         ...form,
+        checklist: tasks,
         emgs_ref: form.emgs_ref || null,
         medical_booked_date: form.medical_booked_date || null,
         medical_location: form.medical_location || null,
@@ -98,7 +105,14 @@ export function VisaCaseDrawer({
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
         <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
           <div>
-            <h2 className="font-serif text-2xl font-medium text-ink">{vc.student_name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-serif text-2xl font-medium text-ink">{vc.student_name}</h2>
+              {isRenewal && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-brand-gold/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-gold">
+                  <RefreshCw className="h-3 w-3" aria-hidden /> Renewal
+                </span>
+              )}
+            </div>
             <p className="text-xs text-ink-muted">{vc.target ?? "Visa / EMGS"}</p>
           </div>
           <button onClick={close} aria-label="Close" className="rounded-md p-1 text-ink-muted hover:bg-cream-50 hover:text-ink">
@@ -130,7 +144,7 @@ export function VisaCaseDrawer({
             <div>
               <SectionLabel>Details</SectionLabel>
               <div className="flex flex-col divide-y divide-border-warm/50">
-                <RoRow k="Stage" v={VISA_STAGES.find((s) => s.id === vc.stage)?.label ?? vc.stage} />
+                <RoRow k="Stage" v={VISA_STAGE_LABEL[vc.stage] ?? vc.stage} />
                 <RoRow k="EMGS reference" v={vc.emgs_ref} />
                 <RoRow k="Evaluation" v={vc.eval_status} />
                 <RoRow k="Medical" v={vc.medical_status} />
@@ -148,7 +162,7 @@ export function VisaCaseDrawer({
             <label className="col-span-2 text-xs font-medium text-ink-soft">
               Stage
               <select value={form.stage} onChange={(e) => set("stage", e.target.value)} className={`mt-1 ${FIELD}`}>
-                {VISA_STAGES.map((s) => (
+                {stages.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
@@ -194,13 +208,46 @@ export function VisaCaseDrawer({
               <input type="date" value={form.student_pass_expiry} onChange={(e) => set("student_pass_expiry", e.target.value)} className={`mt-1 ${FIELD}`} />
             </label>
           </div>
-          <button
-            onClick={save}
-            disabled={pending}
-            className="self-start rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save changes"}
-          </button>
+
+          {/* Arrival planning sub-tasks — the errands to settle before/around
+              the student lands. Only relevant on the initial journey. */}
+          {!isRenewal && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-ink-soft">Arrival planning</p>
+              <div className="flex flex-col gap-1.5 rounded-md border border-border-warm bg-cream-50/60 p-2.5">
+                {ARRIVAL_TASKS.map((task) => (
+                  <label key={task.key} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={!!tasks[task.key]}
+                      onChange={() => toggleTask(task.key)}
+                      className="h-4 w-4 rounded border-border-warm text-brand-red"
+                    />
+                    {task.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={save}
+              disabled={pending}
+              className="rounded-md bg-brand-red px-5 py-2 text-sm font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+            >
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+            {!isRenewal && vc.stage === "done" && (
+              <button
+                onClick={() => start(async () => { await startRenewal(vc.id); router.refresh(); })}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 rounded-md border border-brand-gold/40 bg-brand-gold/10 px-4 py-2 text-sm font-medium text-brand-gold hover:bg-brand-gold/20 disabled:opacity-50"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden /> Start renewal
+              </button>
+            )}
+          </div>
           </fieldset>
           )}
 

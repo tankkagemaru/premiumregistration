@@ -16,6 +16,8 @@ export async function updateVisaCase(
   id: string,
   patch: {
     stage?: string;
+    kind?: string;
+    checklist?: Record<string, boolean>;
     emgs_ref?: string | null;
     eval_status?: string | null;
     medical_status?: string | null;
@@ -51,10 +53,39 @@ export async function createVisaCase(
   await supabase.from("visa_cases").insert({
     application_id: applicationId,
     submitted_by: submittedBy,
-    stage: "docs_prep",
+    stage: "emgs_submitted",
+    kind: "initial",
     student_name: app?.student_name ?? null,
     target: app?.target_institution ?? app?.program_name ?? null,
   });
   await logAudit({ action: "visa_case_created", target_type: "application", target_id: applicationId, detail: `filed by ${submittedBy}` });
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * Open a renewal cycle for a student already on a pass. Creates a fresh
+ * `kind='renewal'` case on the same application (a new row, so the original
+ * initial case stays as the history), carrying over the filer + target.
+ */
+export async function startRenewal(fromCaseId: string) {
+  if (!authConfigured || !(await canEditVisa())) return;
+  const supabase = await createClient();
+  const { data: prev } = await supabase
+    .from("visa_cases")
+    .select("application_id, student_name, target, submitted_by, emgs_ref, student_pass_expiry")
+    .eq("id", fromCaseId)
+    .single();
+  if (!prev) return;
+  await supabase.from("visa_cases").insert({
+    application_id: prev.application_id,
+    submitted_by: prev.submitted_by,
+    stage: "renewal_started",
+    kind: "renewal",
+    student_name: prev.student_name,
+    target: prev.target,
+    emgs_ref: prev.emgs_ref,
+    student_pass_expiry: prev.student_pass_expiry,
+  });
+  await logAudit({ action: "visa_renewal_started", target_type: "application", target_id: prev.application_id });
   revalidatePath("/admin", "layout");
 }

@@ -14,14 +14,22 @@ import { getApplication } from "@/lib/admin/applications";
 import { getDocRequirements } from "@/lib/admin/doc-rules";
 import { listAppDocRequests } from "@/lib/admin/doc-requests";
 
-// Which stage tab a case belongs to.
+// Group the granular stages into phase buckets for the stage tabs.
+const STAGE_BUCKET: Record<string, string> = {
+  // initial journey
+  emgs_submitted: "emgs", emgs_review: "emgs", immigration_review: "emgs",
+  eval_process: "eval", eval_given: "eval",
+  arrival_planning: "arrival", evisa_application: "arrival", evisa_received: "arrival", arrived: "arrival",
+  health_checkup: "health", health_report: "health",
+  uni_submission: "final", passport_submission: "final", sticker_received: "final",
+  done: "done",
+  // renewal cycle
+  renewal_started: "emgs",
+  // back-compat coarse ids
+  docs_prep: "emgs", submitted: "emgs", medical: "health", val: "eval", sev: "arrival", pass_active: "done",
+};
 function bucketOf(stage: string): string {
-  if (stage === "docs_prep") return "docs_prep";
-  if (stage === "submitted") return "submitted";
-  if (stage === "medical") return "medical";
-  if (stage === "val" || stage === "sev") return "val";
-  if (stage === "pass_active") return "active";
-  return "docs_prep";
+  return STAGE_BUCKET[stage] ?? "emgs";
 }
 
 export default async function VisaPage({
@@ -77,14 +85,21 @@ export default async function VisaPage({
     })),
   ];
 
-  const all = await listVisaCases();
+  const allCases = await listVisaCases();
   const today = new Date().toISOString().slice(0, 10);
   const soon = new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10);
-  const isAttention = (c: (typeof all)[number]) =>
-    (c.student_pass_expiry && c.student_pass_expiry <= soon && c.stage !== "docs_prep") ||
-    (c.stage !== "pass_active" &&
+  const isAttention = (c: (typeof allCases)[number]) =>
+    (c.student_pass_expiry && c.student_pass_expiry <= soon && c.stage !== "done") ||
+    (c.stage !== "done" &&
       c.created_at != null &&
       String(c.created_at).slice(0, 10) < new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10));
+
+  // Two pipelines: initial applications vs pass renewals.
+  const kind = (Array.isArray(sp.kind) ? sp.kind[0] : sp.kind) === "renewals" ? "renewals" : "applications";
+  const renewalCount = allCases.filter((c) => c.kind === "renewal").length;
+  const all = allCases.filter((c) =>
+    kind === "renewals" ? c.kind === "renewal" : c.kind !== "renewal",
+  );
 
   const searched = q
     ? all.filter((c) =>
@@ -99,13 +114,15 @@ export default async function VisaPage({
         ? isAttention(c)
         : bucketOf(c.stage) === id;
 
+  const count = (id: string) => searched.filter((c) => inTab(c, id)).length;
   const tabs: StageTab[] = [
-    { id: "attention", label: "Attention", attention: true, count: searched.filter((c) => isAttention(c)).length },
-    { id: "docs_prep", label: "Doc prep", count: searched.filter((c) => bucketOf(c.stage) === "docs_prep").length },
-    { id: "submitted", label: "EMGS", count: searched.filter((c) => bucketOf(c.stage) === "submitted").length },
-    { id: "medical", label: "Medical", count: searched.filter((c) => bucketOf(c.stage) === "medical").length },
-    { id: "val", label: "VAL / Visa", count: searched.filter((c) => bucketOf(c.stage) === "val").length },
-    { id: "active", label: "Active", count: searched.filter((c) => bucketOf(c.stage) === "active").length },
+    { id: "attention", label: "Attention", attention: true, count: count("attention") },
+    { id: "emgs", label: "EMGS", count: count("emgs") },
+    { id: "eval", label: "eVAL", count: count("eval") },
+    ...(kind === "renewals" ? [] : [{ id: "arrival", label: "Arrival", count: count("arrival") }]),
+    { id: "health", label: "Health", count: count("health") },
+    { id: "final", label: "Finalising", count: count("final") },
+    { id: "done", label: "Done", count: count("done") },
     { id: "all", label: "All", count: searched.length },
   ];
   const cases = searched.filter((c) => inTab(c, stage));
@@ -125,6 +142,22 @@ export default async function VisaPage({
           </p>
         </div>
         <SearchBox placeholder="Search student or EMGS ref…" />
+      </div>
+
+      {/* Initial applications vs pass renewals — two pipelines. */}
+      <div className="inline-flex w-fit overflow-hidden rounded-md border border-border-warm">
+        {([
+          { id: "applications", label: "New applications" },
+          { id: "renewals", label: `Renewals${renewalCount ? ` (${renewalCount})` : ""}` },
+        ] as const).map((k) => (
+          <Link
+            key={k.id}
+            href={`/admin/visa?kind=${k.id}`}
+            className={`px-4 py-1.5 text-sm font-medium ${kind === k.id ? "bg-inkbtn text-oncolor" : "bg-paper text-ink-soft hover:bg-cream-50"}`}
+          >
+            {k.label}
+          </Link>
+        ))}
       </div>
 
       <StageTabs tabs={tabs} active={stage} />
@@ -176,7 +209,7 @@ export default async function VisaPage({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-ink">{VISA_STAGE_LABEL[c.stage] ?? c.stage}</span>
-                      {canEdit && <VisaStageSelect id={c.id} stage={c.stage} />}
+                      {canEdit && <VisaStageSelect id={c.id} stage={c.stage} kind={c.kind} />}
                     </div>
                   </td>
                   <td className="px-4 py-3">

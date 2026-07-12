@@ -118,7 +118,7 @@ export function ApplicationDrawer({
     requiredDocsPresent: missing.length === 0,
     allFeesCleared: fees.every((f) => cleared(f.status)),
     readyForVisa: Boolean(app.ready_for_visa),
-    passIssued: visa?.stage === "pass_active",
+    passIssued: visa?.stage === "done",
   };
 
   const messageVars: Record<string, string> = {
