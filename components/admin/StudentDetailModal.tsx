@@ -6,6 +6,7 @@ import { X, CheckCircle2, Circle, FileText } from "lucide-react";
 import { getExecStudentDetail } from "@/app/admin/exec-actions";
 import type { ExecStudentDetail } from "@/lib/admin/exec-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
+import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
 export function Chip({ tone, children }: { tone: "ok" | "warn" | "muted"; children: React.ReactNode }) {
   const cls =
@@ -60,11 +61,14 @@ export function DetailModal({
   d,
   viewer,
   onClose,
+  lang = "en",
 }: {
   d: ExecStudentDetail;
   viewer?: string;
   onClose: () => void;
+  lang?: ConsoleLang;
 }) {
+  const L = CONSOLE_STR[lang];
   const allowed = viewer ? POPOUT_SECTIONS[viewer] : null;
   const show = (k: string) => !allowed || allowed.has(k);
 
@@ -82,6 +86,7 @@ export function DetailModal({
       <div
         role="dialog"
         aria-label={d.name}
+        dir={lang === "ar" ? "rtl" : "ltr"}
         className="relative z-10 flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-card border border-border-warm bg-paper shadow-xl"
       >
         <div className="border-b border-border-warm px-5 py-4">
@@ -93,7 +98,7 @@ export function DetailModal({
                 {d.intake ? ` · ${d.intake}` : ""}
               </p>
             </div>
-            <button onClick={onClose} aria-label="Close" className="text-ink-muted hover:text-ink">
+            <button onClick={onClose} aria-label={L.close} className="text-ink-muted hover:text-ink">
               <X className="h-5 w-5" aria-hidden />
             </button>
           </div>
@@ -105,16 +110,16 @@ export function DetailModal({
             <Chip tone="ok">{d.stageLabel}</Chip>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-ink-muted">
-            {d.ref && <span className="font-mono">Ref {d.ref}</span>}
-            {d.classStart && <span>Class {d.classStart} → {d.classEnd ?? "…"}</span>}
-            {d.nextAction && <span>Next: {d.nextAction}{d.nextActionDue ? ` (${d.nextActionDue})` : ""}</span>}
-            {d.offerAcknowledgedAt && <span>Offer acknowledged {String(d.offerAcknowledgedAt).slice(0, 10)}</span>}
+            {d.ref && <span className="font-mono">{L.dm_ref} {d.ref}</span>}
+            {d.classStart && <span>{L.dm_class} {d.classStart} → {d.classEnd ?? "…"}</span>}
+            {d.nextAction && <span>{L.dm_next} {d.nextAction}{d.nextActionDue ? ` (${d.nextActionDue})` : ""}</span>}
+            {d.offerAcknowledgedAt && <span>{L.dm_offer_ack} {String(d.offerAcknowledgedAt).slice(0, 10)}</span>}
           </div>
         </div>
 
         <div className="flex flex-col gap-5 overflow-y-auto px-5 py-4">
           {d.visa && show("visa") && (
-            <Section title={`Visa — ${d.visa.stageLabel}`}>
+            <Section title={`${L.dm_visa} — ${d.visa.stageLabel}`}>
               <div className="flex flex-col gap-1.5">
                 {d.visa.checklist.map((c) => (
                   <div key={c.label} className="flex items-center gap-2 text-sm">
@@ -132,7 +137,7 @@ export function DetailModal({
           )}
 
           {d.fees.length > 0 && show("fees") && (
-            <Section title="Fees">
+            <Section title={L.dm_fees}>
               <div className="flex flex-col gap-1.5">
                 {d.fees.map((f, i) => (
                   <div key={i} className="flex items-center justify-between gap-3 text-sm">
@@ -153,7 +158,7 @@ export function DetailModal({
           )}
 
           {d.plan && (d.plan.steps.length > 0 || d.plan.summary) && show("plan") && (
-            <Section title="Study plan">
+            <Section title={L.dm_study_plan}>
               {d.plan.summary && <p className="mb-1.5 text-sm text-ink-soft">{d.plan.summary}</p>}
               <ol className="flex flex-col gap-1 text-sm">
                 {d.plan.steps.map((s, i) => (
@@ -169,7 +174,7 @@ export function DetailModal({
                 ))}
               </ol>
               {d.plan.targetCompletion && (
-                <p className="mt-1.5 text-xs text-ink-muted">Finish by {d.plan.targetCompletion}</p>
+                <p className="mt-1.5 text-xs text-ink-muted">{L.dm_finish_by} {d.plan.targetCompletion}</p>
               )}
               {d.plan.signoffs.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -185,7 +190,7 @@ export function DetailModal({
           )}
 
           {d.documents.length > 0 && show("documents") && (
-            <Section title="Documents">
+            <Section title={L.dm_documents}>
               <div className="flex flex-col gap-1.5">
                 {d.documents.map((doc) => (
                   <a
@@ -212,7 +217,7 @@ export function DetailModal({
           )}
 
           {d.events.length > 0 && show("activity") && (
-            <Section title="Recent activity">
+            <Section title={L.dm_recent_activity}>
               <div className="flex flex-col gap-1.5">
                 {d.events.map((e, i) => (
                   <div key={i} className="flex gap-3 text-sm">
@@ -226,7 +231,7 @@ export function DetailModal({
         </div>
 
         <div className="border-t border-border-warm bg-cream-50/60 px-5 py-2.5 text-center text-[11px] text-ink-muted">
-          View only — changes are made by the owning team in its own tab.
+          {L.dm_view_only}
         </div>
       </div>
     </div>,

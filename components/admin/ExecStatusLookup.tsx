@@ -5,8 +5,11 @@ import { Search, ChevronRight } from "lucide-react";
 import { lookupStatus, getExecStudentDetail } from "@/app/admin/exec-actions";
 import type { StatusHit, ExecStudentDetail } from "@/lib/admin/exec-shared";
 import { DetailModal, Chip } from "@/components/admin/StudentDetailModal";
+import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
-function HitCard({ h, onOpen }: { h: StatusHit; onOpen?: () => void }) {
+type Str = (typeof CONSOLE_STR)["en"];
+
+function HitCard({ h, onOpen, L }: { h: StatusHit; onOpen?: () => void; L: Str }) {
   const clickable = Boolean(h.applicationId && onOpen);
   const Inner = (
     <>
@@ -21,17 +24,17 @@ function HitCard({ h, onOpen }: { h: StatusHit; onOpen?: () => void }) {
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {h.isInternational && (
           <Chip tone={h.visaStageLabel === "not filed" ? "warn" : "muted"}>
-            Visa: {h.visaStageLabel}
+            {L.hit_visa} {h.visaStageLabel}
           </Chip>
         )}
         {h.feesCleared !== null &&
           (h.feesCleared ? (
-            <Chip tone="ok">Fees cleared</Chip>
+            <Chip tone="ok">{L.hit_fees_cleared}</Chip>
           ) : (
-            <Chip tone="warn">Fees outstanding</Chip>
+            <Chip tone="warn">{L.hit_fees_outstanding}</Chip>
           ))}
-        {h.nextAction && <Chip tone="muted">Next: {h.nextAction}</Chip>}
-        {h.ref && <span className="font-mono text-[11px] text-ink-muted">Ref {h.ref}</span>}
+        {h.nextAction && <Chip tone="muted">{L.hit_next} {h.nextAction}</Chip>}
+        {h.ref && <span className="font-mono text-[11px] text-ink-muted">{L.hit_ref} {h.ref}</span>}
       </div>
     </>
   );
@@ -50,9 +53,12 @@ function HitCard({ h, onOpen }: { h: StatusHit; onOpen?: () => void }) {
 
 export function ExecStatusLookup({
   labels,
+  lang = "en",
 }: {
   labels?: { title: string; placeholder: string; button: string; none: string };
+  lang?: ConsoleLang;
 }) {
+  const L = CONSOLE_STR[lang];
   const l = labels ?? {
     title: "Quick status check",
     placeholder: "Look up a student by name or passport / ID…",
@@ -114,14 +120,14 @@ export function ExecStatusLookup({
           ) : (
             <div className="overflow-hidden rounded-card border border-border-warm">
               {hits.map((h, i) => (
-                <HitCard key={`${h.name}-${i}`} h={h} onOpen={() => open(h)} />
+                <HitCard key={`${h.name}-${i}`} h={h} onOpen={() => open(h)} L={L} />
               ))}
             </div>
           )}
         </div>
       )}
 
-      {detail && <DetailModal d={detail} onClose={() => setDetail(null)} />}
+      {detail && <DetailModal d={detail} onClose={() => setDetail(null)} lang={lang} />}
     </section>
   );
 }

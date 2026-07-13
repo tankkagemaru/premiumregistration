@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, GraduationCap, CalendarDays, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
-const TABS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/agent", label: "My students", icon: Users },
-  { href: "/agent/programmes", label: "Programmes", icon: GraduationCap },
-  { href: "/agent/calendar", label: "Calendar", icon: CalendarDays },
+const TABS: { href: string; key: "ag_nav_students" | "ag_nav_programmes" | "ag_nav_calendar"; icon: LucideIcon }[] = [
+  { href: "/agent", key: "ag_nav_students", icon: Users },
+  { href: "/agent/programmes", key: "ag_nav_programmes", icon: GraduationCap },
+  { href: "/agent/calendar", key: "ag_nav_calendar", icon: CalendarDays },
 ];
 
-export function AgentNav() {
+export function AgentNav({ lang = "en" }: { lang?: ConsoleLang }) {
   const pathname = usePathname();
+  const L = CONSOLE_STR[lang];
   return (
     <nav className="border-b border-border-warm">
       <div className="mx-auto flex max-w-4xl gap-5 px-6">
@@ -29,7 +31,7 @@ export function AgentNav() {
               )}
             >
               <Icon className="nav-ico h-4 w-4" aria-hidden />
-              {t.label}
+              {L[t.key]}
             </Link>
           );
         })}

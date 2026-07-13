@@ -10,15 +10,16 @@ import {
 } from "@/lib/admin/applications-shared";
 import { DOC_KIND_LABEL } from "@/lib/config/documents";
 import { createStudentDocUploadUrl, recordStudentDoc } from "@/app/agent/actions";
+import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
 const BUCKET = "registration-docs";
-const UPLOAD_KINDS = [
-  { kind: "passport", label: "Passport" },
-  { kind: "transcript", label: "Transcript(s)" },
-  { kind: "certificate", label: "Certificate(s)" },
-  { kind: "photo", label: "Passport photo" },
-  { kind: "financial", label: "Proof of funds" },
-  { kind: "english_test", label: "English test" },
+const UPLOAD_KINDS: { kind: string; key: "ag_doc_passport" | "ag_doc_transcript" | "ag_doc_certificate" | "ag_doc_photo" | "ag_doc_financial" | "ag_doc_english_test" }[] = [
+  { kind: "passport", key: "ag_doc_passport" },
+  { kind: "transcript", key: "ag_doc_transcript" },
+  { kind: "certificate", key: "ag_doc_certificate" },
+  { kind: "photo", key: "ag_doc_photo" },
+  { kind: "financial", key: "ag_doc_financial" },
+  { kind: "english_test", key: "ag_doc_english_test" },
 ];
 
 export interface AgentStudentDoc {
@@ -32,16 +33,19 @@ export function AgentStudentName({
   app,
   paymentLabel,
   docs,
+  lang = "en",
 }: {
   app: Application;
   paymentLabel: string;
   docs: AgentStudentDoc[];
+  lang?: ConsoleLang;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const L = CONSOLE_STR[lang];
 
   const have = new Set(docs.map((d) => d.kind));
 
@@ -68,7 +72,7 @@ export function AgentStudentName({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div dir={lang === "ar" ? "rtl" : "ltr"} className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-inkbtn/40" onClick={() => setOpen(false)} aria-hidden />
           <div className="relative z-10 flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-card border border-border-warm bg-paper shadow-xl">
             <div className="flex items-start justify-between gap-3 border-b border-border-warm px-5 py-4">
@@ -78,7 +82,7 @@ export function AgentStudentName({
                   {app.target_institution ?? app.program_name ?? app.track}
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-muted hover:text-ink">
+              <button onClick={() => setOpen(false)} aria-label={L.close} className="text-ink-muted hover:text-ink">
                 <X className="h-5 w-5" aria-hidden />
               </button>
             </div>
@@ -94,13 +98,13 @@ export function AgentStudentName({
                 </span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
-                <span>Payment: <span className="font-medium text-ink">{paymentLabel}</span></span>
-                {app.next_action && <span>Next: {app.next_action}{app.next_action_due ? ` (${app.next_action_due})` : ""}</span>}
+                <span>{L.ag_payment}: <span className="font-medium text-ink">{paymentLabel}</span></span>
+                {app.next_action && <span>{L.ag_next_plain}: {app.next_action}{app.next_action_due ? ` (${app.next_action_due})` : ""}</span>}
               </div>
 
               {/* Documents */}
               <div>
-                <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">Documents</p>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.18em] text-ink-muted">{L.ag_documents}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {UPLOAD_KINDS.map((d) => {
                     const done = have.has(d.kind);
@@ -117,7 +121,7 @@ export function AgentStudentName({
                           {uploading === d.kind ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                             : done ? <Check className="h-3.5 w-3.5" aria-hidden />
                             : <Upload className="h-3.5 w-3.5" aria-hidden />}
-                          {d.label}
+                          {L[d.key]}
                         </button>
                         <input
                           ref={(el) => { inputs.current[d.kind] = el; }}
@@ -146,7 +150,7 @@ export function AgentStudentName({
             </div>
 
             <div className="border-t border-border-warm bg-cream-50/60 px-5 py-2.5 text-center text-[11px] text-ink-muted">
-              Upload documents here — the PECSB team reviews them.
+              {L.ag_upload_footer}
             </div>
           </div>
         </div>

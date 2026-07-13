@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
-export function AgentLink({ url }: { url: string }) {
+export function AgentLink({ url, lang = "en" }: { url: string; lang?: ConsoleLang }) {
   const [copied, setCopied] = useState(false);
+  const L = CONSOLE_STR[lang];
 
   function copy() {
     navigator.clipboard?.writeText(url).then(() => {
@@ -28,7 +30,7 @@ export function AgentLink({ url }: { url: string }) {
         ) : (
           <Copy className="h-3.5 w-3.5" aria-hidden />
         )}
-        {copied ? "Copied" : "Copy"}
+        {copied ? L.ag_copied : L.ag_copy}
       </button>
     </div>
   );

@@ -99,6 +99,7 @@ export default async function ExecPage() {
 
       {/* Quick status check — name / passport lookup for on-the-spot answers */}
       <ExecStatusLookup
+        lang={lang}
         labels={{
           title: L.exec_lookup_title,
           placeholder: L.exec_lookup_placeholder,
