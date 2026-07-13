@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { X, CheckCircle2, Circle, FileText } from "lucide-react";
 import { getExecStudentDetail } from "@/app/admin/exec-actions";
 import type { ExecStudentDetail } from "@/lib/admin/exec-shared";
@@ -66,7 +67,16 @@ export function DetailModal({
 }) {
   const allowed = viewer ? POPOUT_SECTIONS[viewer] : null;
   const show = (k: string) => !allowed || allowed.has(k);
-  return (
+
+  // Render on document.body: the console <main> carries a persistent transform
+  // (the rise-in entrance animation with fill-mode: both), which would otherwise
+  // make this `fixed` overlay resolve against <main> instead of the viewport —
+  // leaving the sidebar uncovered and the drawer mispositioned.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-inkbtn/40" onClick={onClose} aria-hidden />
       <div
@@ -219,7 +229,8 @@ export function DetailModal({
           View only — changes are made by the owning team in its own tab.
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
