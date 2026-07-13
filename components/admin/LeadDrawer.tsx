@@ -21,6 +21,7 @@ import {
 } from "@/app/admin/actions";
 import { createApplicationFromLead } from "@/app/admin/application-actions";
 import { MessageComposer } from "@/components/admin/MessageComposer";
+import { EditContactControl } from "@/components/admin/EditContactControl";
 import { PlanEditor } from "@/components/admin/PlanEditor";
 import { LeadQuoteEditor } from "@/components/admin/LeadQuoteEditor";
 import type { BillableItem } from "@/lib/admin/billables-shared";
@@ -142,6 +143,7 @@ export function LeadDrawer({
   onClose,
   officerName,
   stalenessDays,
+  role = "staff",
 }: {
   data: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] };
   staff: Staff[];
@@ -149,6 +151,7 @@ export function LeadDrawer({
   onClose: () => void;
   officerName?: string;
   stalenessDays?: StalenessDays;
+  role?: string;
 }) {
   const { lead, events, documents } = data;
   const router = useRouter();
@@ -277,6 +280,19 @@ export function LeadDrawer({
             <Row k="WhatsApp" v={lead.whatsapp} />
             <Row k="Nationality" v={lbl(COUNTRIES, lead.nationality ?? undefined)} />
             <Row k="Interested in" v={lead.tracks.join(", ")} />
+            <EditContactControl
+              target="lead"
+              id={lead.id}
+              canEdit={["admin", "marketing", "admissions"].includes(role)}
+              initial={{
+                full_name: lead.full_name,
+                email: lead.email,
+                phone: lead.phone,
+                whatsapp: lead.whatsapp,
+                nationality: lead.nationality,
+                passport_no: lead.passport_no,
+              }}
+            />
           </div>
 
           {/* Message the lead */}

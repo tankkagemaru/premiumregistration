@@ -30,6 +30,7 @@ import { createActionRequest } from "@/app/admin/request-actions";
 import { DocumentUploader } from "@/components/admin/DocumentUploader";
 import { PlanEditor } from "@/components/admin/PlanEditor";
 import { MessageComposer } from "@/components/admin/MessageComposer";
+import { EditContactControl } from "@/components/admin/EditContactControl";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { TRACKS } from "@/lib/config/tracks";
@@ -155,6 +156,19 @@ export function ApplicationDrawer({
             Full student record →
           </Link>
         )}
+        <EditContactControl
+          target="application"
+          id={app.id}
+          canEdit={["admin", "marketing", "admissions"].includes(role)}
+          initial={{
+            full_name: app.student_name,
+            email: contact?.email ?? app.student_email,
+            phone: contact?.phone,
+            whatsapp: contact?.whatsapp,
+            nationality: contact?.nationality,
+            passport_no: contact?.passport_no,
+          }}
+        />
       </div>
     ),
 

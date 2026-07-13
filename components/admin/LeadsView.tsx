@@ -60,6 +60,7 @@ export function LeadsView({
   billables = [],
   officerName,
   stalenessDays,
+  role = "staff",
 }: {
   leads: Lead[];
   selected: { lead: Lead; events: LeadEvent[]; documents: LeadDocument[] } | null;
@@ -68,6 +69,7 @@ export function LeadsView({
   billables?: BillableItem[];
   officerName?: string;
   stalenessDays?: StalenessDays;
+  role?: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -268,6 +270,7 @@ export function LeadsView({
           billables={billables}
           officerName={officerName}
           stalenessDays={stalenessDays}
+          role={role}
           onClose={() => setParam("lead", undefined)}
         />
       )}

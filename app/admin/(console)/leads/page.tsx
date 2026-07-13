@@ -36,6 +36,7 @@ export default async function LeadsPage({
       billables={billables}
       officerName={profile?.full_name}
       stalenessDays={stalenessDays}
+      role={profile?.role ?? "staff"}
     />
   );
 }

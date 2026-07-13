@@ -306,6 +306,7 @@ export interface AppContact {
   whatsapp?: string | null;
   email?: string | null;
   nationality?: string | null;
+  passport_no?: string | null;
 }
 
 /** One-off per-application document request (e.g. an unusual EMGS ask). */
