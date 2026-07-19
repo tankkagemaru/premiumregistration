@@ -1,4 +1,5 @@
 import { getAgentPortal } from "@/lib/agent/portal";
+import { getAgentOwnAgreement } from "@/lib/admin/agreements";
 import { listResources } from "@/lib/admin/resources";
 import { RESOURCE_CATEGORIES } from "@/lib/admin/resources-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
@@ -9,6 +10,7 @@ import { AgentLink } from "@/components/agent/AgentLink";
 import { AgentRegisterModal } from "@/components/agent/AgentRegisterModal";
 import { AgentMeetingButton } from "@/components/agent/AgentMeetingButton";
 import { AgentStudents } from "@/components/agent/AgentStudents";
+import { AgentAgreementCard } from "@/components/agent/AgentAgreementCard";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 const APP_URL =
@@ -20,6 +22,7 @@ const APP_URL =
 export default async function AgentHome() {
   const { agent, apps, commissions, fees, docs, visaCases } = await getAgentPortal();
   const resources = await listResources(true);
+  const agreement = await getAgentOwnAgreement(agent.id);
   const lang = await getConsoleLang();
   const L = CONSOLE_STR[lang];
   const referral = `${APP_URL}/register?agent=${agent.code}`;
@@ -68,6 +71,9 @@ export default async function AgentHome() {
           </div>
         ))}
       </div>
+
+      {/* Recruitment agreement — complete + sign, or download the final copy */}
+      {agreement && <AgentAgreementCard agreement={agreement} />}
 
       {/* Commission breakdown — where your earnings stand */}
       {commissionTotal > 0 && (
