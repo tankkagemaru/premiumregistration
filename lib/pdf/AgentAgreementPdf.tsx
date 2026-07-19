@@ -34,6 +34,11 @@ Font.register({
     { src: path.join(FONT_DIR, "Inter-Bold.ttf"), fontWeight: 700 },
   ],
 });
+// Handwriting face for the electronic signature mark.
+Font.register({
+  family: "Signature",
+  fonts: [{ src: path.join(FONT_DIR, "GreatVibes-Regular.ttf"), fontWeight: 400 }],
+});
 Font.registerHyphenationCallback((word) => [word]);
 
 const CRIMSON = "#a8242e";
@@ -91,14 +96,31 @@ const s = StyleSheet.create({
   tdMuted: { padding: 5, color: MUTED },
   value: { fontWeight: 500 },
   blank: { color: MUTED },
+  // compact particulars table (fits Part 1 on a single page)
+  pNum: { paddingVertical: 3, paddingHorizontal: 5, color: MUTED, fontSize: 8, width: 20 },
+  pLabel: { paddingVertical: 3, paddingHorizontal: 5, color: SOFT, fontSize: 8, width: 138 },
+  pVal: { paddingVertical: 3, paddingHorizontal: 5, color: INK, fontFamily: "Inter", fontWeight: 500, fontSize: 8, flex: 1 },
+  // cover page
+  cover: { flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" },
+  coverKicker: { fontSize: 8, letterSpacing: 3, color: CRIMSON, fontWeight: 700, marginBottom: 20 },
+  coverTitle: { fontFamily: "Playfair", fontWeight: 700, fontSize: 30, color: INK, lineHeight: 1.2 },
+  coverRule: { width: 90, height: 2, backgroundColor: CRIMSON, marginTop: 18, marginBottom: 26 },
+  coverBetween: { fontSize: 8.5, letterSpacing: 2, color: MUTED, marginTop: 14 },
+  coverParty: { fontFamily: "Playfair", fontWeight: 600, fontSize: 14, color: INK, marginTop: 4 },
+  coverPartySub: { fontSize: 8, color: MUTED, marginTop: 2 },
+  coverDate: { fontSize: 9, color: SOFT, marginTop: 30 },
+  coverOffice: { fontSize: 7.5, color: MUTED, marginTop: 4, maxWidth: 320 },
+  coverConfidential: { fontSize: 7, letterSpacing: 1.5, color: CRIMSON, fontWeight: 700, marginTop: 26 },
   // signature blocks
   sigWrap: { flexDirection: "row", gap: 24, marginTop: 18 },
   sigBox: { flex: 1, borderWidth: 1, borderColor: LINE, padding: 12 },
   sigFor: { fontSize: 7, letterSpacing: 1.2, color: MUTED, marginBottom: 3 },
-  sigParty: { fontWeight: 700, fontSize: 9.5, marginBottom: 14 },
+  sigParty: { fontWeight: 700, fontSize: 9.5, marginBottom: 10 },
+  sigMark: { fontFamily: "Signature", fontSize: 30, color: "#1c3f6e", lineHeight: 1 },
   sigName: { fontFamily: "Playfair", fontWeight: 600, fontSize: 16, color: CRIMSON },
   sigLine: { borderBottomWidth: 1, borderBottomColor: INK, height: 26, marginBottom: 4 },
   sigMeta: { fontSize: 8, color: SOFT, marginTop: 2 },
+  sigElec: { fontSize: 6.5, color: MUTED, marginTop: 3 },
   footer: {
     position: "absolute",
     bottom: 28,
@@ -151,9 +173,9 @@ function Footer({ refNo }: { refNo: string }) {
 function PartRow({ n, label, value, last }: { n: string; label: string; value: string; last?: boolean }) {
   return (
     <View style={last ? s.trLast : s.tr}>
-      <Text style={[s.tdMuted, { width: 24 }]}>{n}</Text>
-      <Text style={[s.td, { width: 150, color: SOFT }]}>{label}</Text>
-      <Text style={[s.td, s.value, { flex: 1 }]}>{value}</Text>
+      <Text style={s.pNum}>{n}</Text>
+      <Text style={s.pLabel}>{label}</Text>
+      <Text style={s.pVal}>{value}</Text>
     </View>
   );
 }
@@ -198,15 +220,21 @@ function SigBlock({
       <Text style={s.sigFor}>SIGNED FOR AND ON BEHALF OF</Text>
       <Text style={s.sigParty}>{party}</Text>
       {signedName ? (
-        <>
-          <Text style={s.sigName}>{signedName}</Text>
-          <Text style={s.sigMeta}>
-            {kind === "uploaded"
-              ? "Signed copy uploaded"
-              : "Signed electronically"}
-            {date ? ` · ${fmtDate(date)}` : ""}
-          </Text>
-        </>
+        kind === "uploaded" ? (
+          <>
+            <Text style={s.sigName}>{signedName}</Text>
+            <Text style={s.sigMeta}>Signed copy uploaded{date ? ` · ${fmtDate(date)}` : ""}</Text>
+          </>
+        ) : (
+          <>
+            {/* Handwriting mark for the electronic signature. */}
+            <Text style={s.sigMark}>{signedName}</Text>
+            <Text style={s.sigElec}>
+              Signed electronically{date ? ` on ${fmtDate(date)}` : ""} — a valid signature under the
+              Electronic Commerce Act 2006 and Clause 23(f).
+            </Text>
+          </>
+        )
       ) : (
         <View style={s.sigLine} />
       )}
@@ -232,35 +260,43 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
 
   return (
     <Document title={`Recruitment Agreement — ${recruiter}`} author="PECSB">
-      {/* ------------------------------------------------ cover + particulars */}
+      {/* ------------------------------------------------ cover page */}
       <Page size="A4" style={s.page}>
         <View style={s.bar} fixed />
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-          {data.logoSrc ? <Image src={data.logoSrc} style={{ width: 42, height: 42, marginRight: 10 }} /> : null}
-          <View>
-            <Text style={{ fontWeight: 700, fontSize: 10, letterSpacing: 1.2, color: CRIMSON }}>
-              PREMIUM ENTREPRENEUR CONSULTANT SDN. BHD.
-            </Text>
-            <Text style={s.small}>
-              Operating Premium Language Centre · Reg. No. {PECSB.regNo}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={s.kicker}>STRICTLY PRIVATE & CONFIDENTIAL · {refNo}</Text>
-        <Text style={s.h1}>Student Recruitment{"\n"}Representative Agreement</Text>
-
-        <View style={{ marginTop: 18 }}>
-          <Text style={{ color: SOFT }}>BETWEEN</Text>
-          <Text style={{ fontWeight: 700, marginTop: 2 }}>{PECSB.name}</Text>
-          <Text style={{ color: SOFT, marginTop: 6 }}>AND</Text>
-          <Text style={{ fontWeight: 700, marginTop: 2 }}>{recruiter}</Text>
-          <Text style={s.small}>
-            Business / Company Reg. No. {v(p.reg_no)} · Dated {fmtDate(p.agreement_date)}
+        <View style={{ alignItems: "center" }}>
+          {data.logoSrc ? <Image src={data.logoSrc} style={{ width: 54, height: 54, marginBottom: 8 }} /> : null}
+          <Text style={{ fontWeight: 700, fontSize: 11, letterSpacing: 1.4, color: CRIMSON, textAlign: "center" }}>
+            PREMIUM ENTREPRENEUR CONSULTANT SDN. BHD.
+          </Text>
+          <Text style={[s.small, { textAlign: "center" }]}>
+            Operating Premium Language Centre · Reg. No. {PECSB.regNo}
           </Text>
         </View>
 
-        <Text style={[s.h2, { marginTop: 26 }]}>
+        <View style={s.cover}>
+          <Text style={s.coverKicker}>STUDENT RECRUITMENT REPRESENTATIVE</Text>
+          <Text style={s.coverTitle}>Student Recruitment{"\n"}Representative Agreement</Text>
+          <View style={s.coverRule} />
+
+          <Text style={s.coverBetween}>BETWEEN</Text>
+          <Text style={s.coverParty}>{PECSB.name}</Text>
+          <Text style={s.coverPartySub}>Company No. {PECSB.regNo}</Text>
+
+          <Text style={s.coverBetween}>AND</Text>
+          <Text style={s.coverParty}>{recruiter}</Text>
+          <Text style={s.coverPartySub}>Business / Company Reg. No. {v(p.reg_no)}</Text>
+
+          <Text style={s.coverDate}>Dated {fmtDate(p.agreement_date)}</Text>
+          <Text style={s.coverOffice}>Registered office of PECSB: {PECSB.address}</Text>
+          <Text style={s.coverConfidential}>STRICTLY PRIVATE & CONFIDENTIAL · {refNo}</Text>
+        </View>
+        <Footer refNo={refNo} />
+      </Page>
+
+      {/* ------------------------------------------------ Part 1 — Particulars */}
+      <Page size="A4" style={s.page}>
+        <View style={s.bar} fixed />
+        <Text style={[s.h2, { marginTop: 2 }]}>
           <Text style={s.clauseNo}>PART 1</Text>
           {"   "}Schedule of Particulars
         </Text>
