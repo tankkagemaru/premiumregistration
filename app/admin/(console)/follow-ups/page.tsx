@@ -4,6 +4,20 @@ import { listLeads, listStaff } from "@/lib/admin/leads";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import type { Lead } from "@/lib/admin/leads-shared";
 
+/** "Overdue 3 days" / "Due today" / "Due Mon 21 Jul" — product copy, not raw ISO. */
+function dueLabel(iso?: string | null): { text: string; overdue: boolean } {
+  if (!iso) return { text: "—", overdue: false };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${iso}T00:00:00`);
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) return { text: `Overdue ${-days} day${days === -1 ? "" : "s"}`, overdue: true };
+  if (days === 0) return { text: "Due today", overdue: false };
+  if (days === 1) return { text: "Due tomorrow", overdue: false };
+  const nice = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(due);
+  return { text: `Due ${nice}`, overdue: false };
+}
+
 function List({
   leads,
   staffName,
@@ -14,27 +28,30 @@ function List({
   if (leads.length === 0)
     return (
       <p className="rounded-card border border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-        Nothing here.
+        No follow-ups in this view — all caught up.
       </p>
     );
   return (
     <div className="overflow-hidden rounded-card border border-border-warm">
-      {leads.map((l) => (
-        <Link
-          key={l.id}
-          href={`/admin/leads?lead=${l.id}`}
-          className="flex items-center justify-between gap-4 border-b border-border-warm/60 bg-paper px-4 py-3 transition-colors last:border-0 hover:bg-cream-50"
-        >
-          <div>
-            <p className="text-sm font-medium text-ink">{l.full_name}</p>
-            <p className="text-xs text-ink-muted">{l.next_action}</p>
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-xs text-ink">{l.next_action_due}</p>
-            <p className="text-[11px] text-ink-muted">{staffName(l.assigned_to)}</p>
-          </div>
-        </Link>
-      ))}
+      {leads.map((l) => {
+        const due = dueLabel(l.next_action_due);
+        return (
+          <Link
+            key={l.id}
+            href={`/admin/leads?lead=${l.id}`}
+            className="flex items-center justify-between gap-4 border-b border-border-warm/60 bg-paper px-4 py-3 transition-colors last:border-0 hover:bg-cream-50"
+          >
+            <div>
+              <p className="text-sm font-medium text-ink">{l.full_name}</p>
+              <p className="text-xs text-ink-muted">{l.next_action}</p>
+            </div>
+            <div className="text-right">
+              <p className={`text-xs font-medium ${due.overdue ? "text-brand-red" : "text-ink"}`}>{due.text}</p>
+              <p className="text-[11px] text-ink-muted">{staffName(l.assigned_to)}</p>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }

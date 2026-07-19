@@ -12,8 +12,10 @@ import {
   stagesForKind,
   stageBucket,
   visaChecklist,
+  humanizeStatus,
   type VisaCase,
 } from "@/lib/admin/visa-shared";
+import { Overlay } from "@/components/ui/Overlay";
 import type {
   AppContact,
   ApplicationDoc,
@@ -129,7 +131,7 @@ export function VisaCaseDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
+    <Overlay className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-inkbtn/30" onClick={close} aria-hidden />
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
         <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
@@ -180,8 +182,8 @@ export function VisaCaseDrawer({
               <div className="flex flex-col divide-y divide-border-warm/50">
                 <RoRow k="Stage" v={VISA_STAGE_LABEL[vc.stage] ?? vc.stage} />
                 <RoRow k="EMGS reference" v={vc.emgs_ref} />
-                <RoRow k="Evaluation" v={vc.eval_status} />
-                <RoRow k="Medical" v={vc.medical_status} />
+                <RoRow k="Evaluation" v={humanizeStatus(vc.eval_status)} />
+                <RoRow k="Medical" v={humanizeStatus(vc.medical_status)} />
                 <RoRow k="Medical booked" v={vc.medical_booked_date} />
                 <RoRow k="Medical location" v={vc.medical_location} />
                 <RoRow k="VAL status" v={vc.val_status} />
@@ -252,7 +254,7 @@ export function VisaCaseDrawer({
               <label className="text-xs font-medium text-ink-soft">
                 Evaluation
                 <select value={form.eval_status} onChange={(e) => set("eval_status", e.target.value)} className={`mt-1 ${FIELD}`}>
-                  {EVAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {EVAL_STATUSES.map((s) => <option key={s} value={s}>{humanizeStatus(s)}</option>)}
                 </select>
               </label>
             )}
@@ -260,7 +262,7 @@ export function VisaCaseDrawer({
               <label className="text-xs font-medium text-ink-soft">
                 Health check-up
                 <select value={form.medical_status} onChange={(e) => set("medical_status", e.target.value)} className={`mt-1 ${FIELD}`}>
-                  {MEDICAL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {MEDICAL_STATUSES.map((s) => <option key={s} value={s}>{humanizeStatus(s)}</option>)}
                 </select>
               </label>
             )}
@@ -430,6 +432,6 @@ export function VisaCaseDrawer({
           )}
         </div>
       </aside>
-    </div>
+    </Overlay>
   );
 }

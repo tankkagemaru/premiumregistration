@@ -220,7 +220,7 @@ export function NextStepPanel({
                 <p className={`text-xs ${blocked ? "text-brand-red" : "text-brand-gold"}`}>
                   {blocked
                     ? `Blocked — first: ${gate.reason}`
-                    : `⚠ ${gate.reason} not done — advancing anyway (soft mode)`}
+                    : `${gate.reason} not done — advancing is allowed but flagged (soft mode)`}
                 </p>
               )}
             </>

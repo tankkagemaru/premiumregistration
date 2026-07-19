@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarPlus, X } from "lucide-react";
 import type { EnglishOffering } from "@/lib/admin/english-offerings-shared";
 import { createActionRequest } from "@/app/admin/request-actions";
+import { Overlay } from "@/components/ui/Overlay";
 
 const F = "w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-2 text-sm text-ink outline-none focus:border-brand-red";
 const LABEL = "mb-1 block text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted";
@@ -69,7 +70,7 @@ export function ProgrammeRequestButton({ offerings }: { offerings: EnglishOfferi
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <Overlay className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-inkbtn/40" onClick={() => setOpen(false)} aria-hidden />
           <div role="dialog" aria-label="Request a programme" className="relative z-10 w-full max-w-md rounded-card border border-border-warm bg-paper p-5 shadow-xl">
             <div className="mb-4 flex items-start justify-between">
@@ -110,7 +111,7 @@ export function ProgrammeRequestButton({ offerings }: { offerings: EnglishOfferi
               </div>
             </div>
           </div>
-        </div>
+        </Overlay>
       )}
     </>
   );

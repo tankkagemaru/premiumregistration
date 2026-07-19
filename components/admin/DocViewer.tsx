@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X, Download, ExternalLink } from "lucide-react";
+import { Overlay } from "@/components/ui/Overlay";
 
 /**
  * In-app document viewer — a float window over the console rather than a new
@@ -29,7 +30,7 @@ export function DocViewer({
   const src = `/api/admin/appdoc/${docId}`;
 
   return (
-    <div
+    <Overlay
       className="fixed inset-0 z-[60] flex items-center justify-center bg-inkbtn/40 p-3 sm:p-6"
       onClick={onClose}
     >
@@ -73,6 +74,6 @@ export function DocViewer({
           className="h-full w-full flex-1 bg-cream-50"
         />
       </div>
-    </div>
+    </Overlay>
   );
 }

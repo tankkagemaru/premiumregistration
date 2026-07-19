@@ -417,7 +417,7 @@ export async function logWork(
   const supabase = await createClient();
   const profile = await getProfile();
   const when = input.date || new Date().toISOString().slice(0, 10);
-  const body = `[${input.activity}] ${when}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}${input.attachmentDocId ? " 📎" : ""}`;
+  const body = `[${input.activity}] ${when}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}${input.attachmentDocId ? " (attachment)" : ""}`;
   await supabase.from("application_events").insert({
     application_id: id,
     actor_id: profile?.id,

@@ -121,6 +121,13 @@ export interface VisaCase {
 export const EVAL_STATUSES = ["not_started", "submitted", "approved", "rejected"];
 export const MEDICAL_STATUSES = ["pending", "booked", "passed", "failed"];
 
+/** "not_started" → "Not started" — human copy for machine sub-status values. */
+export function humanizeStatus(s?: string | null): string {
+  if (!s) return "";
+  const t = s.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 /**
  * The "where are we" progress list for a case — every stage of its journey with
  * a done flag up to the current stage. Drives the drawer checklist and the

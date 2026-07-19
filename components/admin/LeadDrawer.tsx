@@ -29,6 +29,10 @@ import type { QuoteItem } from "@/app/admin/lead-quote-actions";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { Overlay } from "@/components/ui/Overlay";
+import { TRACKS } from "@/lib/config/tracks";
+
+const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { toWhatsAppNumber } from "@/lib/phone";
 import { COUNTRIES } from "@/lib/config/countries";
@@ -177,7 +181,7 @@ export function LeadDrawer({
   const refresh = () => router.refresh();
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
+    <Overlay className="fixed inset-0 z-40 flex justify-end">
       <div
         className="absolute inset-0 bg-inkbtn/30"
         onClick={onClose}
@@ -285,7 +289,7 @@ export function LeadDrawer({
             <Row k="Passport / ID" v={lead.passport_no} />
             <Row k="WhatsApp" v={lead.whatsapp} />
             <Row k="Nationality" v={lbl(COUNTRIES, lead.nationality ?? undefined)} />
-            <Row k="Interested in" v={lead.tracks.join(", ")} />
+            <Row k="Interested in" v={lead.tracks.map((t) => TRACK_TITLE[t] ?? t).join(", ")} />
             <EditContactControl
               target="lead"
               id={lead.id}
@@ -313,7 +317,7 @@ export function LeadDrawer({
               vars={{
                 full_name: lead.full_name,
                 officer: officerName ?? "the Premium team",
-                company: "Premium",
+                company: "Premium Language Centre",
               }}
               context="lead"
               onSent={(channel, label) =>
@@ -418,9 +422,9 @@ export function LeadDrawer({
                       }
                       className="rounded-md border border-border-warm bg-paper px-2 py-1 text-xs text-ink outline-none"
                     >
-                      <option value="pending">pending</option>
-                      <option value="verified">verified</option>
-                      <option value="rejected">rejected</option>
+                      <option value="pending">Pending review</option>
+                      <option value="verified">Verified</option>
+                      <option value="rejected">Rejected</option>
                     </select>
                   </div>
                 ))}
@@ -554,7 +558,7 @@ export function LeadDrawer({
             <div className="flex flex-col gap-2 overflow-y-auto px-5 py-4">
               <Row k="Student" v={lead.full_name} />
               <Row k="Email" v={lead.email} />
-              <Row k="Tracks" v={lead.tracks.join(", ")} />
+              <Row k="Tracks" v={lead.tracks.map((t) => TRACK_TITLE[t] ?? t).join(", ")} />
               {quote.length > 0 && (
                 <div className="mt-1">
                   <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-ink-muted">
@@ -589,6 +593,6 @@ export function LeadDrawer({
           </div>
         </div>
       )}
-    </div>
+    </Overlay>
   );
 }

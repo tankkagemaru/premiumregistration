@@ -163,6 +163,11 @@ export default async function ReportsPage() {
           Revenue by fee type
         </p>
         <div className="overflow-hidden rounded-card border border-border-warm">
+          {byType.size === 0 && (
+            <p className="bg-paper px-4 py-6 text-center text-sm text-ink-muted">
+              No fees recorded yet — revenue appears here as fees are billed and collected.
+            </p>
+          )}
           {[...byType.entries()].map(([type, row]) => {
             const pct = row.billed ? Math.round((row.received / row.billed) * 100) : 0;
             return (

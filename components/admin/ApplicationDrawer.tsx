@@ -22,6 +22,14 @@ import {
   setApplicationStatus,
 } from "@/app/admin/application-actions";
 import { APP_STATUS_LABEL, APP_STATUS_TONE } from "@/lib/admin/applications-shared";
+import { Overlay } from "@/components/ui/Overlay";
+import { FEE_STATUS_LABEL } from "@/lib/admin/finance-shared";
+
+const SUBMITTED_BY_LABEL: Record<string, string> = {
+  student: "Student (online form)",
+  agent: "Agent referral",
+  staff: "Staff",
+};
 import { NextStepPanel } from "@/components/admin/NextStepPanel";
 import { DocRequestControl } from "@/components/admin/DocRequestControl";
 import { WorkLog } from "@/components/admin/WorkLog";
@@ -155,7 +163,7 @@ export function ApplicationDrawer({
         <Row k="Track" v={TRACK_TITLE[app.track] ?? app.track} />
         <Row k="Target" v={app.target_institution} />
         <Row k="Program" v={app.program_name} />
-        <Row k="Submitted by" v={app.submitted_by} />
+        <Row k="Submitted by" v={SUBMITTED_BY_LABEL[app.submitted_by] ?? app.submitted_by} />
         <Row k="Agent" v={app.agent_name} />
         <Row k="Stage" v={STAGE_LABEL[app.stage]} />
         {app.student_id && (
@@ -322,7 +330,7 @@ export function ApplicationDrawer({
                         : "bg-brand-red-bg text-brand-red"
                   }`}
                 >
-                  {f.status}
+                  {FEE_STATUS_LABEL[f.status] ?? f.status}
                 </span>
               </span>
             </div>
@@ -455,7 +463,7 @@ export function ApplicationDrawer({
   const order = SECTION_ORDER[role] ?? SECTION_ORDER.staff;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
+    <Overlay className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-inkbtn/30" onClick={close} aria-hidden />
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col overflow-y-auto bg-cream shadow-lg">
         <div className="flex items-start justify-between border-b border-border-warm px-6 py-4">
@@ -518,6 +526,6 @@ export function ApplicationDrawer({
           {order.map((k) => (sections[k] ? <Fragment key={k}>{sections[k]}</Fragment> : null))}
         </div>
       </aside>
-    </div>
+    </Overlay>
   );
 }

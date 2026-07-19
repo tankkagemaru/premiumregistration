@@ -63,7 +63,7 @@ export function PipelineBoard({ leads }: { leads: Lead[] }) {
               </div>
             ))}
             {cards.length === 0 && (
-              <p className="px-1 py-4 text-center text-xs text-ink-muted">Empty</p>
+              <p className="px-1 py-4 text-center text-xs text-ink-muted">No leads at this stage</p>
             )}
           </div>
         );

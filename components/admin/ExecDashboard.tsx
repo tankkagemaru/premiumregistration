@@ -5,7 +5,8 @@ import { TRACKS } from "@/lib/config/tracks";
 import { GeneralRequestButton } from "@/components/admin/GeneralRequestButton";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
-const PIE_CLS = ["text-brand-red", "text-brand-gold", "text-status-present", "text-ink-muted", "text-brand-red-soft"];
+// Distinct hues in the house palette — adjacent slices must be tellable apart.
+const PIE_CLS = ["text-brand-red", "text-brand-gold", "text-status-present", "text-inkbtn", "text-ink-muted"];
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = (deg * Math.PI) / 180;

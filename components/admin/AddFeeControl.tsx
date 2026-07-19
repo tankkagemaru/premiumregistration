@@ -58,6 +58,7 @@ export function AddFeeControl({
       <div className="grid grid-cols-2 gap-2">
         <input
           type="number"
+          min={0}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder={placeholder}
@@ -74,7 +75,7 @@ export function AddFeeControl({
       </div>
       <div className="flex gap-2">
         <button
-          disabled={pending || !itemId}
+          disabled={pending || !itemId || (!!amount && Number(amount) <= 0)}
           onClick={() =>
             start(async () => {
               await createFeeFromItem({

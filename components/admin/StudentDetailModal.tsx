@@ -6,6 +6,8 @@ import { X, CheckCircle2, Circle, FileText } from "lucide-react";
 import { getExecStudentDetail } from "@/app/admin/exec-actions";
 import type { ExecStudentDetail } from "@/lib/admin/exec-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
+import { PLAN_ROLE_LABEL } from "@/lib/admin/applications-shared";
+import { humanizeStatus } from "@/lib/admin/visa-shared";
 import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
 export function Chip({ tone, children }: { tone: "ok" | "warn" | "muted"; children: React.ReactNode }) {
@@ -181,7 +183,7 @@ export function DetailModal({
                   {d.plan.signoffs.map((sg, i) => (
                     <span key={i} title={sg.note} className="inline-flex items-center gap-1 rounded bg-status-present-bg px-2 py-0.5 text-[11px] font-medium text-status-present">
                       <CheckCircle2 className="h-3 w-3" aria-hidden />
-                      {sg.role}{sg.by ? ` · ${sg.by}` : ""}
+                      {PLAN_ROLE_LABEL[sg.role] ?? sg.role}{sg.by ? ` · ${sg.by}` : ""}
                     </span>
                   ))}
                 </div>
@@ -207,7 +209,7 @@ export function DetailModal({
                     <span className="flex items-center gap-2 text-[11px] text-ink-muted">
                       {doc.at}
                       <Chip tone={doc.reviewStatus === "verified" ? "ok" : doc.reviewStatus === "rejected" ? "warn" : "muted"}>
-                        {doc.reviewStatus}
+                        {humanizeStatus(doc.reviewStatus)}
                       </Chip>
                     </span>
                   </a>

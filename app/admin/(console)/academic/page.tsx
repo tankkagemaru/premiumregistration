@@ -209,7 +209,7 @@ export default async function AcademicPage({
                     />
                     {visaClash && (
                       <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-brand-gold">
-                        ⚠ Class starts {a.class_start} but visa is{" "}
+                        Class starts {a.class_start} but visa is{" "}
                         {vc ? `at "${VISA_STAGE_LABEL[vc.stage] ?? vc.stage}"` : "not filed yet"}
                         {" — re-check the dates"}
                       </p>

@@ -10,6 +10,7 @@ import {
   createStudentDirect,
   type NewRecordInput,
 } from "@/app/admin/lead-create-actions";
+import { Overlay } from "@/components/ui/Overlay";
 
 export type AddMode = "lead" | "student";
 
@@ -88,7 +89,7 @@ export function AddRecordDialog({
   }
 
   return (
-    <div
+    <Overlay
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-inkbtn/30 p-4 sm:p-8"
       onClick={onClose}
     >
@@ -271,6 +272,6 @@ export function AddRecordDialog({
           </div>
         </form>
       </div>
-    </div>
+    </Overlay>
   );
 }
