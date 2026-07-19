@@ -7,6 +7,15 @@ Pairs with `docs/PLATFORM.md` (architecture), `docs/BACKLOG.md` (what's left),
 
 _Last refreshed 2026-07-05, the evening before the stakeholder demo._
 
+> **Dated session handovers (newest first) — read the latest for what changed since:**
+> - `docs/HANDOFF-2026-07-19-agreements-certificate-offer-audit.md` — agent
+>   agreement system (request → due diligence → sign → PDF → certificate →
+>   change requests), per-agent commission automation, revised offer letter,
+>   full department audit + remediation (money/gate fixes, handoffs, workflow
+>   verbs, system-wide overlay-portal + polish). Ends at commit `b5dcb2c`.
+> - `docs/HANDOFF-2026-07-13-departments-and-agent.md` — department reviews + agent portal.
+> - `docs/HANDOFF-2026-07-12-review-first-registration.md` — review-first registration flow.
+
 ## What this is
 `regist·er` — PECSB's public registration site **and** the back-office platform
 behind it: an international-student recruitment & admissions system. Marketing →
