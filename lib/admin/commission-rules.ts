@@ -24,7 +24,10 @@ export async function listCommissionRules(): Promise<CommissionRule[]> {
 
   const ids = [...new Set(rules.map((r) => r.subject_id).filter(Boolean))] as string[];
   if (ids.length) {
-    const { data: profs } = await supabase
+    // Service-role lookup: finance can't read other profiles under RLS, but
+    // the rules list must show who an agent/handler rule targets.
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { data: profs } = await createAdminClient()
       .from("profiles")
       .select("id, full_name")
       .in("id", ids);

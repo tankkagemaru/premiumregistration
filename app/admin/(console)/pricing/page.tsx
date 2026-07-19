@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { listCommissionRules } from "@/lib/admin/commission-rules";
 import { listBillableItems } from "@/lib/admin/billables";
-import { listUsers } from "@/lib/admin/users";
+import { listUsersPrivileged } from "@/lib/admin/users";
 import { CommissionRulesManager } from "@/components/admin/CommissionRulesManager";
 import { BillableItemsManager } from "@/components/admin/BillableItemsManager";
 
@@ -15,7 +15,9 @@ export default async function PricingPage() {
   const [rules, billables, people] = await Promise.all([
     listCommissionRules(),
     listBillableItems(true),
-    listUsers(),
+    // Privileged: finance can't read other profiles under RLS, but the
+    // "Person" picker needs agents + handlers.
+    listUsersPrivileged(),
   ]);
 
   return (

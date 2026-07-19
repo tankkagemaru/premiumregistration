@@ -31,7 +31,10 @@ export async function listAgreements(): Promise<AgentAgreement[]> {
   const rows = (data as AgentAgreement[] | null) ?? [];
   const ids = [...new Set(rows.map((r) => r.agent_id))];
   if (ids.length) {
-    const { data: profs } = await supabase
+    // Service-role lookup: finance can read agreements but not other profiles
+    // under RLS, and the list must still show who each agreement is with.
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { data: profs } = await createAdminClient()
       .from("profiles")
       .select("id, full_name, agent_code")
       .in("id", ids);

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/auth";
 import { authConfigured } from "./leads-shared";
 import type { StaffUser } from "./users-shared";
 
@@ -12,6 +13,26 @@ const MOCK_USERS: StaffUser[] = [
   { id: "s-kucing", full_name: "Kucing Oren", email: "kucing@partners.example", role: "agent", agent_code: "KUCING" },
   { id: "s-felix", full_name: "Felix", email: "felix@partners.example", role: "agent", agent_code: "FELIX", parent_agent_id: "s-kucing" },
 ];
+
+/**
+ * All profiles via the service role, for console pages whose viewers cannot
+ * read other profiles under RLS (profiles are self-or-admin readable, but
+ * finance needs the agent list for agreements/commission rules and marketing
+ * needs it for agent codes). Read-only, gated to those staff roles.
+ */
+export async function listUsersPrivileged(): Promise<StaffUser[]> {
+  if (!authConfigured) return MOCK_USERS;
+  const profile = await getProfile();
+  if (!profile || !["admin", "finance", "marketing"].includes(profile.role)) return [];
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("id,full_name,email,role,agent_code,parent_agent_id,created_at")
+    .order("created_at", { ascending: true })
+    .limit(200);
+  return (data as StaffUser[] | null) ?? [];
+}
 
 export async function listUsers(q?: string): Promise<StaffUser[]> {
   let rows: StaffUser[];

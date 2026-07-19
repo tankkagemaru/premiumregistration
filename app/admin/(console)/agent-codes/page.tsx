@@ -1,6 +1,6 @@
 import { requireRole, getProfile, type Role } from "@/lib/auth";
 import { listAgentCodes, AGENT_CODE_ROLES } from "@/lib/admin/agent-codes";
-import { listUsers } from "@/lib/admin/users";
+import { listUsersPrivileged } from "@/lib/admin/users";
 import { listResources } from "@/lib/admin/resources";
 import { listAgreements } from "@/lib/admin/agreements";
 import { AgentCodesManager } from "@/components/admin/AgentCodesManager";
@@ -11,7 +11,9 @@ export default async function AgentCodesPage() {
   await requireRole(AGENT_CODE_ROLES as Role[]);
   const [codes, users, resources, agreements, profile] = await Promise.all([
     listAgentCodes(),
-    listUsers(),
+    // Privileged: finance/marketing can't read other profiles under RLS, but
+    // this page needs the agent list for codes + agreements.
+    listUsersPrivileged(),
     listResources(),
     listAgreements(),
     getProfile(),
@@ -26,13 +28,13 @@ export default async function AgentCodesPage() {
     <div className="flex flex-col gap-6">
       <div>
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-ink-muted">
-          Agent codes
+          Agents
         </p>
-        <h1 className="font-serif text-3xl font-medium text-ink">Referral tracking</h1>
+        <h1 className="font-serif text-3xl font-medium text-ink">Agent management</h1>
         <p className="mt-2 max-w-2xl text-sm text-ink-soft">
-          Issue a code for each referral agent. When a student enters it on the
-          registration form, the lead is attributed to that agent. Admin, finance
-          and marketing can issue and manage codes.
+          Everything about referral agents in one place: their tracking codes,
+          recruitment agreements, and the resources shown in their portal. A code
+          entered on the registration form attributes the lead to that agent.
         </p>
       </div>
 
