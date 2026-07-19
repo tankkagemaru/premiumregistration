@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { X, Plus, FileText, Send, PenLine, Trash2, RefreshCw, Upload, Loader2, Check, ShieldCheck } from "lucide-react";
+import { X, Plus, FileText, Send, PenLine, Trash2, RefreshCw, Upload, Loader2, Check, ShieldCheck, Award } from "lucide-react";
 import {
   AGREEMENT_STATUS_LABEL,
   AGREEMENT_STATUS_TONE,
@@ -29,6 +29,7 @@ import {
   createAgreementUploadUrl,
   recordAgreementSignedUpload,
   setAgentDocReview,
+  issueCertificate,
 } from "@/app/admin/agreement-actions";
 
 const F = "w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
@@ -604,6 +605,22 @@ function AgreementEditor({
                 {saved ? <Check className="h-3.5 w-3.5" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
                 Apply scheme to commission rules
               </button>
+            )}
+
+            {a.status === "active" && (
+              <span className="inline-flex items-center gap-2">
+                <button
+                  disabled={pending}
+                  onClick={() => start(async () => { const r = await issueCertificate(a.id); if (!r.ok) { setErr("Could not issue the certificate."); return; } router.refresh(); })}
+                  className={`${BTN} inline-flex items-center gap-1.5 border border-brand-gold/50 text-brand-gold hover:bg-status-late-bg disabled:opacity-50`}
+                >
+                  <Award className="h-3.5 w-3.5" aria-hidden />
+                  {a.certificate_issued_at ? "Re-issue certificate" : "Issue certificate"}
+                </button>
+                <a href={`/api/agreement/certificate?id=${a.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-brand-red hover:underline">
+                  {a.certificate_issued_at ? "View certificate" : "Preview certificate"}
+                </a>
+              </span>
             )}
 
             {["signed_agent", "active"].includes(a.status) && (

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, PenLine, Upload, Loader2, Check, ShieldCheck } from "lucide-react";
+import { FileText, PenLine, Upload, Loader2, Check, ShieldCheck, Award } from "lucide-react";
 import {
   AGREEMENT_STATUS_LABEL,
   AGREEMENT_STATUS_TONE,
@@ -138,10 +138,27 @@ export function AgentAgreementCard({ agreement: a }: { agreement: AgentAgreement
       </div>
 
       {a.status === "active" && (
-        <p className="flex items-center gap-2 text-sm text-status-present">
-          <ShieldCheck className="h-4 w-4" aria-hidden />
-          Active{a.valid_until ? ` until ${a.valid_until}` : ""} — signed by both parties.
-        </p>
+        <div className="flex flex-col gap-3">
+          <p className="flex items-center gap-2 text-sm text-status-present">
+            <ShieldCheck className="h-4 w-4" aria-hidden />
+            Active{a.valid_until ? ` until ${a.valid_until}` : ""} — signed by both parties.
+          </p>
+          {a.certificate_issued_at ? (
+            <a
+              href={`/api/agreement/certificate?id=${a.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-2 rounded-md border border-brand-gold/50 bg-status-late-bg px-4 py-2.5 text-sm font-medium text-brand-gold transition-colors hover:bg-status-late-bg/70"
+            >
+              <Award className="h-4 w-4" aria-hidden />
+              Download your authorised-agent certificate
+            </a>
+          ) : (
+            <p className="text-xs text-ink-muted">
+              Your authorised-agent certificate will appear here once PECSB issues it.
+            </p>
+          )}
+        </div>
       )}
       {a.status === "signed_agent" && (
         <p className="text-sm text-ink-soft">

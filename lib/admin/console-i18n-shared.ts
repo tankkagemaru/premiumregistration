@@ -83,6 +83,7 @@ const en = {
   exec_col_enrolled: "Enrolled",
   exec_col_conversion: "Conversion",
   exec_no_sources: "No source data yet — performance tables populate as enquiries come in with agent codes, UTM tags, or track selections.",
+  exec_agent_arrangements: "Agent arrangements",
   // shared
   close: "Close",
   cancel: "Cancel",
@@ -278,6 +279,7 @@ const ar: typeof en = {
   exec_col_enrolled: "مسجلون",
   exec_col_conversion: "التحويل",
   exec_no_sources: "لا بيانات مصادر بعد — تمتلئ جداول الأداء مع ورود الاستفسارات برموز وكلاء أو وسوم UTM أو اختيارات مسار.",
+  exec_agent_arrangements: "ترتيبات الوكلاء",
   // shared
   close: "إغلاق",
   cancel: "إلغاء",

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/auth";
 import { authConfigured } from "./applications-shared";
-import type { AgentAgreement, AgentDocument } from "./agreements-shared";
+import type { AgentAgreement, AgentDocument, AgentArrangement } from "./agreements-shared";
 
 export * from "./agreements-shared";
 
@@ -72,6 +73,83 @@ export async function getAgentOwnAgreement(agentId: string): Promise<AgentAgreem
     .limit(1)
     .maybeSingle();
   return (data as AgentAgreement | null) ?? null;
+}
+
+/**
+ * Executive rollup of every agent arrangement (for the boss + admin): the
+ * agreement, a commission summary and student count per agent. Runs on the
+ * service role (the boss can read agreements under RLS but not commissions),
+ * gated to admin/boss/finance.
+ */
+export async function listAgentArrangements(): Promise<AgentArrangement[]> {
+  if (!authConfigured) {
+    return [
+      {
+        agreement: MOCK[0],
+        commission: { accrued: 1500, invoiced: 0, paid: 3200, total: 4700, currency: "MYR" },
+        students: 6,
+        docsVerified: 1,
+        docsTotal: 2,
+      },
+    ];
+  }
+  const profile = await getProfile();
+  if (!profile || !["admin", "boss", "finance"].includes(profile.role)) return [];
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const [{ data: agreements }, { data: profs }, { data: commissions }, { data: apps }, { data: docs }] =
+    await Promise.all([
+      admin.from("agent_agreements").select("*").neq("status", "void").order("created_at", { ascending: false }),
+      admin.from("profiles").select("id, full_name, agent_code").eq("role", "agent"),
+      admin.from("commissions").select("agent_id, amount, status, currency").eq("direction", "payable"),
+      admin.from("applications").select("agent_id"),
+      admin.from("agent_documents").select("agent_id, review_status"),
+    ]);
+
+  const nameById = new Map(
+    ((profs as { id: string; full_name: string; agent_code: string | null }[]) ?? []).map((p) => [p.id, p] as const),
+  );
+  const rows = (agreements as AgentAgreement[] | null) ?? [];
+
+  type CommRow = { agent_id: string; amount: number | null; status: string; currency: string | null };
+  const commByAgent = new Map<string, CommRow[]>();
+  for (const c of (commissions as CommRow[] | null) ?? []) {
+    if (!c.agent_id) continue;
+    const arr = commByAgent.get(c.agent_id) ?? [];
+    arr.push(c);
+    commByAgent.set(c.agent_id, arr);
+  }
+  const studentsByAgent = new Map<string, number>();
+  for (const a of (apps as { agent_id: string | null }[] | null) ?? []) {
+    if (a.agent_id) studentsByAgent.set(a.agent_id, (studentsByAgent.get(a.agent_id) ?? 0) + 1);
+  }
+  const docsByAgent = new Map<string, { total: number; verified: number }>();
+  for (const d of (docs as { agent_id: string; review_status: string }[] | null) ?? []) {
+    const cur = docsByAgent.get(d.agent_id) ?? { total: 0, verified: 0 };
+    cur.total += 1;
+    if (d.review_status === "verified") cur.verified += 1;
+    docsByAgent.set(d.agent_id, cur);
+  }
+
+  return rows.map((agr) => {
+    const prof = nameById.get(agr.agent_id);
+    agr.agent_name = prof?.full_name ?? null;
+    agr.agent_code = prof?.agent_code ?? null;
+    const cs = commByAgent.get(agr.agent_id) ?? [];
+    const sum = (st: string) => cs.filter((c) => c.status === st).reduce((n, c) => n + Number(c.amount ?? 0), 0);
+    const accrued = sum("accrued");
+    const invoiced = sum("invoiced");
+    const paid = sum("paid");
+    const d = docsByAgent.get(agr.agent_id) ?? { total: 0, verified: 0 };
+    return {
+      agreement: agr,
+      commission: { accrued, invoiced, paid, total: accrued + invoiced + paid, currency: cs[0]?.currency ?? "MYR" },
+      students: studentsByAgent.get(agr.agent_id) ?? 0,
+      docsVerified: d.verified,
+      docsTotal: d.total,
+    };
+  });
 }
 
 /** Due-diligence documents for one agent (their own view — RLS scoped). */

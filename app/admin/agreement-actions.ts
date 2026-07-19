@@ -391,6 +391,26 @@ export async function applySchemeToRules(id: string): Promise<Res> {
   return { ok: true };
 }
 
+/** Finance issues the "authorised agent" certificate on an active agreement.
+ *  Stamps certificate_issued_at, after which the agent + boss can download it. */
+export async function issueCertificate(id: string): Promise<Res> {
+  if (!authConfigured) return { ok: true };
+  const ctx = await financeCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  const { data } = await ctx.admin
+    .from("agent_agreements").select("status, agent_id, certificate_issued_at").eq("id", id).maybeSingle();
+  if (!data || data.status !== "active") return { ok: false, error: "not_active" };
+  await ctx.admin
+    .from("agent_agreements")
+    .update({ certificate_issued_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  await notify(ctx.admin, data.agent_id, "Your authorised-agent certificate has been issued — download it from the Agreement tab.");
+  await logAudit({ action: "agreement_certificate_issued", target_type: "agreement", target_id: id });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/agent", "layout");
+  return { ok: true };
+}
+
 /* ------------------------------------------------------------------
    Agreement request + due diligence (agent-initiated flow)
 ------------------------------------------------------------------- */

@@ -166,8 +166,31 @@ export interface AgentAgreement {
   pecsb_signed_designation?: string | null;
   pecsb_signed_at?: string | null;
   signed_doc_path?: string | null;
+  certificate_issued_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Compact one-line summary of the commission scheme (for rollups). */
+export function schemeSummary(rawScheme: AgreementScheme | null | undefined): string {
+  const sc = normalizeScheme(rawScheme);
+  const parts: string[] = [];
+  const tiers = sc.tiers ?? [{ up_to: null }];
+  if ((sc.english ?? []).length) {
+    const pcts = new Set<number>();
+    for (const r of sc.english ?? []) for (const x of r.pcts) if (x != null) pcts.add(x);
+    if (pcts.size) parts.push(`English ${[...pcts].sort((a, b) => a - b).join("–")}%`);
+  }
+  if ((sc.university ?? []).length) {
+    const amts: number[] = [];
+    for (const r of sc.university ?? []) for (const x of r.amounts) if (x != null) amts.push(x);
+    if (amts.length) parts.push(`University RM ${Math.min(...amts).toLocaleString("en-MY")}–${Math.max(...amts).toLocaleString("en-MY")}`);
+  }
+  if (sc.special_min_pct != null || sc.special_max_pct != null) {
+    parts.push(`Special ${sc.special_min_pct ?? "?"}–${sc.special_max_pct ?? "?"}%`);
+  }
+  const tierNote = tiers.length > 1 ? ` · ${tiers.length} tiers` : "";
+  return (parts.join(" · ") || "No rates set") + tierNote;
 }
 
 export const AGREEMENT_STATUS_LABEL: Record<AgreementStatus, string> = {
@@ -187,6 +210,16 @@ export const AGREEMENT_STATUS_TONE: Record<AgreementStatus, string> = {
   active: "bg-status-present/15 text-status-present",
   void: "bg-cream-50 text-ink-muted line-through",
 };
+
+/** One agent's arrangement rollup — agreement + commission position + counts
+ *  (used by the boss/exec summary). */
+export interface AgentArrangement {
+  agreement: AgentAgreement;
+  commission: { accrued: number; invoiced: number; paid: number; total: number; currency: string };
+  students: number;
+  docsVerified: number;
+  docsTotal: number;
+}
 
 /** Due-diligence documents an agent uploads when requesting an agreement. */
 export interface AgentDocument {

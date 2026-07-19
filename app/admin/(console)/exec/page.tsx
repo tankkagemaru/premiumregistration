@@ -4,6 +4,8 @@ import { STAGE_LABEL } from "@/lib/admin/applications-shared";
 import { formatMoney } from "@/lib/admin/finance-shared";
 import { TRACKS } from "@/lib/config/tracks";
 import { ExecStatusLookup } from "@/components/admin/ExecStatusLookup";
+import { ExecAgentArrangements } from "@/components/admin/ExecAgentArrangements";
+import { listAgentArrangements } from "@/lib/admin/agreements";
 import { getConsoleLang, CONSOLE_STR, EXEC_LATE_AR } from "@/lib/admin/console-i18n";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
@@ -75,7 +77,11 @@ const TONE = {
 
 export default async function ExecPage() {
   await requireRole(["admin", "boss"]);
-  const [o, lang] = await Promise.all([getExecOverview(), getConsoleLang()]);
+  const [o, lang, arrangements] = await Promise.all([
+    getExecOverview(),
+    getConsoleLang(),
+    listAgentArrangements(),
+  ]);
   const L = CONSOLE_STR[lang];
   const late = (t: string) => (lang === "ar" ? EXEC_LATE_AR[t] ?? t : t);
 
@@ -160,6 +166,9 @@ export default async function ExecPage() {
           <Stat label={L.exec_commission_owed} value={formatMoney(o.money.collectable)} />
         </div>
       </section>
+
+      {/* Agent arrangements — agreements, commission position, PDFs */}
+      <ExecAgentArrangements rows={arrangements} label={L.exec_agent_arrangements} />
 
       {/* Performance — who's bringing leads in and converting them */}
       <PerfTable title={L.exec_perf_agents} rows={o.agents} L={L} />
