@@ -9,8 +9,8 @@ import { ExternalLink } from "lucide-react";
 import { AgentLink } from "@/components/agent/AgentLink";
 import { AgentRegisterModal } from "@/components/agent/AgentRegisterModal";
 import { AgentMeetingButton } from "@/components/agent/AgentMeetingButton";
+import Link from "next/link";
 import { AgentStudents } from "@/components/agent/AgentStudents";
-import { AgentAgreementCard } from "@/components/agent/AgentAgreementCard";
 
 const TRACK_TITLE = Object.fromEntries(TRACKS.map((t) => [t.id, t.title]));
 const APP_URL =
@@ -72,8 +72,15 @@ export default async function AgentHome() {
         ))}
       </div>
 
-      {/* Recruitment agreement — complete + sign, or download the final copy */}
-      {agreement && <AgentAgreementCard agreement={agreement} />}
+      {/* Agreement needs the agent's action → point to the Agreement tab */}
+      {agreement?.status === "with_agent" && (
+        <Link
+          href="/agent/agreement"
+          className="rounded-card border border-brand-gold/40 bg-status-late-bg px-4 py-3 text-sm font-medium text-brand-gold transition-colors hover:bg-status-late-bg/70"
+        >
+          {L.ag_agreement_banner}
+        </Link>
+      )}
 
       {/* Commission breakdown — where your earnings stand */}
       {commissionTotal > 0 && (

@@ -3,16 +3,20 @@
 import { useState, useEffect, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { X, Plus, FileText, Send, PenLine, Trash2, RefreshCw, Upload, Loader2, Check } from "lucide-react";
+import { X, Plus, FileText, Send, PenLine, Trash2, RefreshCw, Upload, Loader2, Check, ShieldCheck } from "lucide-react";
 import {
   AGREEMENT_STATUS_LABEL,
   AGREEMENT_STATUS_TONE,
   SCOPE_OPTIONS,
+  AGENT_DOC_KINDS,
+  MAX_TIERS,
+  normalizeScheme,
+  tierLabel,
   type AgentAgreement,
+  type AgentDocument,
   type AgreementParticulars,
   type AgreementScheme,
-  type SchemeUniversityRow,
-  type SchemeEnglishRow,
+  type SchemeTier,
   type SchemePriceRow,
 } from "@/lib/admin/agreements-shared";
 import {
@@ -24,6 +28,7 @@ import {
   applySchemeToRules,
   createAgreementUploadUrl,
   recordAgreementSignedUpload,
+  setAgentDocReview,
 } from "@/app/admin/agreement-actions";
 
 const F = "w-full rounded-md border border-border-warm bg-cream-50 px-2.5 py-1.5 text-sm text-ink outline-none focus:border-brand-red";
@@ -32,8 +37,6 @@ const BTN = "rounded-md px-3 py-1.5 text-xs font-medium transition-colors";
 const NUM = (s: string): number | null => (s.trim() === "" ? null : Number(s) || 0);
 
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  // Portal to <body>: the console <main> keeps a transform (rise-in, fill-mode
-  // both), which would clamp a fixed overlay to the content column.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -57,15 +60,21 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-/** Finance-side agreements manager: draft terms + Schedule 1, send to the
- *  agent, countersign, and push the scheme into commission rules. */
+const DOC_TONE: Record<string, string> = {
+  pending: "bg-cream-50 text-ink-muted",
+  verified: "bg-status-present/15 text-status-present",
+  rejected: "bg-brand-red-bg text-brand-red",
+};
+
 export function AgreementsManager({
   agreements,
   agents,
+  agentDocs = {},
   canEdit,
 }: {
   agreements: AgentAgreement[];
   agents: { id: string; full_name: string }[];
+  agentDocs?: Record<string, AgentDocument[]>;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -76,9 +85,7 @@ export function AgreementsManager({
   const [err, setErr] = useState<string | null>(null);
 
   const open = agreements.find((a) => a.id === openId) ?? null;
-  const withAgreement = new Set(
-    agreements.filter((a) => a.status !== "void").map((a) => a.agent_id),
-  );
+  const withAgreement = new Set(agreements.filter((a) => a.status !== "void").map((a) => a.agent_id));
   const freeAgents = agents.filter((a) => !withAgreement.has(a.id));
 
   function create() {
@@ -97,8 +104,9 @@ export function AgreementsManager({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-ink-soft">
-          Recruitment agreements — finance sets the terms and commission scheme, the agent
-          completes their details and signs in the portal, finance countersigns to activate.
+          Agents request an agreement and upload their due-diligence documents; finance verifies
+          them, sets the terms and commission scheme, sends it back to sign, then countersigns to
+          activate. You can also start one directly for an agent below.
         </p>
         {canEdit && (
           <button
@@ -121,49 +129,50 @@ export function AgreementsManager({
               <tr className="border-b border-border-warm bg-cream-50 text-start text-[11px] uppercase tracking-[0.14em] text-ink-muted">
                 <th className="px-4 py-2.5 text-start font-medium">Agent</th>
                 <th className="px-4 py-2.5 text-start font-medium">Status</th>
-                <th className="px-4 py-2.5 text-start font-medium">Valid</th>
+                <th className="px-4 py-2.5 text-start font-medium">Docs</th>
                 <th className="px-4 py-2.5 text-start font-medium">Signed</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
-              {agreements.map((a) => (
-                <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
-                  <td className="px-4 py-2.5">
-                    <span className="font-medium text-ink">{a.agent_name ?? "—"}</span>
-                    {a.agent_code && <span className="ms-1.5 font-mono text-[11px] text-ink-muted">{a.agent_code}</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex rounded px-2 py-0.5 text-[11px] font-medium ${AGREEMENT_STATUS_TONE[a.status]}`}>
-                      {AGREEMENT_STATUS_LABEL[a.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-ink-soft">
-                    {a.valid_from ?? "—"} → {a.valid_until ?? "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-ink-soft">
-                    {a.agent_signed_at ? `Agent ${String(a.agent_signed_at).slice(0, 10)}` : "—"}
-                    {a.pecsb_signed_at ? ` · PECSB ${String(a.pecsb_signed_at).slice(0, 10)}` : ""}
-                  </td>
-                  <td className="px-4 py-2.5 text-end">
-                    <span className="inline-flex items-center gap-2">
-                      <a
-                        href={`/api/agreement?id=${a.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-medium text-brand-red hover:underline"
-                      >
-                        PDF
-                      </a>
-                      {canEdit && (
-                        <button onClick={() => setOpenId(a.id)} className="text-xs font-medium text-ink hover:text-brand-red">
-                          Manage
-                        </button>
-                      )}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {agreements.map((a) => {
+                const ds = agentDocs[a.agent_id] ?? [];
+                const verified = ds.filter((d) => d.review_status === "verified").length;
+                return (
+                  <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
+                    <td className="px-4 py-2.5">
+                      <span className="font-medium text-ink">{a.agent_name ?? "—"}</span>
+                      {a.agent_code && <span className="ms-1.5 font-mono text-[11px] text-ink-muted">{a.agent_code}</span>}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex rounded px-2 py-0.5 text-[11px] font-medium ${AGREEMENT_STATUS_TONE[a.status]}`}>
+                        {AGREEMENT_STATUS_LABEL[a.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-ink-soft">
+                      {ds.length ? `${verified}/${ds.length} verified` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-ink-soft">
+                      {a.agent_signed_at ? `Agent ${String(a.agent_signed_at).slice(0, 10)}` : "—"}
+                      {a.pecsb_signed_at ? ` · PECSB ${String(a.pecsb_signed_at).slice(0, 10)}` : ""}
+                    </td>
+                    <td className="px-4 py-2.5 text-end">
+                      <span className="inline-flex items-center gap-2">
+                        {a.status !== "requested" && (
+                          <a href={`/api/agreement?id=${a.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-brand-red hover:underline">
+                            PDF
+                          </a>
+                        )}
+                        {canEdit && (
+                          <button onClick={() => setOpenId(a.id)} className="text-xs font-medium text-ink hover:text-brand-red">
+                            {a.status === "requested" ? "Review" : "Manage"}
+                          </button>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -182,9 +191,7 @@ export function AgreementsManager({
               <label className={LBL}>Agent</label>
               <select value={newAgent} onChange={(e) => setNewAgent(e.target.value)} className={F}>
                 <option value="">Choose an agent…</option>
-                {freeAgents.map((a) => (
-                  <option key={a.id} value={a.id}>{a.full_name}</option>
-                ))}
+                {freeAgents.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
               </select>
               {freeAgents.length === 0 && (
                 <p className="mt-1 text-xs text-ink-muted">Every agent already has a live agreement — void it first to reissue.</p>
@@ -201,7 +208,12 @@ export function AgreementsManager({
       )}
 
       {open && canEdit && (
-        <AgreementEditor key={open.id} agreement={open} onClose={() => setOpenId(null)} />
+        <AgreementEditor
+          key={open.id}
+          agreement={open}
+          docs={agentDocs[open.agent_id] ?? []}
+          onClose={() => setOpenId(null)}
+        />
       )}
     </div>
   );
@@ -209,26 +221,56 @@ export function AgreementsManager({
 
 /* ------------------------------------------------------------------ editor */
 
-function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement; onClose: () => void }) {
+function AgreementEditor({
+  agreement: a,
+  docs,
+  onClose,
+}: {
+  agreement: AgentAgreement;
+  docs: AgentDocument[];
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const editable = ["draft", "with_agent"].includes(a.status);
+  const editable = ["requested", "draft", "with_agent"].includes(a.status);
   const [p, setP] = useState<AgreementParticulars>({ ...a.particulars });
-  const [sc, setSc] = useState<AgreementScheme>({
-    university: [], english: [], english_prices: [], one_time: [], visa: [],
-    ...a.scheme,
-  });
+  const [sc, setSc] = useState<AgreementScheme>(() => normalizeScheme(a.scheme));
+  const tiers = sc.tiers ?? [{ up_to: null }];
   const [validFrom, setValidFrom] = useState(a.valid_from ?? "");
   const [validUntil, setValidUntil] = useState(a.valid_until ?? "");
   const [sig, setSig] = useState({ name: "", designation: "" });
   const [voidReason, setVoidReason] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  const requiredKinds = AGENT_DOC_KINDS.filter((k) => k.required).map((k) => k.kind);
+  const docByKind = new Map(docs.map((d) => [d.kind, d] as const));
+  const allRequiredVerified = requiredKinds.every((k) => docByKind.get(k)?.review_status === "verified");
+
   const setPart = <K extends keyof AgreementParticulars>(k: K, v: AgreementParticulars[K]) =>
     setP((f) => ({ ...f, [k]: v }));
+
+  // ---- tier management: resize every row's value array to match tier count ----
+  function setTiers(next: SchemeTier[]) {
+    const n = next.length;
+    const resize = (arr: (number | null)[]) => {
+      const a2 = [...arr];
+      while (a2.length < n) a2.push(null);
+      return a2.slice(0, n);
+    };
+    setSc((s) => ({
+      ...s,
+      tiers: next,
+      university: (s.university ?? []).map((r) => ({ ...r, amounts: resize(r.amounts) })),
+      english: (s.english ?? []).map((r) => ({ ...r, pcts: resize(r.pcts) })),
+    }));
+  }
+  const addTier = () => tiers.length < MAX_TIERS && setTiers([...tiers.slice(0, -1), { up_to: 10 * tiers.length }, { up_to: null }]);
+  const removeTier = () => tiers.length > 1 && setTiers([...tiers.slice(0, -2), { up_to: null }]);
+  const setTierMax = (i: number, v: string) =>
+    setTiers(tiers.map((t, ti) => (ti === i ? { up_to: NUM(v) } : t)));
 
   function save(then?: () => void) {
     setErr(null);
@@ -276,21 +318,13 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href={`/api/agreement?id=${a.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-red hover:underline"
-          >
-            <FileText className="h-3.5 w-3.5" aria-hidden /> PDF
-          </a>
+          {a.status !== "requested" && (
+            <a href={`/api/agreement?id=${a.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-red hover:underline">
+              <FileText className="h-3.5 w-3.5" aria-hidden /> PDF
+            </a>
+          )}
           {a.signed_doc_path && (
-            <a
-              href={`/api/agreement/doc?id=${a.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-brand-red hover:underline"
-            >
+            <a href={`/api/agreement/doc?id=${a.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-brand-red hover:underline">
               Signed copy
             </a>
           )}
@@ -299,8 +333,39 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
       </div>
 
       <div className="max-h-[70vh] overflow-y-auto">
-        {/* ---- Terms (finance) ---- */}
-        <Section title="Terms — Part 1 particulars (finance)">
+        {/* ---- Due diligence ---- */}
+        <Section title="Due diligence — agent documents">
+          {docs.length === 0 ? (
+            <p className="text-sm text-ink-muted">No documents uploaded yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {docs.map((d) => (
+                <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border-warm/70 px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm text-ink">
+                    <FileText className="h-4 w-4 text-ink-muted" aria-hidden />
+                    {AGENT_DOC_KINDS.find((k) => k.kind === d.kind)?.label ?? d.kind}
+                    <a href={`/api/agreement/agentdoc?id=${d.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-brand-red hover:underline">
+                      View
+                    </a>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${DOC_TONE[d.review_status]}`}>{d.review_status}</span>
+                    <button disabled={pending} onClick={() => start(async () => { await setAgentDocReview(d.id, "verified"); router.refresh(); })} className={`${BTN} border border-status-present/40 text-status-present hover:bg-status-present-bg disabled:opacity-50`}>Verify</button>
+                    <button disabled={pending} onClick={() => start(async () => { await setAgentDocReview(d.id, "rejected"); router.refresh(); })} className={`${BTN} border border-brand-red/40 text-brand-red hover:bg-brand-red-bg disabled:opacity-50`}>Reject</button>
+                  </span>
+                </div>
+              ))}
+              <p className={`text-xs ${allRequiredVerified ? "text-status-present" : "text-ink-muted"}`}>
+                {allRequiredVerified
+                  ? "✓ All required documents verified — you can prepare and send the agreement."
+                  : "Verify the required documents (passport + business registration) before sending."}
+              </p>
+            </div>
+          )}
+        </Section>
+
+        {/* ---- Terms ---- */}
+        <Section title="Terms — Part 1 particulars">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div>
               <label className={LBL}>Agreement date</label>
@@ -335,12 +400,10 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
             </div>
             <div className="flex items-end gap-4 pb-1">
               <label className="flex items-center gap-1.5 text-sm text-ink">
-                <input type="checkbox" disabled={!editable} checked={!!p.sub_agents} onChange={(e) => setPart("sub_agents", e.target.checked)} />
-                Sub-agents
+                <input type="checkbox" disabled={!editable} checked={!!p.sub_agents} onChange={(e) => setPart("sub_agents", e.target.checked)} /> Sub-agents
               </label>
               <label className="flex items-center gap-1.5 text-sm text-ink">
-                <input type="checkbox" disabled={!editable} checked={!!p.minors} onChange={(e) => setPart("minors", e.target.checked)} />
-                Minors
+                <input type="checkbox" disabled={!editable} checked={!!p.minors} onChange={(e) => setPart("minors", e.target.checked)} /> Minors
               </label>
             </div>
             {p.minors && (
@@ -355,44 +418,57 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
             <div className="flex flex-wrap gap-3">
               {SCOPE_OPTIONS.map((o) => (
                 <label key={o.id} className="flex items-center gap-1.5 text-sm text-ink">
-                  <input
-                    type="checkbox"
-                    disabled={!editable}
-                    checked={scopeSet.has(o.id)}
-                    onChange={(e) => {
-                      const next = new Set(scopeSet);
-                      if (e.target.checked) next.add(o.id); else next.delete(o.id);
-                      setPart("scope", [...next]);
-                    }}
-                  />
+                  <input type="checkbox" disabled={!editable} checked={scopeSet.has(o.id)} onChange={(e) => {
+                    const next = new Set(scopeSet);
+                    if (e.target.checked) next.add(o.id); else next.delete(o.id);
+                    setPart("scope", [...next]);
+                  }} />
                   {o.label}
                 </label>
               ))}
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            <div>
-              <label className={LBL}>PECSB notices — attn</label>
-              <input disabled={!editable} value={p.pecsb_attn ?? ""} onChange={(e) => setPart("pecsb_attn", e.target.value)} className={F} />
-            </div>
-            <div>
-              <label className={LBL}>Email</label>
-              <input disabled={!editable} value={p.pecsb_email ?? ""} onChange={(e) => setPart("pecsb_email", e.target.value)} className={F} />
-            </div>
-            <div>
-              <label className={LBL}>Phone</label>
-              <input disabled={!editable} value={p.pecsb_tel ?? ""} onChange={(e) => setPart("pecsb_tel", e.target.value)} className={F} />
-            </div>
-          </div>
         </Section>
 
-        {/* ---- Schedule 1 ---- */}
+        {/* ---- Schedule 1: tiers ---- */}
         <Section title="Schedule 1 — commission scheme">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={LBL}>Tier 1 up to (students / yr)</label>
-              <input type="number" disabled={!editable} value={sc.tier1_max ?? ""} onChange={(e) => setSc((s) => ({ ...s, tier1_max: NUM(e.target.value) ?? undefined }))} className={F} />
+          <div className="mb-4 rounded-md border border-border-warm bg-cream-50/50 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">
+                Volume tiers ({tiers.length}) — per calendar year
+              </p>
+              {editable && (
+                <span className="flex items-center gap-1.5">
+                  <button type="button" onClick={removeTier} disabled={tiers.length <= 1} className="rounded border border-border-warm px-2 py-0.5 text-xs text-ink disabled:opacity-40">−</button>
+                  <button type="button" onClick={addTier} disabled={tiers.length >= MAX_TIERS} className="rounded border border-border-warm px-2 py-0.5 text-xs text-ink disabled:opacity-40">+ Tier</button>
+                </span>
+              )}
             </div>
+            <div className="flex flex-wrap gap-2">
+              {tiers.map((t, i) => {
+                const isLast = i === tiers.length - 1;
+                return (
+                  <div key={i} className="flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-2 py-1.5">
+                    <span className="text-[11px] font-medium text-ink-muted">Tier {i + 1}</span>
+                    {isLast ? (
+                      <span className="text-xs text-ink-soft">{tiers.length === 1 ? "all students" : "and above"}</span>
+                    ) : (
+                      <>
+                        <span className="text-[11px] text-ink-muted">up to</span>
+                        <input type="number" disabled={!editable} value={t.up_to ?? ""} onChange={(e) => setTierMax(i, e.target.value)} className="w-16 rounded border border-border-warm bg-cream-50 px-1.5 py-0.5 text-xs text-ink outline-none focus:border-brand-red" />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] text-ink-muted">
+              One tier = a single flat rate. Add tiers for volume bonuses; the top tier is always
+              open-ended ({tierLabel(tiers, tiers.length - 1)}).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
             <div>
               <label className={LBL}>Valid from</label>
               <input type="date" disabled={!editable} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} className={F} />
@@ -403,32 +479,28 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
             </div>
           </div>
 
-          <RowsEditor<SchemeUniversityRow>
+          <TieredRows
             title="Part A — university placement (RM / student)"
-            rows={sc.university ?? []}
+            tiers={tiers}
             editable={editable}
-            cols={[
-              { key: "university", label: "University", type: "text", flex: 2 },
-              { key: "level", label: "Level", type: "text", flex: 1 },
-              { key: "tier1_amount", label: "Tier 1 RM", type: "number", flex: 1 },
-              { key: "tier2_amount", label: "Tier 2 RM", type: "number", flex: 1 },
-            ]}
-            blank={{ university: "", level: "", tier1_amount: null, tier2_amount: null }}
-            onChange={(rows) => setSc((s) => ({ ...s, university: rows }))}
+            leadCols={[{ key: "university", label: "University", flex: 2 }, { key: "level", label: "Level", flex: 1 }]}
+            valuesKey="amounts"
+            rows={(sc.university ?? []) as unknown as Record<string, unknown>[]}
+            blank={{ university: "", level: "", amounts: tiers.map(() => null) }}
+            onChange={(rows) => setSc((s) => ({ ...s, university: rows as unknown as AgreementScheme["university"] }))}
           />
-          <RowsEditor<SchemeEnglishRow>
+          <TieredRows
             title="Part B — English programmes (% of tuition)"
-            rows={sc.english ?? []}
+            tiers={tiers}
             editable={editable}
-            cols={[
-              { key: "length", label: "Programme length", type: "text", flex: 2 },
-              { key: "tier1_pct", label: "Tier 1 %", type: "number", flex: 1 },
-              { key: "tier2_pct", label: "Tier 2 %", type: "number", flex: 1 },
-            ]}
-            blank={{ length: "", tier1_pct: null, tier2_pct: null }}
-            onChange={(rows) => setSc((s) => ({ ...s, english: rows }))}
+            leadCols={[{ key: "length", label: "Programme length", flex: 2 }]}
+            valuesKey="pcts"
+            suffix="%"
+            rows={(sc.english ?? []) as unknown as Record<string, unknown>[]}
+            blank={{ length: "", pcts: tiers.map(() => null) }}
+            onChange={(rows) => setSc((s) => ({ ...s, english: rows as unknown as AgreementScheme["english"] }))}
           />
-          <RowsEditor<SchemePriceRow>
+          <PlainRows<SchemePriceRow>
             title="Part C — English prices (reference)"
             rows={sc.english_prices ?? []}
             editable={editable}
@@ -450,47 +522,37 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
               <input type="number" disabled={!editable} value={sc.special_max_pct ?? ""} onChange={(e) => setSc((s) => ({ ...s, special_max_pct: NUM(e.target.value) ?? undefined }))} className={F} />
             </div>
           </div>
-          <RowsEditor
+          <PlainRows
             title="Part E — one-time fees (not commissionable)"
             rows={sc.one_time ?? []}
             editable={editable}
-            cols={[
-              { key: "item", label: "Item", type: "text", flex: 2 },
-              { key: "amount", label: "RM", type: "number", flex: 1 },
-            ]}
+            cols={[{ key: "item", label: "Item", type: "text", flex: 2 }, { key: "amount", label: "RM", type: "number", flex: 1 }]}
             blank={{ item: "", amount: null }}
             onChange={(rows) => setSc((s) => ({ ...s, one_time: rows }))}
           />
-          <RowsEditor
+          <PlainRows
             title="Part F — visa fees (not commissionable)"
             rows={sc.visa ?? []}
             editable={editable}
-            cols={[
-              { key: "item", label: "Duration", type: "text", flex: 2 },
-              { key: "amount", label: "RM", type: "number", flex: 1 },
-            ]}
+            cols={[{ key: "item", label: "Duration", type: "text", flex: 2 }, { key: "amount", label: "RM", type: "number", flex: 1 }]}
             blank={{ item: "", amount: null }}
             onChange={(rows) => setSc((s) => ({ ...s, visa: rows }))}
           />
         </Section>
 
-        {/* ---- Agent side (read-only for finance) ---- */}
         <Section title="Agent's details (completed in the portal)">
           <p className="text-sm text-ink-soft">
             {p.legal_name ? (
               <>
                 {p.legal_name}
                 {p.reg_no ? ` · ${p.reg_no}` : ""}
-                {p.address ? ` · ${p.address}` : ""}
                 {p.bank_name ? ` · Bank: ${p.bank_name} ${p.bank_account_no ?? ""}` : " · Bank details pending"}
               </>
-            ) : (
-              "Waiting for the agent to complete their details."
-            )}
+            ) : "Waiting for the agent to complete their details after signing is sent."}
           </p>
         </Section>
 
-        {/* ---- Workflow actions ---- */}
+        {/* ---- Actions ---- */}
         <Section title="Actions">
           {err && <p className="mb-2 text-xs text-brand-red">{err}</p>}
           <div className="flex flex-wrap items-center gap-2">
@@ -500,13 +562,16 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
                   {pending ? "Saving…" : saved ? "Saved ✓" : "Save terms"}
                 </button>
                 <button
-                  disabled={pending}
+                  disabled={pending || (a.status === "requested" && !allRequiredVerified)}
                   onClick={() => save(() => start(async () => { await sendAgreementToAgent(a.id); router.refresh(); }))}
                   className={`${BTN} inline-flex items-center gap-1.5 bg-brand-red text-oncolor hover:bg-brand-red-soft disabled:opacity-50`}
                 >
                   <Send className="h-3.5 w-3.5" aria-hidden />
-                  {a.status === "draft" ? "Save & send to agent" : "Re-notify agent"}
+                  {["draft", "requested"].includes(a.status) ? "Save & send to agent" : "Re-notify agent"}
                 </button>
+                {a.status === "requested" && !allRequiredVerified && (
+                  <span className="text-[11px] text-ink-muted">Verify the required documents first.</span>
+                )}
               </>
             )}
 
@@ -521,11 +586,7 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
                   <input value={sig.designation} onChange={(e) => setSig((s) => ({ ...s, designation: e.target.value }))} placeholder="Designation" className={`${F} max-w-[180px]`} />
                   <button
                     disabled={pending || !sig.name.trim()}
-                    onClick={() => start(async () => {
-                      const r = await pecsbCountersign(a.id, sig);
-                      if (!r.ok) { setErr("Could not countersign."); return; }
-                      router.refresh();
-                    })}
+                    onClick={() => start(async () => { const r = await pecsbCountersign(a.id, sig); if (!r.ok) { setErr("Could not countersign."); return; } router.refresh(); })}
                     className={`${BTN} inline-flex items-center gap-1.5 bg-brand-red text-oncolor hover:bg-brand-red-soft disabled:opacity-50`}
                   >
                     <PenLine className="h-3.5 w-3.5" aria-hidden /> Countersign & activate
@@ -537,13 +598,7 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
             {a.status === "active" && (
               <button
                 disabled={pending}
-                onClick={() => start(async () => {
-                  const r = await applySchemeToRules(a.id);
-                  if (!r.ok) { setErr("Could not apply the scheme."); return; }
-                  setSaved(true);
-                  window.setTimeout(() => setSaved(false), 1600);
-                  router.refresh();
-                })}
+                onClick={() => start(async () => { const r = await applySchemeToRules(a.id); if (!r.ok) { setErr("Could not apply the scheme."); return; } setSaved(true); window.setTimeout(() => setSaved(false), 1600); router.refresh(); })}
                 className={`${BTN} inline-flex items-center gap-1.5 bg-inkbtn text-oncolor hover:bg-inkbtn-soft disabled:opacity-50`}
               >
                 {saved ? <Check className="h-3.5 w-3.5" aria-hidden /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden />}
@@ -572,21 +627,101 @@ function AgreementEditor({ agreement: a, onClose }: { agreement: AgentAgreement;
               </span>
             )}
           </div>
+          {a.status === "active" && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-status-present">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Active and signed by both parties.
+            </p>
+          )}
         </Section>
       </div>
     </Modal>
   );
 }
 
-/* ------------------------------------------------- generic rows editor */
+/* --------------------------------------------- tiered rows (Part A / B) */
 
-function RowsEditor<T extends Record<string, string | number | null>>({
+function TieredRows({
   title,
+  tiers,
+  leadCols,
+  valuesKey,
   rows,
-  cols,
   blank,
   editable,
+  suffix,
   onChange,
+}: {
+  title: string;
+  tiers: SchemeTier[];
+  leadCols: { key: string; label: string; flex: number }[];
+  valuesKey: "amounts" | "pcts";
+  rows: Record<string, unknown>[];
+  blank: Record<string, unknown>;
+  editable: boolean;
+  suffix?: string;
+  onChange: (rows: Record<string, unknown>[]) => void;
+}) {
+  const setLead = (i: number, key: string, v: string) =>
+    onChange(rows.map((r, ri) => (ri === i ? { ...r, [key]: v } : r)));
+  const setVal = (i: number, ti: number, v: string) =>
+    onChange(rows.map((r, ri) => {
+      if (ri !== i) return r;
+      const arr = [...((r[valuesKey] as (number | null)[]) ?? [])];
+      arr[ti] = NUM(v);
+      return { ...r, [valuesKey]: arr };
+    }));
+
+  return (
+    <div className="mt-4">
+      <div className="mb-1.5 flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">{title}</p>
+        {editable && (
+          <button type="button" onClick={() => onChange([...rows, { ...blank }])} className="text-xs font-medium text-brand-red hover:underline">+ Add row</button>
+        )}
+      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border-warm px-3 py-2 text-xs text-ink-muted">Not applicable</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="flex min-w-[420px] flex-col gap-1.5">
+            <div className="flex gap-1.5 pe-7">
+              {leadCols.map((c) => <span key={c.key} style={{ flex: c.flex }} className="text-[10px] uppercase tracking-wide text-ink-muted">{c.label}</span>)}
+              {tiers.map((_, ti) => (
+                <span key={ti} style={{ flex: 1 }} className="text-[10px] uppercase tracking-wide text-ink-muted">{tierLabel(tiers, ti)}</span>
+              ))}
+            </div>
+            {rows.map((r, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                {leadCols.map((c) => (
+                  <input key={c.key} style={{ flex: c.flex }} disabled={!editable} value={(r[c.key] as string) ?? ""} onChange={(e) => setLead(i, c.key, e.target.value)} className={F} />
+                ))}
+                {tiers.map((_, ti) => {
+                  const arr = (r[valuesKey] as (number | null)[]) ?? [];
+                  return (
+                    <div key={ti} style={{ flex: 1 }} className="flex items-center gap-1">
+                      <input type="number" disabled={!editable} value={arr[ti] == null ? "" : String(arr[ti])} onChange={(e) => setVal(i, ti, e.target.value)} className={F} />
+                      {suffix && <span className="text-xs text-ink-muted">{suffix}</span>}
+                    </div>
+                  );
+                })}
+                {editable && (
+                  <button type="button" aria-label="Remove row" onClick={() => onChange(rows.filter((_, ri) => ri !== i))} className="shrink-0 text-ink-muted hover:text-brand-red">
+                    <X className="h-4 w-4" aria-hidden />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------- plain rows (Parts C/E/F) */
+
+function PlainRows<T extends Record<string, string | number | null>>({
+  title, rows, cols, blank, editable, onChange,
 }: {
   title: string;
   rows: T[];
@@ -595,43 +730,25 @@ function RowsEditor<T extends Record<string, string | number | null>>({
   editable: boolean;
   onChange: (rows: T[]) => void;
 }) {
-  const setCell = (i: number, key: keyof T & string, raw: string, type: "text" | "number") => {
-    const next = rows.map((r, ri) =>
-      ri === i ? ({ ...r, [key]: type === "number" ? NUM(raw) : raw } as T) : r,
-    );
-    onChange(next);
-  };
+  const setCell = (i: number, key: keyof T & string, raw: string, type: "text" | "number") =>
+    onChange(rows.map((r, ri) => (ri === i ? ({ ...r, [key]: type === "number" ? NUM(raw) : raw } as T) : r)));
   return (
     <div className="mt-4">
       <div className="mb-1.5 flex items-center justify-between">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">{title}</p>
-        {editable && (
-          <button type="button" onClick={() => onChange([...rows, { ...blank }])} className="text-xs font-medium text-brand-red hover:underline">
-            + Add row
-          </button>
-        )}
+        {editable && <button type="button" onClick={() => onChange([...rows, { ...blank }])} className="text-xs font-medium text-brand-red hover:underline">+ Add row</button>}
       </div>
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-border-warm px-3 py-2 text-xs text-ink-muted">Not applicable</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           <div className="flex gap-1.5 pe-7">
-            {cols.map((c) => (
-              <span key={c.key} style={{ flex: c.flex }} className="text-[10px] uppercase tracking-wide text-ink-muted">{c.label}</span>
-            ))}
+            {cols.map((c) => <span key={c.key} style={{ flex: c.flex }} className="text-[10px] uppercase tracking-wide text-ink-muted">{c.label}</span>)}
           </div>
           {rows.map((r, i) => (
             <div key={i} className="flex items-center gap-1.5">
               {cols.map((c) => (
-                <input
-                  key={c.key}
-                  style={{ flex: c.flex }}
-                  type={c.type}
-                  disabled={!editable}
-                  value={r[c.key] == null ? "" : String(r[c.key])}
-                  onChange={(e) => setCell(i, c.key, e.target.value, c.type)}
-                  className={F}
-                />
+                <input key={c.key} style={{ flex: c.flex }} type={c.type} disabled={!editable} value={r[c.key] == null ? "" : String(r[c.key])} onChange={(e) => setCell(i, c.key, e.target.value, c.type)} className={F} />
               ))}
               {editable && (
                 <button type="button" aria-label="Remove row" onClick={() => onChange(rows.filter((_, ri) => ri !== i))} className="shrink-0 text-ink-muted hover:text-brand-red">

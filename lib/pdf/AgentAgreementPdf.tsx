@@ -8,10 +8,12 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import type {
-  AgentAgreement,
-  AgreementParticulars,
-  AgreementScheme,
+import {
+  normalizeScheme,
+  tierLabel,
+  type AgentAgreement,
+  type AgreementParticulars,
+  type AgreementScheme,
 } from "@/lib/admin/agreements-shared";
 
 const FONT_DIR = path.join(process.cwd(), "lib", "pdf", "fonts");
@@ -223,7 +225,8 @@ export interface AgreementPdfData {
 export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
   const a = data.agreement;
   const p: AgreementParticulars = a.particulars ?? {};
-  const sc: AgreementScheme = a.scheme ?? {};
+  const sc: AgreementScheme = normalizeScheme(a.scheme);
+  const tiers = sc.tiers ?? [{ up_to: null }];
   const refNo = `PECSB-AGR-${a.id.slice(0, 8).toUpperCase()}`;
   const recruiter = v(p.legal_name, "[RECRUITER LEGAL NAME]");
 
@@ -612,7 +615,7 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
         <Text style={[s.small, { marginBottom: 6 }]}>
           Strictly Private & Confidential — between PECSB and RECRUITER only. Commission is payable
           per Enrolled Student in accordance with Clause 9.
-          {sc.tier1_max ? ` Tier 1 = up to ${sc.tier1_max} students per calendar year; Tier 2 applies above that.` : ""}
+          {tiers.length > 1 ? ` Volume tiers are counted per calendar year (${tiers.map((_, i) => tierLabel(tiers, i)).join("; ")}).` : ""}
         </Text>
 
         <Text style={s.h2}>Part A — University Placement Commission</Text>
@@ -621,8 +624,9 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
           <View style={s.tr}>
             <Text style={[s.th, { flex: 2 }]}>UNIVERSITY</Text>
             <Text style={[s.th, { flex: 1 }]}>LEVEL</Text>
-            <Text style={[s.th, { flex: 1 }]}>TIER 1{sc.tier1_max ? ` — UP TO ${sc.tier1_max}` : ""}</Text>
-            <Text style={[s.th, { flex: 1 }]}>TIER 2{sc.tier1_max ? ` — ${sc.tier1_max + 1}+` : ""}</Text>
+            {tiers.map((_, i) => (
+              <Text key={i} style={[s.th, { flex: 1 }]}>{tiers.length > 1 ? tierLabel(tiers, i).toUpperCase() : "PER STUDENT"}</Text>
+            ))}
           </View>
           {(sc.university ?? []).length === 0 ? (
             <View style={s.trLast}>
@@ -633,8 +637,9 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
               <View key={i} style={i === arr.length - 1 ? s.trLast : s.tr}>
                 <Text style={[s.td, { flex: 2 }]}>{v(r.university)}</Text>
                 <Text style={[s.td, { flex: 1 }]}>{v(r.level)}</Text>
-                <Text style={[s.td, { flex: 1 }]}>{rm(r.tier1_amount)}</Text>
-                <Text style={[s.td, { flex: 1 }]}>{rm(r.tier2_amount)}</Text>
+                {tiers.map((_, ti) => (
+                  <Text key={ti} style={[s.td, { flex: 1 }]}>{rm(r.amounts?.[ti])}</Text>
+                ))}
               </View>
             ))
           )}
@@ -648,8 +653,9 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
         <View style={s.table}>
           <View style={s.tr}>
             <Text style={[s.th, { flex: 2 }]}>PROGRAMME LENGTH</Text>
-            <Text style={[s.th, { flex: 1 }]}>TIER 1</Text>
-            <Text style={[s.th, { flex: 1 }]}>TIER 2</Text>
+            {tiers.map((_, i) => (
+              <Text key={i} style={[s.th, { flex: 1 }]}>{tiers.length > 1 ? tierLabel(tiers, i).toUpperCase() : "RATE"}</Text>
+            ))}
           </View>
           {(sc.english ?? []).length === 0 ? (
             <View style={s.trLast}>
@@ -659,8 +665,9 @@ export function AgentAgreementPdf({ data }: { data: AgreementPdfData }) {
             (sc.english ?? []).map((r, i, arr) => (
               <View key={i} style={i === arr.length - 1 ? s.trLast : s.tr}>
                 <Text style={[s.td, { flex: 2 }]}>{v(r.length)}</Text>
-                <Text style={[s.td, { flex: 1 }]}>{pct(r.tier1_pct)}</Text>
-                <Text style={[s.td, { flex: 1 }]}>{pct(r.tier2_pct)}</Text>
+                {tiers.map((_, ti) => (
+                  <Text key={ti} style={[s.td, { flex: 1 }]}>{pct(r.pcts?.[ti])}</Text>
+                ))}
               </View>
             ))
           )}

@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, GraduationCap, CalendarDays, type LucideIcon } from "lucide-react";
+import { Users, GraduationCap, CalendarDays, FileSignature, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONSOLE_STR, type ConsoleLang } from "@/lib/admin/console-i18n-shared";
 
-const TABS: { href: string; key: "ag_nav_students" | "ag_nav_programmes" | "ag_nav_calendar"; icon: LucideIcon }[] = [
+const TABS: { href: string; key: "ag_nav_students" | "ag_nav_programmes" | "ag_nav_calendar" | "ag_nav_agreement"; icon: LucideIcon }[] = [
   { href: "/agent", key: "ag_nav_students", icon: Users },
   { href: "/agent/programmes", key: "ag_nav_programmes", icon: GraduationCap },
   { href: "/agent/calendar", key: "ag_nav_calendar", icon: CalendarDays },
+  { href: "/agent/agreement", key: "ag_nav_agreement", icon: FileSignature },
 ];
 
 export function AgentNav({ lang = "en" }: { lang?: ConsoleLang }) {

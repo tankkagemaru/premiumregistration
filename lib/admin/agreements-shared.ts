@@ -6,7 +6,13 @@
  * Finance owns the terms; the agent owns their own identity/bank fields.
  */
 
-export type AgreementStatus = "draft" | "with_agent" | "signed_agent" | "active" | "void";
+export type AgreementStatus =
+  | "requested" // agent asked for an agreement + due-diligence docs under review
+  | "draft" // finance preparing (finance-initiated; hidden from the agent)
+  | "with_agent"
+  | "signed_agent"
+  | "active"
+  | "void";
 
 export interface AgreementParticulars {
   // ---- finance-set terms ----
@@ -53,18 +59,20 @@ export const AGENT_REQUIRED_KEYS = [
   "notice_email", "bank_name", "bank_account_name", "bank_account_no",
 ] as const satisfies readonly (keyof AgreementParticulars)[];
 
+/** One volume tier: `up_to` students per calendar year; null = "and above"
+ *  (the open-ended top tier). An agent may have 1–4 tiers. */
+export type SchemeTier = { up_to: number | null };
+
 // Row shapes are type aliases (not interfaces) so they satisfy the
 // Record<string, …> constraint of the generic rows editor.
 export type SchemeUniversityRow = {
   university: string;
   level: string; // e.g. Foundation / Degree / Master's
-  tier1_amount: number | null; // RM per student, up to tier threshold
-  tier2_amount: number | null; // RM per student, above threshold
+  amounts: (number | null)[]; // RM per student, aligned to scheme.tiers
 };
 export type SchemeEnglishRow = {
   length: string; // programme length, e.g. "3 months"
-  tier1_pct: number | null;
-  tier2_pct: number | null;
+  pcts: (number | null)[]; // % of tuition, aligned to scheme.tiers
 };
 export type SchemePriceRow = {
   programme: string;
@@ -77,7 +85,7 @@ export type SchemeFeeRow = {
 };
 
 export interface AgreementScheme {
-  tier1_max?: number; // Tier 1 = up to N students / calendar year
+  tiers?: SchemeTier[]; // 1–4 volume tiers; last is usually open-ended
   university?: SchemeUniversityRow[]; // Part A
   english?: SchemeEnglishRow[]; // Part B
   english_prices?: SchemePriceRow[]; // Part C (reference)
@@ -85,6 +93,59 @@ export interface AgreementScheme {
   special_max_pct?: number;
   one_time?: SchemeFeeRow[]; // Part E (not commissionable)
   visa?: SchemeFeeRow[]; // Part F (not commissionable)
+  /** @deprecated legacy two-tier shape — read via normalizeScheme */
+  tier1_max?: number;
+}
+
+export const MAX_TIERS = 4;
+
+/**
+ * Normalize a stored scheme to the tiered shape. Handles the legacy two-tier
+ * form (tier1_max + tier1_/tier2_ columns on rows) written by the first
+ * version, and guarantees `tiers` has at least one entry and every row's
+ * value array matches the tier count.
+ */
+export function normalizeScheme(raw: AgreementScheme | null | undefined): AgreementScheme {
+  const s: AgreementScheme = { ...(raw ?? {}) };
+  type LegacyUni = SchemeUniversityRow & { tier1_amount?: number | null; tier2_amount?: number | null };
+  type LegacyEng = SchemeEnglishRow & { tier1_pct?: number | null; tier2_pct?: number | null };
+
+  if (!s.tiers || s.tiers.length === 0) {
+    s.tiers = s.tier1_max ? [{ up_to: s.tier1_max }, { up_to: null }] : [{ up_to: null }];
+  }
+  const n = s.tiers.length;
+  const pad = (arr: (number | null)[] | undefined, legacy: (number | null | undefined)[]) => {
+    const base = arr && arr.length ? [...arr] : legacy.map((x) => x ?? null);
+    while (base.length < n) base.push(null);
+    return base.slice(0, n);
+  };
+  s.university = ((s.university ?? []) as LegacyUni[]).map((r) => ({
+    university: r.university ?? "",
+    level: r.level ?? "",
+    amounts: pad(r.amounts, [r.tier1_amount, r.tier2_amount]),
+  }));
+  s.english = ((s.english ?? []) as LegacyEng[]).map((r) => ({
+    length: r.length ?? "",
+    pcts: pad(r.pcts, [r.tier1_pct, r.tier2_pct]),
+  }));
+  return s;
+}
+
+/** Human label for tier i, e.g. "Up to 10" / "11–20" / "21+" / "All students". */
+export function tierLabel(tiers: SchemeTier[], i: number): string {
+  const prev = i > 0 ? tiers[i - 1]?.up_to : null;
+  const cur = tiers[i]?.up_to ?? null;
+  if (tiers.length === 1) return "All students";
+  if (i === 0) return cur != null ? `Up to ${cur}` : "All students";
+  const from = (prev ?? 0) + 1;
+  return cur != null ? `${from}–${cur}` : `${from}+`;
+}
+
+/** The min_students threshold tier i corresponds to (null for the base tier). */
+export function tierMinStudents(tiers: SchemeTier[], i: number): number | null {
+  if (i === 0) return null;
+  const prev = tiers[i - 1]?.up_to;
+  return prev != null ? prev + 1 : null;
 }
 
 export interface AgentAgreement {
@@ -110,6 +171,7 @@ export interface AgentAgreement {
 }
 
 export const AGREEMENT_STATUS_LABEL: Record<AgreementStatus, string> = {
+  requested: "Requested — due diligence",
   draft: "Draft — finance preparing",
   with_agent: "With agent — details & signature",
   signed_agent: "Agent signed — awaiting PECSB",
@@ -118,12 +180,30 @@ export const AGREEMENT_STATUS_LABEL: Record<AgreementStatus, string> = {
 };
 
 export const AGREEMENT_STATUS_TONE: Record<AgreementStatus, string> = {
+  requested: "bg-brand-gold/15 text-brand-gold",
   draft: "bg-cream-50 text-ink-muted",
   with_agent: "bg-status-late-bg text-brand-gold",
   signed_agent: "bg-brand-red-bg text-brand-red",
   active: "bg-status-present/15 text-status-present",
   void: "bg-cream-50 text-ink-muted line-through",
 };
+
+/** Due-diligence documents an agent uploads when requesting an agreement. */
+export interface AgentDocument {
+  id: string;
+  agent_id: string;
+  kind: string;
+  storage_path: string;
+  review_status: string; // pending | verified | rejected
+  created_at: string;
+}
+
+export const AGENT_DOC_KINDS = [
+  { kind: "passport", label: "Passport / NRIC", required: true },
+  { kind: "business_reg", label: "Business registration (SSM / equivalent)", required: true },
+  { kind: "licence", label: "Recruitment licence (if any)", required: false },
+  { kind: "other", label: "Other supporting document", required: false },
+];
 
 export const SCOPE_OPTIONS = [
   { id: "english", label: "English programmes" },

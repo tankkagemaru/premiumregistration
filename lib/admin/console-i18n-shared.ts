@@ -109,6 +109,8 @@ const en = {
   ag_nav_students: "My students",
   ag_nav_programmes: "Programmes",
   ag_nav_calendar: "Calendar",
+  ag_nav_agreement: "Agreement",
+  ag_agreement_banner: "Your recruitment agreement is ready to sign →",
   // agent home
   ag_your_students: "Your students",
   ag_stat_referred: "Referred",
@@ -302,6 +304,8 @@ const ar: typeof en = {
   ag_nav_students: "طلابي",
   ag_nav_programmes: "البرامج",
   ag_nav_calendar: "التقويم",
+  ag_nav_agreement: "الاتفاقية",
+  ag_agreement_banner: "← اتفاقية التوظيف الخاصة بك جاهزة للتوقيع",
   // agent home
   ag_your_students: "طلابك",
   ag_stat_referred: "محالون",

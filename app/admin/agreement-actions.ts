@@ -8,6 +8,9 @@ import { logAudit } from "@/lib/admin/audit";
 import {
   AGENT_PARTICULAR_KEYS,
   missingAgentFields,
+  normalizeScheme,
+  tierMinStudents,
+  tierLabel,
   type AgreementParticulars,
   type AgreementScheme,
   type AgentAgreement,
@@ -83,7 +86,7 @@ export async function createAgreement(agentId: string): Promise<Res> {
     notice_email: agent.email ?? "",
   };
   const scheme: AgreementScheme = {
-    tier1_max: 10,
+    tiers: [{ up_to: 10 }, { up_to: null }],
     university: [],
     english: [],
     english_prices: [],
@@ -146,7 +149,8 @@ export async function sendAgreementToAgent(id: string): Promise<Res> {
     .select("id, status, agent_id")
     .eq("id", id)
     .maybeSingle();
-  if (!data || !["draft", "with_agent"].includes(data.status)) return { ok: false, error: "bad_status" };
+  if (!data || !["requested", "draft", "with_agent"].includes(data.status))
+    return { ok: false, error: "bad_status" };
   await ctx.admin
     .from("agent_agreements")
     .update({ status: "with_agent", updated_at: new Date().toISOString() })
@@ -333,8 +337,8 @@ export async function applySchemeToRules(id: string): Promise<Res> {
   const agr = data as AgentAgreement | null;
   if (!agr || agr.status !== "active") return { ok: false, error: "not_active" };
 
-  const scheme = agr.scheme ?? {};
-  const tierAt = scheme.tier1_max ?? null;
+  const scheme = normalizeScheme(agr.scheme);
+  const tiers = scheme.tiers ?? [{ up_to: null }];
 
   // Retire earlier agreement-generated rules for this agent.
   await ctx.admin
@@ -345,40 +349,33 @@ export async function applySchemeToRules(id: string): Promise<Res> {
     .like("label", "AGR ·%");
 
   const rows: Record<string, unknown>[] = [];
+  const tierSuffix = (i: number) => (tiers.length > 1 ? ` · ${tierLabel(tiers, i)}` : "");
   for (const r of scheme.english ?? []) {
-    if (r.tier1_pct != null) {
+    r.pcts.forEach((pct, i) => {
+      if (pct == null) return;
+      const min = tierMinStudents(tiers, i);
+      if (i > 0 && min == null) return; // unreachable tier (no threshold below it)
       rows.push({
         scope: "agent_payout", subject_id: agr.agent_id, track: "english",
-        basis: "percent", rate: r.tier1_pct, base_fee_type: "tuition",
-        label: `AGR · English ${r.length}`.trim(),
+        basis: "percent", rate: pct, base_fee_type: "tuition",
+        min_students: min,
+        label: `AGR · English ${r.length}${tierSuffix(i)}`.trim(),
       });
-    }
-    if (r.tier2_pct != null && tierAt) {
-      rows.push({
-        scope: "agent_payout", subject_id: agr.agent_id, track: "english",
-        basis: "percent", rate: r.tier2_pct, base_fee_type: "tuition",
-        min_students: tierAt + 1,
-        label: `AGR · English ${r.length} · tier 2`.trim(),
-      });
-    }
+    });
   }
   for (const r of scheme.university ?? []) {
     if (!r.university) continue;
-    if (r.tier1_amount != null) {
+    r.amounts.forEach((amount, i) => {
+      if (amount == null) return;
+      const min = tierMinStudents(tiers, i);
+      if (i > 0 && min == null) return;
       rows.push({
         scope: "agent_payout", subject_id: agr.agent_id, track: "university",
-        university: r.university, basis: "fixed", rate: r.tier1_amount,
-        label: `AGR · ${r.university}${r.level ? ` ${r.level}` : ""}`,
+        university: r.university, basis: "fixed", rate: amount,
+        min_students: min,
+        label: `AGR · ${r.university}${r.level ? ` ${r.level}` : ""}${tierSuffix(i)}`,
       });
-    }
-    if (r.tier2_amount != null && tierAt) {
-      rows.push({
-        scope: "agent_payout", subject_id: agr.agent_id, track: "university",
-        university: r.university, basis: "fixed", rate: r.tier2_amount,
-        min_students: tierAt + 1,
-        label: `AGR · ${r.university}${r.level ? ` ${r.level}` : ""} · tier 2`,
-      });
-    }
+    });
   }
   if (rows.length) {
     const { error } = await ctx.admin.from("commission_rules").insert(rows);
@@ -391,5 +388,130 @@ export async function applySchemeToRules(id: string): Promise<Res> {
     detail: `${rows.length} rule(s)`,
   });
   revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------
+   Agreement request + due diligence (agent-initiated flow)
+------------------------------------------------------------------- */
+
+/**
+ * The agent asks for a recruitment agreement. Creates a `requested` row —
+ * finance verifies the uploaded due-diligence documents first, then prepares
+ * the terms on the same row and sends it back for signature.
+ */
+export async function requestAgreement(): Promise<Res> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return { ok: false, error: "forbidden" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("agent_agreements")
+    .select("id")
+    .eq("agent_id", profile.id)
+    .neq("status", "void")
+    .limit(1)
+    .maybeSingle();
+  if (existing) return { ok: false, error: "already_exists" };
+
+  const particulars: AgreementParticulars = {
+    payment_days: 14,
+    non_solicit_months: 12,
+    clawback_months: 3,
+    term_months: 12,
+    renewal: "written",
+    sub_agents: false,
+    minors: false,
+    scope: ["english", "university"],
+    pecsb_attn: "Finance Department",
+    pecsb_email: "inquiry@premium.edu.my",
+    legal_name: profile.full_name ?? "",
+    notice_attn: profile.full_name ?? "",
+    notice_email: profile.email ?? "",
+  };
+  const { data, error } = await admin
+    .from("agent_agreements")
+    .insert({ agent_id: profile.id, status: "requested", particulars })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: "insert_failed" };
+
+  // Ping every finance user (+ admins) — a new counterparty needs vetting.
+  const { data: finUsers } = await admin
+    .from("profiles")
+    .select("id")
+    .in("role", ["finance", "admin"]);
+  if (finUsers?.length) {
+    await admin.from("notifications").insert(
+      finUsers.map((u: { id: string }) => ({
+        user_id: u.id,
+        type: "agreement",
+        payload: { title: `${profile.full_name ?? "An agent"} requested a recruitment agreement — review their documents.` },
+      })),
+    );
+  }
+  await logAudit({ action: "agreement_requested", target_type: "agreement", target_id: data.id, detail: profile.full_name ?? profile.id });
+  revalidatePath("/agent", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true, id: data.id };
+}
+
+/** Signed upload URL for an agent due-diligence document (agent only). */
+export async function createAgentDocUploadUrl(
+  kind: string,
+  filename: string,
+): Promise<{ path: string; token: string } | { error: string }> {
+  if (!authConfigured) return { error: "dev" };
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return { error: "forbidden" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const safe = filename.replace(/[^\w.\-]+/g, "_").slice(-80);
+  const path = `agent-docs/${profile.id}/${kind}/${randomUUID()}-${safe}`;
+  const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: "sign_failed" };
+  return { path: data.path, token: data.token };
+}
+
+/** Record an uploaded due-diligence document. Re-uploading a kind replaces the
+ *  previous file (fresh review). */
+export async function recordAgentDoc(kind: string, path: string): Promise<Res> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || profile.role !== "agent") return { ok: false, error: "forbidden" };
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  await admin.from("agent_documents").delete().eq("agent_id", profile.id).eq("kind", kind);
+  const { error } = await admin
+    .from("agent_documents")
+    .insert({ agent_id: profile.id, kind, storage_path: path });
+  if (error) return { ok: false, error: "insert_failed" };
+  await logAudit({ action: "agent_doc_uploaded", target_type: "agent", target_id: profile.id, detail: kind });
+  revalidatePath("/agent", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Finance verifies / rejects an agent due-diligence document. */
+export async function setAgentDocReview(docId: string, status: string): Promise<Res> {
+  if (!authConfigured) return { ok: true };
+  const ctx = await financeCtx();
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (!["pending", "verified", "rejected"].includes(status)) return { ok: false, error: "bad_status" };
+  const { data: doc } = await ctx.admin
+    .from("agent_documents")
+    .select("agent_id, kind")
+    .eq("id", docId)
+    .maybeSingle();
+  if (!doc) return { ok: false, error: "not_found" };
+  await ctx.admin.from("agent_documents").update({ review_status: status }).eq("id", docId);
+  if (status === "rejected") {
+    await notify(ctx.admin, doc.agent_id, `Your ${doc.kind.replace(/_/g, " ")} document was rejected — please upload a new copy in the portal.`);
+  }
+  await logAudit({ action: "agent_doc_review", target_type: "agent_document", target_id: docId, detail: status });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/agent", "layout");
   return { ok: true };
 }

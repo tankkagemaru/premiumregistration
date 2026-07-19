@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { authConfigured } from "./applications-shared";
-import type { AgentAgreement } from "./agreements-shared";
+import type { AgentAgreement, AgentDocument } from "./agreements-shared";
 
 export * from "./agreements-shared";
 
@@ -12,12 +12,19 @@ const MOCK: AgentAgreement[] = [
     agent_code: "KUCING",
     status: "with_agent",
     particulars: { payment_days: 14, non_solicit_months: 12, scope: ["english", "university"] },
-    scheme: { tier1_max: 10, english: [{ length: "3 months", tier1_pct: 15, tier2_pct: 20 }] },
+    scheme: {
+      tiers: [{ up_to: 10 }, { up_to: null }],
+      english: [{ length: "3 months", pcts: [15, 20] }],
+    },
     valid_from: "2026-07-01",
     valid_until: "2027-06-30",
     created_at: "2026-07-01T00:00:00Z",
     updated_at: "2026-07-01T00:00:00Z",
   },
+];
+
+const MOCK_DOCS: AgentDocument[] = [
+  { id: "ad-1", agent_id: "s-kucing", kind: "passport", storage_path: "x", review_status: "pending", created_at: "2026-07-01T00:00:00Z" },
 ];
 
 /** All agreements, newest first, with the agent's name/code resolved (finance view). */
@@ -65,4 +72,31 @@ export async function getAgentOwnAgreement(agentId: string): Promise<AgentAgreem
     .limit(1)
     .maybeSingle();
   return (data as AgentAgreement | null) ?? null;
+}
+
+/** Due-diligence documents for one agent (their own view — RLS scoped). */
+export async function listOwnAgentDocuments(agentId: string): Promise<AgentDocument[]> {
+  if (!authConfigured) return MOCK_DOCS;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agent_documents")
+    .select("*")
+    .eq("agent_id", agentId)
+    .order("created_at", { ascending: false });
+  return (data as AgentDocument[] | null) ?? [];
+}
+
+/** All agents' due-diligence documents keyed by agent id (finance view). */
+export async function listAgentDocumentsByAgent(): Promise<Record<string, AgentDocument[]>> {
+  if (!authConfigured) return { "s-kucing": MOCK_DOCS };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agent_documents")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const map: Record<string, AgentDocument[]> = {};
+  for (const d of (data as AgentDocument[] | null) ?? []) {
+    (map[d.agent_id] ??= []).push(d);
+  }
+  return map;
 }
