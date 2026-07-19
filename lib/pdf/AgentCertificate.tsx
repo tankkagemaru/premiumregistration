@@ -7,7 +7,6 @@ import {
   Image,
   StyleSheet,
   Font,
-  PageOrientation,
 } from "@react-pdf/renderer";
 import type { AgentAgreement, AgreementParticulars } from "@/lib/admin/agreements-shared";
 
@@ -180,7 +179,7 @@ export function AgentCertificate({ data }: { data: CertificateData }) {
 
   return (
     <Document title={`Authorised Agent Certificate — ${name}`} author="PECSB">
-      <Page size="A4" orientation={PageOrientation.LANDSCAPE} style={s.page}>
+      <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.outer}>
           <View style={s.inner}>
             {/* corner flourishes */}
