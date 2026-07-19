@@ -5,6 +5,7 @@ import { getApplication } from "@/lib/admin/applications";
 import { getProfile } from "@/lib/auth";
 import { EnglishOfferLetter, type OfferData } from "@/lib/pdf/EnglishOfferLetter";
 import { INTAKE_PREFERENCES } from "@/lib/config/universities";
+import { FEE_TYPE_LABEL, type Fee, type FeeType } from "@/lib/admin/finance-shared";
 
 export const runtime = "nodejs";
 
@@ -27,22 +28,49 @@ export async function GET(request: Request) {
 
   const record = await getApplication(id);
   if (!record) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const { app } = record;
+  const { app, contact } = record;
 
   const now = new Date();
   const valid = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  // Fees for the schedule table — service role (fees are finance-scoped under
+  // RLS); registration first, then tuition, then the rest, skipping any TBD/0.
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const adminRead = createAdminClient();
+  const { data: feeRows } = await adminRead
+    .from("fees")
+    .select("type, label, amount, currency, status")
+    .eq("application_id", app.id);
+  const ORDER: Record<string, number> = { registration: 0, application: 1, tuition: 2 };
+  const fees = ((feeRows as Pick<Fee, "type" | "label" | "amount" | "currency" | "status">[] | null) ?? [])
+    .filter((f) => Number(f.amount) > 0 && f.status !== "waived")
+    .sort((a, b) => (ORDER[a.type] ?? 9) - (ORDER[b.type] ?? 9))
+    .map((f) => ({
+      label: f.label || FEE_TYPE_LABEL[f.type as FeeType] || "Fee",
+      amount: Number(f.amount),
+      currency: f.currency || "MYR",
+    }));
+
+  const fmtDay = (d?: string | null) =>
+    d ? fmt(new Date(`${d}T00:00:00`)) : undefined;
 
   const data: OfferData = {
     ref: `PLC-${app.id.slice(0, 8).toUpperCase()}`,
     date: fmt(now),
     studentName: app.student_name,
-    program: app.program_name ?? "General English",
+    passportNo: (app as { passport_no?: string | null }).passport_no ?? undefined,
+    nationality: contact?.nationality ?? undefined,
+    program: app.program_name ?? "General English Programme",
+    level: app.qualification_level ?? undefined,
     intake:
       INTAKE_PREFERENCES.find((i) => i.value === app.intake)?.label ??
       app.intake ??
       undefined,
+    classStart: fmtDay(app.class_start),
+    classEnd: fmtDay(app.class_end),
     validUntil: fmt(valid),
     isInternational: app.is_international,
+    fees,
     logoSrc: path.join(process.cwd(), "public", "pecsb-logo.png"),
   };
 
