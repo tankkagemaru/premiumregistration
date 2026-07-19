@@ -2,9 +2,11 @@ import { requireRole, getProfile } from "@/lib/auth";
 import {
   getAgentOwnAgreement,
   listOwnAgentDocuments,
+  listAgreementEvents,
 } from "@/lib/admin/agreements";
 import { AgentAgreementCard } from "@/components/agent/AgentAgreementCard";
 import { AgentAgreementRequest } from "@/components/agent/AgentAgreementRequest";
+import { AgreementChangeRequest } from "@/components/agent/AgreementChangeRequest";
 
 /**
  * The agent's Agreement tab. Three phases:
@@ -21,8 +23,11 @@ export default async function AgentAgreementPage() {
     getAgentOwnAgreement(agentId),
     listOwnAgentDocuments(agentId),
   ]);
+  const events = agreement ? await listAgreementEvents(agreement.id) : [];
 
   const inRequest = !agreement || agreement.status === "requested";
+  const canRaiseChange =
+    !!agreement && ["with_agent", "signed_agent", "active"].includes(agreement.status);
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,6 +48,11 @@ export default async function AgentAgreementPage() {
 
       {agreement && agreement.status !== "requested" && (
         <AgentAgreementCard agreement={agreement} />
+      )}
+
+      {/* Changes & notices — amendments, addenda, termination, new agreement */}
+      {canRaiseChange && (
+        <AgreementChangeRequest agreementId={agreement.id} events={events} />
       )}
     </div>
   );

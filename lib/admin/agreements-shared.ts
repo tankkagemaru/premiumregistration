@@ -221,6 +221,51 @@ export interface AgentArrangement {
   docsTotal: number;
 }
 
+/** A lifecycle event on an agreement — requests, notices, notes. Permanent record. */
+export interface AgreementEvent {
+  id: string;
+  agreement_id: string;
+  agent_id?: string | null;
+  actor_id?: string | null;
+  type: string;
+  body?: string | null;
+  created_at: string;
+}
+
+/** The change-request kinds an agent can raise from the portal. The addendum
+ *  option deliberately steers special projects toward a supplementary addendum
+ *  (Clauses 9(e) + 24(a)) rather than a standalone term sheet. */
+export const AGREEMENT_REQUEST_KINDS = [
+  {
+    type: "amendment_request",
+    label: "Request a change of terms",
+    hint: "Propose a change to the commission scheme or other terms. Finance reviews it; an agreed change is signed as a variation (Clause 23b).",
+  },
+  {
+    type: "addendum_request",
+    label: "Special project — request an addendum",
+    hint: "For a summer camp, seminar or other special programme. Terms are agreed per project and attached to this Agreement as an addendum with the same legal effect (Clauses 9e & 24a).",
+  },
+  {
+    type: "termination_notice",
+    label: "Give notice of early termination",
+    hint: "Ends the Agreement on thirty (30) days' written notice (Clause 12b). Commission already earned on fully-paid enrolments remains payable (Clause 12d).",
+  },
+  {
+    type: "new_agreement_request",
+    label: "Request a new agreement",
+    hint: "For a substantially different arrangement — the current agreement is closed and a fresh one is prepared with new due diligence where needed.",
+  },
+];
+
+export const AGREEMENT_EVENT_LABEL: Record<string, string> = {
+  amendment_request: "Change of terms requested",
+  addendum_request: "Special-project addendum requested",
+  termination_notice: "Early-termination notice given",
+  new_agreement_request: "New agreement requested",
+  note: "Note",
+};
+
 /** Due-diligence documents an agent uploads when requesting an agreement. */
 export interface AgentDocument {
   id: string;

@@ -7,6 +7,7 @@ import { X, Plus, FileText, Send, PenLine, Trash2, RefreshCw, Upload, Loader2, C
 import {
   AGREEMENT_STATUS_LABEL,
   AGREEMENT_STATUS_TONE,
+  AGREEMENT_EVENT_LABEL,
   SCOPE_OPTIONS,
   AGENT_DOC_KINDS,
   MAX_TIERS,
@@ -14,6 +15,7 @@ import {
   tierLabel,
   type AgentAgreement,
   type AgentDocument,
+  type AgreementEvent,
   type AgreementParticulars,
   type AgreementScheme,
   type SchemeTier,
@@ -71,11 +73,14 @@ export function AgreementsManager({
   agreements,
   agents,
   agentDocs = {},
+  events = {},
   canEdit,
 }: {
   agreements: AgentAgreement[];
   agents: { id: string; full_name: string }[];
   agentDocs?: Record<string, AgentDocument[]>;
+  /** Lifecycle events (requests / notices) keyed by agreement id. */
+  events?: Record<string, AgreementEvent[]>;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -213,6 +218,7 @@ export function AgreementsManager({
           key={open.id}
           agreement={open}
           docs={agentDocs[open.agent_id] ?? []}
+          events={events[open.id] ?? []}
           onClose={() => setOpenId(null)}
         />
       )}
@@ -225,10 +231,12 @@ export function AgreementsManager({
 function AgreementEditor({
   agreement: a,
   docs,
+  events,
   onClose,
 }: {
   agreement: AgentAgreement;
   docs: AgentDocument[];
+  events: AgreementEvent[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -552,6 +560,31 @@ function AgreementEditor({
             ) : "Waiting for the agent to complete their details after signing is sent."}
           </p>
         </Section>
+
+        {/* ---- Record: requests & notices from the agent ---- */}
+        {events.length > 0 && (
+          <Section title="Record — requests & notices">
+            <div className="flex flex-col gap-2.5">
+              {events.map((e) => (
+                <div
+                  key={e.id}
+                  className={`border-s-2 ps-3 ${e.type === "termination_notice" ? "border-brand-red" : "border-border-warm"}`}
+                >
+                  <p className={`text-sm font-medium ${e.type === "termination_notice" ? "text-brand-red" : "text-ink"}`}>
+                    {AGREEMENT_EVENT_LABEL[e.type] ?? e.type}
+                  </p>
+                  {e.body && <p className="text-xs text-ink-soft">{e.body}</p>}
+                  <p className="text-[11px] text-ink-muted">{String(e.created_at).slice(0, 10)}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-ink-muted">
+              These also arrive in the Requests inbox. Agreed changes are executed as a signed
+              variation or addendum; a termination notice ends the Agreement 30 days from the date
+              shown (Clause 12b) — void this agreement when it takes effect.
+            </p>
+          </Section>
+        )}
 
         {/* ---- Actions ---- */}
         <Section title="Actions">

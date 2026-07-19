@@ -514,6 +514,87 @@ export async function recordAgentDoc(kind: string, path: string): Promise<Res> {
   return { ok: true };
 }
 
+const REQUEST_TITLES: Record<string, string> = {
+  amendment_request: "Agreement — change of terms requested",
+  addendum_request: "Agreement — special-project addendum requested",
+  termination_notice: "Agreement — early-termination notice (30 days, Clause 12b)",
+  new_agreement_request: "Agreement — new agreement requested",
+};
+
+/**
+ * An agent raises an agreement lifecycle request from the portal: a change of
+ * terms, a special-project addendum, an early-termination notice (Clause 12b),
+ * or a new agreement. Every request is written to agreement_events (permanent
+ * record shown to both sides), raised to Finance in the Requests inbox,
+ * notified, and audited.
+ */
+export async function submitAgreementChangeRequest(
+  agreementId: string,
+  type: string,
+  detail: string,
+): Promise<Res> {
+  if (!authConfigured) return { ok: true };
+  if (!REQUEST_TITLES[type]) return { ok: false, error: "bad_type" };
+  if (!detail.trim()) return { ok: false, error: "no_detail" };
+  const ctx = await agentCtx(agreementId);
+  if (!ctx) return { ok: false, error: "forbidden" };
+  if (["draft", "requested", "void"].includes(ctx.agr.status))
+    return { ok: false, error: "bad_status" };
+
+  const who = ctx.profile.full_name ?? "Agent";
+  const body =
+    type === "termination_notice"
+      ? `${detail.trim()} — Written notice received ${new Date().toISOString().slice(0, 10)}; the Agreement ends thirty (30) days after this notice per Clause 12(b). Accrued commission on fully-paid enrolments remains payable (Clause 12(d)).`
+      : detail.trim();
+
+  // 1. Permanent record on the agreement itself.
+  const { error } = await ctx.admin.from("agreement_events").insert({
+    agreement_id: agreementId,
+    agent_id: ctx.profile.id,
+    actor_id: ctx.profile.id,
+    type,
+    body,
+  });
+  if (error) return { ok: false, error: "insert_failed" };
+
+  // 2. Lands in Finance's Requests inbox (their existing workflow).
+  await ctx.admin.from("action_requests").insert({
+    application_id: null,
+    subject: who,
+    from_role: "agent",
+    from_user: ctx.profile.id,
+    to_role: "finance",
+    type: type === "termination_notice" ? "blocker" : "request",
+    title: REQUEST_TITLES[type],
+    detail: `${who}: ${body}`,
+  });
+
+  // 3. Ping finance + admin users.
+  const { data: finUsers } = await ctx.admin
+    .from("profiles")
+    .select("id")
+    .in("role", ["finance", "admin"]);
+  if (finUsers?.length) {
+    await ctx.admin.from("notifications").insert(
+      finUsers.map((u: { id: string }) => ({
+        user_id: u.id,
+        type: "agreement",
+        payload: { title: `${who} — ${REQUEST_TITLES[type]}` },
+      })),
+    );
+  }
+
+  await logAudit({
+    action: type,
+    target_type: "agreement",
+    target_id: agreementId,
+    detail: `${who}: ${detail.trim().slice(0, 160)}`,
+  });
+  revalidatePath("/agent", "layout");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
 /** Finance verifies / rejects an agent due-diligence document. */
 export async function setAgentDocReview(docId: string, status: string): Promise<Res> {
   if (!authConfigured) return { ok: true };

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { authConfigured } from "./applications-shared";
-import type { AgentAgreement, AgentDocument, AgentArrangement } from "./agreements-shared";
+import type { AgentAgreement, AgentDocument, AgentArrangement, AgreementEvent } from "./agreements-shared";
 
 export * from "./agreements-shared";
 
@@ -162,6 +162,37 @@ export async function listOwnAgentDocuments(agentId: string): Promise<AgentDocum
     .eq("agent_id", agentId)
     .order("created_at", { ascending: false });
   return (data as AgentDocument[] | null) ?? [];
+}
+
+/** Lifecycle events for one agreement, newest first (RLS-scoped: staff or own). */
+export async function listAgreementEvents(agreementId: string): Promise<AgreementEvent[]> {
+  if (!authConfigured) {
+    return [
+      { id: "ev-1", agreement_id: agreementId, agent_id: "s-kucing", type: "amendment_request", body: "Requesting tier-2 English commission at 22%.", created_at: "2026-07-10T00:00:00Z" },
+    ];
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agreement_events")
+    .select("*")
+    .eq("agreement_id", agreementId)
+    .order("created_at", { ascending: false });
+  return (data as AgreementEvent[] | null) ?? [];
+}
+
+/** All agreements' lifecycle events keyed by agreement id (staff view). */
+export async function listAgreementEventsByAgreement(): Promise<Record<string, AgreementEvent[]>> {
+  if (!authConfigured) return { "agr-1": await listAgreementEvents("agr-1") };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agreement_events")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const map: Record<string, AgreementEvent[]> = {};
+  for (const e of (data as AgreementEvent[] | null) ?? []) {
+    (map[e.agreement_id] ??= []).push(e);
+  }
+  return map;
 }
 
 /** All agents' due-diligence documents keyed by agent id (finance view). */

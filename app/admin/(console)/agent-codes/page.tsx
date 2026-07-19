@@ -2,14 +2,14 @@ import { requireRole, getProfile, type Role } from "@/lib/auth";
 import { listAgentCodes, AGENT_CODE_ROLES } from "@/lib/admin/agent-codes";
 import { listUsersPrivileged } from "@/lib/admin/users";
 import { listResources } from "@/lib/admin/resources";
-import { listAgreements, listAgentDocumentsByAgent } from "@/lib/admin/agreements";
+import { listAgreements, listAgentDocumentsByAgent, listAgreementEventsByAgreement } from "@/lib/admin/agreements";
 import { AgentCodesManager } from "@/components/admin/AgentCodesManager";
 import { ResourcesManager } from "@/components/admin/ResourcesManager";
 import { AgreementsManager } from "@/components/admin/AgreementsManager";
 
 export default async function AgentCodesPage() {
   await requireRole(AGENT_CODE_ROLES as Role[]);
-  const [codes, users, resources, agreements, agentDocs, profile] = await Promise.all([
+  const [codes, users, resources, agreements, agentDocs, agreementEvents, profile] = await Promise.all([
     listAgentCodes(),
     // Privileged: finance/marketing can't read other profiles under RLS, but
     // this page needs the agent list for codes + agreements.
@@ -17,6 +17,7 @@ export default async function AgentCodesPage() {
     listResources(),
     listAgreements(),
     listAgentDocumentsByAgent(),
+    listAgreementEventsByAgreement(),
     getProfile(),
   ]);
   const agents = users
@@ -50,6 +51,7 @@ export default async function AgentCodesPage() {
             agreements={agreements}
             agents={agents}
             agentDocs={agentDocs}
+            events={agreementEvents}
             canEdit={canEditAgreements}
           />
         </div>
