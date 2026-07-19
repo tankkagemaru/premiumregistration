@@ -203,6 +203,8 @@ export default async function AcademicPage({
                       classEnd={a.class_end ?? null}
                       stage={a.stage}
                       feeCleared={due.length === 0}
+                      isInternational={!!a.is_international}
+                      passIssued={vc?.stage === "done"}
                       checklist={a.class_checklist ?? null}
                     />
                     {visaClash && (

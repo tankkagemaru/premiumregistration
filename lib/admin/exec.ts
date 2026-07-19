@@ -1,5 +1,6 @@
 import "server-only";
 import { authConfigured } from "./applications-shared";
+import { getFxRates, toMYR } from "./fx";
 
 /**
  * Executive overview — aggregate numbers only, no personal records. Runs on the
@@ -60,14 +61,18 @@ export async function getExecOverview(): Promise<ExecOverview> {
     { data: visas },
     { data: fees },
     { data: commissions },
+    { data: payments },
+    fx,
   ] = await Promise.all([
     admin
       .from("registrations")
       .select("id, status, created_at, agent_code, utm_source, utm_campaign, tracks"),
     admin.from("applications").select("id, stage, created_at, class_start, track"),
     admin.from("visa_cases").select("id, stage, created_at"),
-    admin.from("fees").select("amount, status, due_date"),
-    admin.from("commissions").select("amount, status, direction"),
+    admin.from("fees").select("id, amount, currency, status, due_date"),
+    admin.from("commissions").select("amount, currency, status, direction"),
+    admin.from("payments").select("fee_id, amount"),
+    getFxRates(),
   ]);
 
   const L = leads ?? [];
@@ -119,12 +124,22 @@ export async function getExecOverview(): Promise<ExecOverview> {
     { dept: "Finance", metric: "Fees past their due date", count: financeOverdue, level: level(financeOverdue) },
   ];
 
+  // Money position in true MYR: convert each fee/commission from its own
+  // currency and net partial payments off outstanding fees — mirrors the
+  // finance dashboard so the boss and finance never disagree.
+  const P = payments ?? [];
+  const paidTowardsFee = (feeId: string) =>
+    P.filter((p) => p.fee_id === feeId).reduce((s, p) => s + Number(p.amount ?? 0), 0);
   const outstandingFees = F.filter((f) => f.status === "unpaid" || f.status === "partial")
-    .reduce((s, f) => s + Number(f.amount ?? 0), 0);
+    .reduce(
+      (s, f) =>
+        s + toMYR(Math.max(0, Number(f.amount ?? 0) - paidTowardsFee(f.id)), f.currency, fx),
+      0,
+    );
   const commissionPayable = C.filter((c) => c.direction === "payable" && c.status !== "paid")
-    .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+    .reduce((s, c) => s + toMYR(Number(c.amount ?? 0), c.currency, fx), 0);
   const collectable = C.filter((c) => c.direction === "receivable" && c.status !== "paid")
-    .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+    .reduce((s, c) => s + toMYR(Number(c.amount ?? 0), c.currency, fx), 0);
 
   // Group leads by a key (skipping null keys) into a performance row —
   // leads sourced, how many enrolled, and the conversion rate. Ranked by

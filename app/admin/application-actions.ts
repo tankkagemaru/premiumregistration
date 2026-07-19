@@ -18,8 +18,11 @@ import { logAudit } from "@/lib/admin/audit";
 import { runStageAutomation } from "@/lib/admin/automation";
 import { createActionRequest } from "./request-actions";
 
-export async function advanceApplicationStage(id: string, stage: string) {
-  if (!authConfigured) return;
+export async function advanceApplicationStage(
+  id: string,
+  stage: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
   const supabase = await createClient();
   const profile = await getProfile();
   const { data: prev } = await supabase
@@ -29,14 +32,28 @@ export async function advanceApplicationStage(id: string, stage: string) {
     .single();
 
   // Hard-gate enforcement (backstop for the UI): refuse a FORWARD handoff whose
-  // exit gate isn't met. Admin bypasses; backward moves are always allowed.
+  // exit gate isn't met — and say why, so the click never silently no-ops.
+  // Admin bypasses; backward moves are always allowed.
   if (prev && profile?.role !== "admin") {
     const list = stagesFor(Boolean(prev.is_international), prev.track);
     const from = list.findIndex((s) => s.id === prev.stage);
     const to = list.findIndex((s) => s.id === stage);
     if (from >= 0 && to > from && (await getGateMode()) === "hard") {
-      const gate = stageGate(prev.stage, await loadGateSignals(id));
-      if (!gate.met) return; // gate not satisfied — refuse the handoff
+      const signals = await loadGateSignals(id);
+      const gate = stageGate(prev.stage, signals);
+      if (!gate.met) return { ok: false, error: `Blocked — ${gate.reason ?? "stage gate not met"}` };
+      // Lane guard: an international student cannot jump PAST the visa stage
+      // (e.g. offer → enrolled) without an issued student pass.
+      const visaIdx = list.findIndex((s) => s.id === "visa");
+      if (
+        prev.is_international &&
+        visaIdx >= 0 &&
+        from <= visaIdx &&
+        to > visaIdx &&
+        !signals.passIssued
+      ) {
+        return { ok: false, error: "Blocked — student pass not issued (the visa case must reach Done first)" };
+      }
     }
   }
 
@@ -53,6 +70,7 @@ export async function advanceApplicationStage(id: string, stage: string) {
   // Automation: scaffold fees, accrue commission at milestones, notify owner.
   if (prev?.stage !== stage) await runStageAutomation(id, stage, profile?.id);
   revalidatePath("/admin", "layout");
+  return { ok: true };
 }
 
 /**

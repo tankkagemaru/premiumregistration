@@ -219,9 +219,12 @@ export function LeadDrawer({
               }
               className="rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs text-ink outline-none"
             >
-              {LEAD_STATUSES.map((s) => (
+              {/* "enrolled" is set by Create application, never by hand — picking
+                  it manually made the drawer believe a conversion happened and
+                  hid the convert button forever. */}
+              {LEAD_STATUSES.filter((s) => s === lead.status || s !== "enrolled").map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {s === "enrolled" ? "converted" : s}
                 </option>
               ))}
             </select>

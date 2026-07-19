@@ -29,6 +29,7 @@ export function LeadQuoteEditor({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const dirty = JSON.stringify(items) !== JSON.stringify(initial);
 
   const filtered = billables
@@ -110,11 +111,20 @@ export function LeadQuoteEditor({
       <div className="flex items-center gap-3">
         <button
           disabled={pending || !dirty}
-          onClick={() => start(async () => { await saveLeadQuote(leadId, items); setSaved(true); router.refresh(); })}
+          onClick={() =>
+            start(async () => {
+              setErr(null);
+              const r = await saveLeadQuote(leadId, items);
+              if (r && !r.ok) { setErr("Could not save the quote — you may not have permission."); return; }
+              setSaved(true);
+              router.refresh();
+            })
+          }
           className="rounded-md bg-brand-red px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
         >
           {pending ? "Saving…" : saved ? "Saved ✓" : "Save quote"}
         </button>
+        {err && <span className="text-xs text-brand-red">{err}</span>}
         {items.length > 0 && (
           <span className="text-xs text-ink-muted">
             Total: {formatMoney(items.reduce((s, it) => s + it.amount, 0), items[0].currency)}

@@ -35,9 +35,16 @@ async function autoAdvanceRegistration(applicationId: string) {
     .eq("id", applicationId)
     .maybeSingle();
   if (app?.stage !== "registration") return;
-  const { data: fees } = await admin.from("fees").select("type, status").eq("application_id", applicationId);
+  const { data: fees } = await admin
+    .from("fees")
+    .select("type, status, amount")
+    .eq("application_id", applicationId);
+  // A zero-amount fee is "amount TBD" — only a genuinely priced payment or an
+  // explicit (reason-backed) waiver moves the student on.
   const cleared = (fees ?? []).some(
-    (f) => f.type === "registration" && (f.status === "paid" || f.status === "waived"),
+    (f) =>
+      f.type === "registration" &&
+      (f.status === "waived" || (f.status === "paid" && Number(f.amount ?? 0) > 0)),
   );
   if (!cleared) return;
   await admin.from("applications").update({ stage: "admissions" }).eq("id", applicationId);
@@ -145,15 +152,29 @@ export async function recordPayment(input: {
   revalidatePath("/admin", "layout");
 }
 
-export async function setFeeStatus(feeId: string, status: string) {
-  if (!authConfigured) return;
+export async function setFeeStatus(
+  feeId: string,
+  status: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
   const ctx = await financeClient();
-  if (!ctx) return;
+  if (!ctx) return { ok: false, error: "forbidden" };
+  // Waivers must carry a reason — use waiveFee, never a bare status flip.
+  if (status === "waived")
+    return { ok: false, error: "Waiving needs a reason — use the Waive control." };
+  const { data: fee } = await ctx.admin
+    .from("fees")
+    .select("application_id, amount")
+    .eq("id", feeId)
+    .maybeSingle();
+  // A fee still at 0 is unpriced ("amount TBD") — set the real amount first.
+  if (status === "paid" && Number(fee?.amount ?? 0) <= 0)
+    return { ok: false, error: "Set the fee amount before marking it paid." };
   await ctx.admin.from("fees").update({ status }).eq("id", feeId);
-  const { data: fee } = await ctx.admin.from("fees").select("application_id").eq("id", feeId).maybeSingle();
   if (fee?.application_id) await autoAdvanceRegistration(fee.application_id);
   await logAudit({ action: "fee_status_changed", target_type: "fee", target_id: feeId, detail: status });
   revalidatePath("/admin", "layout");
+  return { ok: true };
 }
 
 /**

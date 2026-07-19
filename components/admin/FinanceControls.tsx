@@ -96,27 +96,43 @@ export function FeeAmountControl({
   );
 }
 
+const FEE_STATUS_OPTION: Record<string, string> = {
+  unpaid: "Unpaid",
+  partial: "Partially paid",
+  paid: "Paid",
+  waived: "Waived",
+};
+
 export function FeeStatusSelect({ id, status }: { id: string; status: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  // "Waived" isn't offered here — it needs a recorded reason (Waive control).
+  // It still renders as the current value when the fee is already waived.
+  const options = status === "waived" ? ["unpaid", "partial", "paid", "waived"] : ["unpaid", "partial", "paid"];
   return (
-    <select
-      value={status}
-      disabled={pending}
-      onChange={(e) =>
-        start(async () => {
-          await setFeeStatus(id, e.target.value);
-          router.refresh();
-        })
-      }
-      className={SELECT_CLS}
-    >
-      {["unpaid", "partial", "paid", "waived"].map((s) => (
-        <option key={s} value={s}>
-          {s}
-        </option>
-      ))}
-    </select>
+    <span className="inline-flex flex-col">
+      <select
+        value={status}
+        disabled={pending}
+        onChange={(e) =>
+          start(async () => {
+            setErr(null);
+            const r = await setFeeStatus(id, e.target.value);
+            if (r && !r.ok && r.error) { setErr(r.error); return; }
+            router.refresh();
+          })
+        }
+        className={SELECT_CLS}
+      >
+        {options.map((s) => (
+          <option key={s} value={s}>
+            {FEE_STATUS_OPTION[s] ?? s}
+          </option>
+        ))}
+      </select>
+      {err && <span className="mt-0.5 max-w-[160px] text-[10px] text-brand-red">{err}</span>}
+    </span>
   );
 }
 

@@ -13,11 +13,17 @@ export function ApplicationsBoard({ apps }: { apps: Application[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [over, setOver] = useState<string | null>(null);
+  const [dropErr, setDropErr] = useState<string | null>(null);
 
   function drop(stage: string, id: string) {
     setOver(null);
     start(async () => {
-      await advanceApplicationStage(id, stage);
+      setDropErr(null);
+      const r = await advanceApplicationStage(id, stage);
+      if (r && !r.ok) {
+        setDropErr(r.error ?? "That move is blocked by the stage gate.");
+        return;
+      }
       router.refresh();
     });
   }
@@ -32,6 +38,11 @@ export function ApplicationsBoard({ apps }: { apps: Application[] }) {
 
   return (
     <div className="overflow-x-auto pb-2">
+      {dropErr && (
+        <p className="mb-2 rounded-md border border-brand-red/40 bg-brand-red-bg px-3 py-1.5 text-xs font-medium text-brand-red">
+          {dropErr}
+        </p>
+      )}
       <div className="flex min-w-max gap-3">
         {columns.map((stage) => {
           const cards = apps.filter((a) => a.stage === stage.id);

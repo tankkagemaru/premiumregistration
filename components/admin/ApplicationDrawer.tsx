@@ -110,14 +110,17 @@ export function ApplicationDrawer({
   const have = new Set(documents.map((d) => d.kind));
   const missing = docRequirements.filter((r) => !r.optional && !have.has(r.kind));
 
-  // Signals for the stage gate / next-step panel (see gates-shared).
-  const cleared = (s?: string) => s === "paid" || s === "waived";
+  // Signals for the stage gate / next-step panel (see gates-shared). Mirrors
+  // loadGateSignals: a zero-amount "paid" fee is unpriced and does NOT clear,
+  // and zero recorded fees is not "all cleared".
+  const cleared = (f: Fee) =>
+    f.status === "waived" || (f.status === "paid" && Number(f.amount ?? 0) > 0);
   const signals: GateSignals = {
     isInternational: app.is_international,
-    registrationPaid: fees.some((f) => f.type === "registration" && cleared(f.status)),
+    registrationPaid: fees.some((f) => f.type === "registration" && cleared(f)),
     planFinalized: planStatus(app.plan).state === "finalized",
     requiredDocsPresent: missing.length === 0,
-    allFeesCleared: fees.every((f) => cleared(f.status)),
+    allFeesCleared: fees.length > 0 && fees.every(cleared),
     readyForVisa: Boolean(app.ready_for_visa),
     passIssued: visa?.stage === "done",
   };

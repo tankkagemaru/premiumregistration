@@ -20,6 +20,8 @@ export function AcademicControls({
   classEnd,
   stage,
   feeCleared,
+  isInternational = false,
+  passIssued = false,
   checklist,
 }: {
   appId: string;
@@ -27,6 +29,8 @@ export function AcademicControls({
   classEnd: string | null;
   stage: string;
   feeCleared: boolean;
+  isInternational?: boolean;
+  passIssued?: boolean;
   checklist?: Record<string, boolean> | null;
 }) {
   const router = useRouter();
@@ -34,8 +38,12 @@ export function AcademicControls({
   const [s, setS] = useState(classStart ?? "");
   const [e, setE] = useState(classEnd ?? "");
   const [prepOpen, setPrepOpen] = useState(false);
+  const [enrolErr, setEnrolErr] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Record<string, boolean>>(checklist ?? {});
   const dirty = s !== (classStart ?? "") || e !== (classEnd ?? "");
+  // An international student can only be enrolled once the student pass is
+  // issued — enrolling from Offer would skip the entire visa lane.
+  const visaBlocked = isInternational && !passIssued;
   const canEnrol = feeCleared && ["offer", "visa"].includes(stage);
   const doneCount = ENGLISH_CLASS_TASKS.filter((t) => tasks[t.key]).length;
 
@@ -62,15 +70,27 @@ export function AcademicControls({
         )}
         {canEnrol && (
           <button
-            disabled={pending}
-            onClick={() => start(async () => { await advanceApplicationStage(appId, "enrolled"); router.refresh(); })}
+            disabled={pending || visaBlocked}
+            title={visaBlocked ? "Waiting on the student pass — the visa case must reach Done first" : undefined}
+            onClick={() =>
+              start(async () => {
+                setEnrolErr(null);
+                const r = await advanceApplicationStage(appId, "enrolled");
+                if (r && !r.ok) { setEnrolErr(r.error ?? "Blocked by the stage gate."); return; }
+                router.refresh();
+              })
+            }
             className="inline-flex items-center gap-1 rounded-md bg-brand-red px-2.5 py-1 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
           >
             <Check className="h-3 w-3" aria-hidden />
             Mark enrolled
           </button>
         )}
+        {visaBlocked && canEnrol && (
+          <span className="text-[10px] text-ink-muted">waiting on student pass</span>
+        )}
       </div>
+      {enrolErr && <p className="text-[11px] text-brand-red">{enrolErr}</p>}
 
       {/* Class prep checklist */}
       <div>

@@ -11,15 +11,17 @@ import {
   type FeeType,
 } from "@/lib/admin/finance";
 import { listVisaCases, expiryFlag } from "@/lib/admin/visa";
+import { getFxRates, toMYR } from "@/lib/admin/fx";
 
 export default async function ReportsPage() {
   await requireRole(["admin", "finance"]);
-  const [apps, fees, payments, commissions, visaCases] = await Promise.all([
+  const [apps, fees, payments, commissions, visaCases, fx] = await Promise.all([
     listApplications(),
     listFees(),
     listPayments(),
     listCommissions(),
     listVisaCases(),
+    getFxRates(),
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -43,15 +45,16 @@ export default async function ReportsPage() {
   for (const c of commissions) {
     if (c.direction !== "payable" || !c.agent_id) continue;
     const row = agents.get(c.agent_id);
-    if (row) row.commission += c.amount;
+    // Totals are reported in MYR — convert each commission from its currency.
+    if (row) row.commission += toMYR(c.amount ?? 0, c.currency, fx);
   }
 
-  /* Revenue by fee type */
+  /* Revenue by fee type — converted to MYR so mixed-currency fees sum truthfully. */
   const byType = new Map<FeeType, { billed: number; received: number }>();
   for (const f of fees) {
     const row = byType.get(f.type) ?? { billed: 0, received: 0 };
-    row.billed += f.amount;
-    row.received += paidTowards(f, payments);
+    row.billed += toMYR(f.amount, f.currency, fx);
+    row.received += toMYR(paidTowards(f, payments), f.currency, fx);
     byType.set(f.type, row);
   }
 

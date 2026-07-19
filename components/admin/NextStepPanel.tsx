@@ -46,6 +46,7 @@ export function NextStepPanel({
   const [waiveOpen, setWaiveOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [waiveErr, setWaiveErr] = useState<string | null>(null);
+  const [advErr, setAdvErr] = useState<string | null>(null);
 
   const list = stagesFor(Boolean(app.is_international), app.track);
   const idx = list.findIndex((s) => s.id === app.stage);
@@ -201,12 +202,20 @@ export function NextStepPanel({
               <button
                 type="button"
                 disabled={pending || blocked}
-                onClick={() => start(async () => { await advanceApplicationStage(app.id, next.id); router.refresh(); })}
+                onClick={() =>
+                  start(async () => {
+                    setAdvErr(null);
+                    const r = await advanceApplicationStage(app.id, next.id);
+                    if (r && !r.ok) { setAdvErr(r.error ?? "Blocked by the stage gate."); return; }
+                    router.refresh();
+                  })
+                }
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-inkbtn px-3 py-2 text-sm font-medium text-oncolor hover:bg-inkbtn-soft disabled:opacity-50"
               >
                 Advance to {stageLabel(next.id, app.track)}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </button>
+              {advErr && <p className="text-xs font-medium text-brand-red">{advErr}</p>}
               {!gate.met && (
                 <p className={`text-xs ${blocked ? "text-brand-red" : "text-brand-gold"}`}>
                   {blocked
