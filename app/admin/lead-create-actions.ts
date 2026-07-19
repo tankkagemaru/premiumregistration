@@ -32,11 +32,17 @@ function validate(input: NewRecordInput): string | null {
   return null;
 }
 
-/** Existing student or lead with the same email (student wins), or null. */
+/** Existing student or lead with the same email OR phone (student wins), or
+ *  null. Phone matching catches the walk-in re-keyed with a typo'd email. */
 async function findDuplicate(
   supabase: Awaited<ReturnType<typeof createClient>>,
   email: string,
+  phone?: string | null,
 ): Promise<{ id: string; name: string; kind: "lead" | "student" } | null> {
+  // Compare phone numbers on digits only ("+60 12-345" ≈ "60123 45").
+  const digits = (phone ?? "").replace(/\D/g, "");
+  const phoneFilter = digits.length >= 7 ? `%${digits.slice(-9)}` : null;
+
   const { data: student } = await supabase
     .from("students")
     .select("id, full_name")
@@ -51,6 +57,16 @@ async function findDuplicate(
     .limit(1)
     .maybeSingle();
   if (lead) return { id: lead.id, name: lead.full_name, kind: "lead" };
+
+  if (phoneFilter) {
+    const { data: byPhone } = await supabase
+      .from("registrations")
+      .select("id, full_name, phone, whatsapp")
+      .or(`phone.ilike.${phoneFilter},whatsapp.ilike.${phoneFilter}`)
+      .limit(1)
+      .maybeSingle();
+    if (byPhone) return { id: byPhone.id, name: byPhone.full_name, kind: "lead" };
+  }
   return null;
 }
 
@@ -77,7 +93,7 @@ export async function createLeadManually(
 
   // Dedup: warn (don't hard-block) if this email is already a lead or student.
   if (!force) {
-    const dup = await findDuplicate(supabase, email);
+    const dup = await findDuplicate(supabase, email, input.phone ?? input.whatsapp);
     if (dup) return { ok: false, error: "duplicate", duplicate: dup };
   }
 
@@ -141,7 +157,7 @@ export async function createStudentDirect(
   const email = input.email.trim();
 
   if (!force) {
-    const dup = await findDuplicate(supabase, email);
+    const dup = await findDuplicate(supabase, email, input.phone ?? input.whatsapp);
     if (dup) return { ok: false, error: "duplicate", duplicate: dup };
   }
 

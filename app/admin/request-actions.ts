@@ -42,6 +42,24 @@ export async function createActionRequest(input: {
   revalidatePath("/admin", "layout");
 }
 
+/** Dismiss a request that shouldn't have been raised (wrong team, duplicate,
+ *  no longer relevant) — distinct from "done" so reporting stays honest. */
+export async function dismissActionRequest(id: string) {
+  if (!authConfigured) return;
+  const supabase = await createClient();
+  const profile = await getProfile();
+  await supabase
+    .from("action_requests")
+    .update({
+      status: "dismissed",
+      resolved_at: new Date().toISOString(),
+      resolved_by: profile?.id,
+    })
+    .eq("id", id);
+  await logAudit({ action: "request_dismissed", target_type: "request", target_id: id });
+  revalidatePath("/admin", "layout");
+}
+
 export async function resolveActionRequest(id: string) {
   if (!authConfigured) return;
   const supabase = await createClient();

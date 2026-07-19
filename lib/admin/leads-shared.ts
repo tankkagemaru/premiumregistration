@@ -2,10 +2,11 @@
  * Pure types + constants shared by client and server. No server-only imports
  * here, so client components can use it safely.
  */
-export type LeadStatus = "new" | "contacted" | "enrolled" | "dropped";
+export type LeadStatus = "new" | "contacted" | "quoted" | "enrolled" | "dropped";
 export const LEAD_STATUSES: LeadStatus[] = [
   "new",
   "contacted",
+  "quoted", // a quote has been put in front of the lead (set automatically on quote save)
   "enrolled",
   "dropped",
 ];

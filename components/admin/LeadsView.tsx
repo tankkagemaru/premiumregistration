@@ -90,6 +90,7 @@ export function LeadsView({
     { id: "attention", label: "Needs attention", attention: true, count: attnCount },
     { id: "new", label: "New", count: byStatus("new") },
     { id: "contacted", label: "Contacted", count: byStatus("contacted") },
+    { id: "quoted", label: "Quoted", count: byStatus("quoted") },
     { id: "enrolled", label: "Converted", count: byStatus("enrolled") },
     { id: "dropped", label: "Dropped", count: byStatus("dropped") },
   ];

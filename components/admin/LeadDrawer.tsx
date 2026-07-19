@@ -163,6 +163,7 @@ export function LeadDrawer({
   const converted = lead.status === "enrolled";
   const [action, setAction] = useState(lead.next_action ?? "");
   const [due, setDue] = useState(lead.next_action_due ?? "");
+  const [followUpErr, setFollowUpErr] = useState<string | null>(null);
 
   const en = (lead.details?.english ?? {}) as Record<string, string>;
   const uni = (lead.details?.university ?? {}) as Record<string, string | string[]>;
@@ -233,6 +234,7 @@ export function LeadDrawer({
                 href={`https://wa.me/${waNumber}?text=${waText}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => start(async () => { await logLeadMessage(lead.id, "whatsapp", "quick greeting"); refresh(); })}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
               >
                 <MessageCircle className="h-3.5 w-3.5 text-status-present" aria-hidden />
@@ -241,6 +243,7 @@ export function LeadDrawer({
             )}
             <a
               href={`mailto:${lead.email}`}
+              onClick={() => start(async () => { await logLeadMessage(lead.id, "email", "quick email"); refresh(); })}
               className="inline-flex items-center gap-1.5 rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-cream-50"
             >
               <Mail className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
@@ -482,15 +485,18 @@ export function LeadDrawer({
                   disabled={pending}
                   onClick={() =>
                     start(async () => {
-                      await setFollowUp(lead.id, action, due || null);
+                      setFollowUpErr(null);
+                      const r = await setFollowUp(lead.id, action, due || null);
+                      if (r && !r.ok) { setFollowUpErr(r.error ?? "Could not save."); return; }
                       refresh();
                     })
                   }
                   className="rounded-md border border-border-warm bg-paper px-3 py-2 text-sm font-medium text-ink hover:bg-cream-50 disabled:opacity-50"
                 >
-                  Save
+                  {pending ? "Saving…" : "Save"}
                 </button>
               </div>
+              {followUpErr && <p className="text-xs text-brand-red">{followUpErr}</p>}
             </div>
           </div>
 

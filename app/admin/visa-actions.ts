@@ -89,10 +89,44 @@ export async function updateVisaCase(
 ) {
   if (!authConfigured || !(await canEditVisa())) return;
   const supabase = await createClient();
+  // Detect the completion transition so the handoff below fires exactly once.
+  const { data: before } = await supabase.from("visa_cases").select("stage, application_id, student_name").eq("id", id).maybeSingle();
   await supabase
     .from("visa_cases")
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", id);
+
+  // Visa complete → hand off. Previously the case reached "done" and the
+  // application silently stalled at the Visa stage until Academic happened to
+  // look. Now: note on the timeline, request to Academic, ping the owner.
+  if (patch.stage === "done" && before?.stage !== "done" && before?.application_id) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const appId = before.application_id as string;
+    const who = before.student_name ?? "Student";
+    await admin.from("application_events").insert({
+      application_id: appId,
+      type: "note",
+      body: "Visa complete — student pass issued. Ready for enrolment (Academic).",
+    });
+    const { createActionRequest } = await import("./request-actions");
+    await createActionRequest({
+      applicationId: appId,
+      subject: who,
+      toRole: "academic",
+      type: "handoff",
+      title: "Student pass issued — enrol & schedule classes",
+      detail: `${who}'s visa case is complete. Mark enrolled and set class dates.`,
+    });
+    const { data: app } = await admin.from("applications").select("assigned_to").eq("id", appId).maybeSingle();
+    if (app?.assigned_to) {
+      await admin.from("notifications").insert({
+        user_id: app.assigned_to,
+        type: "handoff",
+        payload: { title: `${who}: student pass issued — ready to enrol`, application_id: appId },
+      });
+    }
+  }
   await logAudit({ action: "visa_updated", target_type: "visa_case", target_id: id, detail: JSON.stringify(patch) });
   revalidatePath("/admin", "layout");
 }

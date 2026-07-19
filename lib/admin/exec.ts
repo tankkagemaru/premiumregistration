@@ -88,7 +88,7 @@ export async function getExecOverview(): Promise<ExecOverview> {
     (l) => l.status === "new" && olderThan(l.created_at, 3),
   ).length;
   const newCount = L.filter((l) => l.status === "new").length;
-  const contacted = L.filter((l) => l.status === "contacted").length;
+  const contacted = L.filter((l) => l.status === "contacted" || l.status === "quoted").length;
   const enrolled = L.filter((l) => l.status === "enrolled").length;
 
   const stageCounts = A.reduce<Record<string, number>>((acc, a) => {

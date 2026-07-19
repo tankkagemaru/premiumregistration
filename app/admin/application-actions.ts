@@ -522,6 +522,41 @@ export async function createApplicationFromLead(leadId: string) {
   // Mark the lead converted so it moves to the Converted tab.
   await supabase.from("registrations").update({ status: "enrolled" }).eq("id", reg.id);
 
+  // Actually hand off to Admissions (the confirm dialog promises this):
+  // a request in their inbox + a ping to every admissions user.
+  if (firstNewAppId) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const adminC = createAdminClient();
+    await adminC.from("action_requests").insert({
+      application_id: firstNewAppId,
+      subject: reg.full_name,
+      from_role: profile?.role ?? "staff",
+      from_user: profile?.id ?? null,
+      to_role: "admissions",
+      type: "handoff",
+      title: "New application — start admissions review",
+      detail: `${reg.full_name} converted from enquiry (${tracks.join(", ")}).`,
+    });
+    const { data: admissionsUsers } = await adminC
+      .from("profiles")
+      .select("id")
+      .in("role", ["admissions", "admin"]);
+    if (admissionsUsers?.length) {
+      await adminC.from("notifications").insert(
+        admissionsUsers
+          .filter((u: { id: string }) => u.id !== profile?.id)
+          .map((u: { id: string }) => ({
+            user_id: u.id,
+            type: "handoff",
+            payload: {
+              title: `New application: ${reg.full_name} (${tracks.join(", ")})`,
+              application_id: firstNewAppId,
+            },
+          })),
+      );
+    }
+  }
+
   await logAudit({
     action: "application_created",
     target_type: "lead",

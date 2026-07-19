@@ -85,12 +85,25 @@ export async function logLeadMessage(id: string, channel: string, label: string)
   if (!authConfigured || channel === "copy") return;
   const supabase = await createClient();
   const profile = await getProfile();
+  // "drafted" not "sent" — we only know the compose window was opened.
   await supabase.from("lead_events").insert({
     registration_id: id,
     actor_id: profile?.id,
     type: channel === "email" ? "email" : "note",
-    body: `${channel === "email" ? "Email" : "WhatsApp"} sent — ${label}`,
+    body: `${channel === "email" ? "Email" : "WhatsApp message"} drafted — ${label}`,
   });
+  // First outbound contact moves a fresh lead along automatically — "contacted"
+  // was purely manual and routinely forgotten, skewing the pipeline counts.
+  const { data: lead } = await supabase.from("registrations").select("status").eq("id", id).maybeSingle();
+  if (lead?.status === "new") {
+    await supabase.from("registrations").update({ status: "contacted" }).eq("id", id);
+    await supabase.from("lead_events").insert({
+      registration_id: id,
+      actor_id: profile?.id,
+      type: "status_change",
+      body: "Status changed to contacted (first outbound message)",
+    });
+  }
   revalidatePath("/admin");
 }
 
@@ -148,6 +161,17 @@ export async function assignLead(id: string, staffId: string | null) {
     type: "assignment",
     body: staffId ? "Assigned" : "Unassigned",
   });
+  // Tell the new owner a lead just landed on them (service role — notifications
+  // have no user insert policy). Skip self-assignment.
+  if (staffId && staffId !== profile?.id) {
+    const { data: lead } = await supabase.from("registrations").select("full_name").eq("id", id).maybeSingle();
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    await createAdminClient().from("notifications").insert({
+      user_id: staffId,
+      type: "assignment",
+      payload: { title: `Lead assigned to you: ${lead?.full_name ?? "a lead"}`, registration_id: id },
+    });
+  }
   await logAudit({ action: "lead_assigned", target_type: "lead", target_id: id, detail: staffId ?? "unassigned" });
   revalidatePath("/admin", "layout");
 }
@@ -172,15 +196,31 @@ export async function setFollowUp(
   id: string,
   next_action: string,
   next_action_due: string | null,
-) {
-  if (!authConfigured) return;
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  // A follow-up without a due date never resurfaces (the Follow-ups view is
+  // date-driven) — require one so scheduled work can't silently vanish.
+  if (next_action.trim() && !next_action_due)
+    return { ok: false, error: "Set a due date — undated follow-ups never resurface." };
   const supabase = await createClient();
+  const profile = await getProfile();
   await supabase
     .from("registrations")
     .update({
-      next_action: next_action || null,
+      next_action: next_action.trim() || null,
       next_action_due: next_action_due || null,
     })
     .eq("id", id);
+  // On the record: follow-ups were the only drawer mutation missing from the
+  // activity timeline.
+  if (next_action.trim()) {
+    await supabase.from("lead_events").insert({
+      registration_id: id,
+      actor_id: profile?.id,
+      type: "note",
+      body: `Follow-up scheduled: ${next_action.trim()} (due ${next_action_due})`,
+    });
+  }
   revalidatePath("/admin");
+  return { ok: true };
 }

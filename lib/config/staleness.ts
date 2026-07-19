@@ -109,7 +109,7 @@ export function leadStaleness(
     bump(rules.noFollowup.level);
   }
   if (
-    lead.status === "contacted" &&
+    (lead.status === "contacted" || lead.status === "quoted") &&
     !lead.next_action_due &&
     age >= rules.contactedStalled.days
   ) {

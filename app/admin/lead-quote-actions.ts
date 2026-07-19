@@ -29,7 +29,7 @@ export async function saveLeadQuote(
   const supabase = await createClient();
   const { data: reg } = await supabase
     .from("registrations")
-    .select("details")
+    .select("details, status")
     .eq("id", leadId)
     .maybeSingle();
 
@@ -44,6 +44,18 @@ export async function saveLeadQuote(
 
   const details = { ...((reg?.details as Record<string, unknown>) ?? {}), quote: clean };
   await supabase.from("registrations").update({ details }).eq("id", leadId);
+
+  // A saved quote moves the lead to "quoted" in the pipeline (early statuses
+  // only — never regress a converted/dropped lead).
+  if (clean.length > 0 && (reg?.status === "new" || reg?.status === "contacted")) {
+    await supabase.from("registrations").update({ status: "quoted" }).eq("id", leadId);
+    await supabase.from("lead_events").insert({
+      registration_id: leadId,
+      actor_id: profile.id,
+      type: "status_change",
+      body: "Status changed to quoted (quote saved)",
+    });
+  }
   await logAudit({ action: "lead_quote_saved", target_type: "lead", target_id: leadId, detail: `${clean.length} item(s)` });
   revalidatePath("/admin", "layout");
   return { ok: true };

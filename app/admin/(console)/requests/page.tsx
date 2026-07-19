@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { listRequests, TEAM_LABEL, type ActionRequest } from "@/lib/admin/requests";
-import { ResolveButton } from "@/components/admin/RequestControls";
+import { ResolveButton, DismissButton } from "@/components/admin/RequestControls";
 import { StageTabs, type StageTab } from "@/components/admin/StageTabs";
 import { GeneralRequestButton } from "@/components/admin/GeneralRequestButton";
 
@@ -10,6 +10,11 @@ const TYPE_TONE: Record<string, string> = {
   handoff: "bg-status-present-bg text-status-present",
   request: "bg-status-late-bg text-brand-gold",
 };
+const TYPE_LABEL: Record<string, string> = {
+  blocker: "Blocker",
+  handoff: "Handoff",
+  request: "Request",
+};
 
 function RequestRow({ r, canResolve }: { r: ActionRequest; canResolve: boolean }) {
   return (
@@ -17,9 +22,9 @@ function RequestRow({ r, canResolve }: { r: ActionRequest; canResolve: boolean }
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${TYPE_TONE[r.type]}`}
+            className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${TYPE_TONE[r.type] ?? "bg-cream-50 text-ink-muted"}`}
           >
-            {r.type}
+            {TYPE_LABEL[r.type] ?? r.type}
           </span>
           <p className="text-sm font-medium text-ink">{r.title}</p>
         </div>
@@ -46,12 +51,19 @@ function RequestRow({ r, canResolve }: { r: ActionRequest; canResolve: boolean }
       </div>
       {r.status === "open" ? (
         canResolve ? (
-          <ResolveButton id={r.id} />
+          <span className="flex items-center gap-1">
+            <ResolveButton id={r.id} />
+            <DismissButton id={r.id} />
+          </span>
         ) : (
           <span className="text-[11px] font-medium uppercase tracking-wide text-brand-gold">
             Open
           </span>
         )
+      ) : r.status === "dismissed" ? (
+        <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+          Dismissed
+        </span>
       ) : (
         <span className="text-[11px] font-medium uppercase tracking-wide text-status-present">
           Done
@@ -78,7 +90,7 @@ export default async function RequestsPage({
     r.status === "open" && (isAdmin || r.to_role === role);
   const raisedByMe = (r: ActionRequest) => isAdmin || r.from_role === role;
   const isOpen = (r: ActionRequest) => r.status === "open";
-  const isDone = (r: ActionRequest) => r.status === "done";
+  const isDone = (r: ActionRequest) => r.status === "done" || r.status === "dismissed";
 
   const stage = one(sp.stage) ?? "team";
   const tabs: StageTab[] = [
@@ -123,7 +135,7 @@ export default async function RequestsPage({
 
       {rows.length === 0 ? (
         <p className="rounded-card border border-border-warm bg-paper px-4 py-6 text-center text-sm text-ink-muted">
-          Nothing here.
+          No requests in this view — all clear.
         </p>
       ) : (
         <div className="overflow-hidden rounded-card border border-border-warm">

@@ -14,7 +14,7 @@ import { ExecDashboard } from "@/components/admin/ExecDashboard";
 import { getConsoleLang, CONSOLE_STR } from "@/lib/admin/console-i18n";
 import type { LeadStatus } from "@/lib/admin/leads-shared";
 
-const FUNNEL: LeadStatus[] = ["new", "contacted", "enrolled"];
+const FUNNEL: LeadStatus[] = ["new", "contacted", "quoted", "enrolled"];
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (

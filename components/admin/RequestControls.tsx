@@ -7,6 +7,7 @@ import { TEAMS, REQUEST_TYPES } from "@/lib/admin/requests-shared";
 import {
   createActionRequest,
   resolveActionRequest,
+  dismissActionRequest,
 } from "@/app/admin/request-actions";
 
 const INPUT_CLS =
@@ -132,6 +133,23 @@ export function ResolveButton({ id }: { id: string }) {
     >
       <Check className="h-3.5 w-3.5 text-status-present" aria-hidden />
       Mark done
+    </button>
+  );
+}
+
+/** Dismiss a request that shouldn't have been raised (duplicate / wrong team). */
+export function DismissButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => start(async () => { await dismissActionRequest(id); router.refresh(); })}
+      className="rounded-md px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-brand-red disabled:opacity-50"
+      title="Dismiss — not applicable / duplicate"
+    >
+      Dismiss
     </button>
   );
 }
