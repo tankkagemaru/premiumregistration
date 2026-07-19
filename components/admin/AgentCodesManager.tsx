@@ -164,7 +164,10 @@ export function AgentCodesManager({
                   {c.active ? "Active" : "Off"}
                 </button>
                 <button
-                  onClick={() => start(async () => { await deleteAgentCode(c.id); router.refresh(); })}
+                  onClick={() => {
+                    if (!window.confirm(`Delete code ${c.code}? Leads referred with it keep the code text but lose the link to a live code — prefer switching it off. This cannot be undone.`)) return;
+                    start(async () => { await deleteAgentCode(c.id); router.refresh(); });
+                  }}
                   aria-label="Delete code"
                   className="text-ink-muted hover:text-brand-red"
                 >

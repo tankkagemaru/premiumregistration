@@ -74,6 +74,12 @@ export async function GET(request: Request) {
     logoSrc: path.join(process.cwd(), "public", "pecsb-logo.png"),
   };
 
+  // Track the offer's reply-by deadline so an expiring offer can be surfaced.
+  await adminRead
+    .from("applications")
+    .update({ offer_expires_at: valid.toISOString().slice(0, 10) })
+    .eq("id", app.id);
+
   const { logAudit } = await import("@/lib/admin/audit");
   await logAudit({
     action: "offer_generated",

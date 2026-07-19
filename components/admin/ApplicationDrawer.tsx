@@ -19,7 +19,9 @@ import type { DocRequirement } from "@/lib/config/documents";
 import {
   addApplicationNote,
   logApplicationMessage,
+  setApplicationStatus,
 } from "@/app/admin/application-actions";
+import { APP_STATUS_LABEL, APP_STATUS_TONE } from "@/lib/admin/applications-shared";
 import { NextStepPanel } from "@/components/admin/NextStepPanel";
 import { DocRequestControl } from "@/components/admin/DocRequestControl";
 import { WorkLog } from "@/components/admin/WorkLog";
@@ -103,6 +105,11 @@ export function ApplicationDrawer({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [note, setNote] = useState("");
+  const [lifecycleOpen, setLifecycleOpen] = useState(false);
+  const [lifecycleStatus, setLifecycleStatus] = useState("withdrawn");
+  const [lifecycleReason, setLifecycleReason] = useState("");
+  const [lifecycleErr, setLifecycleErr] = useState<string | null>(null);
+  const canLifecycle = ["admin", "admissions", "academic"].includes(role);
 
   const close = () => router.push("/admin/applications");
 
@@ -158,6 +165,72 @@ export function ApplicationDrawer({
           >
             Full student record →
           </Link>
+        )}
+
+        {/* Lifecycle: withdraw / defer / complete / reactivate */}
+        {canLifecycle && (
+          <div className="mt-2">
+            {!lifecycleOpen ? (
+              <button
+                type="button"
+                onClick={() => { setLifecycleOpen(true); setLifecycleErr(null); }}
+                className="text-xs font-medium text-ink-muted underline-offset-2 hover:text-brand-red hover:underline"
+              >
+                {app.status === "active" ? "Withdraw / defer / complete…" : "Change status…"}
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2 rounded-md border border-border-warm bg-cream-50/60 p-3">
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={lifecycleStatus}
+                    onChange={(e) => setLifecycleStatus(e.target.value)}
+                    className="rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs text-ink outline-none"
+                  >
+                    {["active", "deferred", "withdrawn", "completed"]
+                      .filter((s) => s !== app.status)
+                      .map((s) => (
+                        <option key={s} value={s}>{APP_STATUS_LABEL[s]}</option>
+                      ))}
+                  </select>
+                  {["withdrawn", "deferred"].includes(lifecycleStatus) && (
+                    <input
+                      value={lifecycleReason}
+                      onChange={(e) => setLifecycleReason(e.target.value)}
+                      placeholder="Reason (required — goes on the record)"
+                      className="min-w-[180px] flex-1 rounded-md border border-border-warm bg-paper px-2.5 py-1.5 text-xs text-ink outline-none focus:border-brand-red"
+                    />
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      start(async () => {
+                        setLifecycleErr(null);
+                        const r = await setApplicationStatus(app.id, lifecycleStatus, lifecycleReason);
+                        if (!r.ok) { setLifecycleErr(r.error ?? "Could not update."); return; }
+                        setLifecycleOpen(false);
+                        setLifecycleReason("");
+                        router.refresh();
+                      })
+                    }
+                    className="rounded-md bg-brand-red px-3 py-1.5 text-xs font-medium text-oncolor hover:bg-brand-red-soft disabled:opacity-50"
+                  >
+                    {pending ? "Saving…" : `Confirm ${APP_STATUS_LABEL[lifecycleStatus]?.toLowerCase()}`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLifecycleOpen(false)}
+                    className="rounded-md border border-border-warm px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {lifecycleErr && <p className="text-[11px] text-brand-red">{lifecycleErr}</p>}
+              </div>
+            )}
+          </div>
         )}
         <EditContactControl
           target="application"
@@ -412,6 +485,24 @@ export function ApplicationDrawer({
             >
               {app.is_international ? "International" : "Local"}
             </span>
+            {app.status !== "active" && (
+              <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${APP_STATUS_TONE[app.status] ?? ""}`}>
+                {APP_STATUS_LABEL[app.status] ?? app.status}
+              </span>
+            )}
+            {app.stage === "offer" && app.offer_expires_at && (
+              <span
+                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${
+                  app.offer_expires_at < new Date().toISOString().slice(0, 10)
+                    ? "bg-brand-red-bg text-brand-red"
+                    : "bg-status-late-bg text-brand-gold"
+                }`}
+              >
+                {app.offer_expires_at < new Date().toISOString().slice(0, 10)
+                  ? `Offer expired ${app.offer_expires_at}`
+                  : `Offer valid to ${app.offer_expires_at}`}
+              </span>
+            )}
             <div className="flex-1" />
             <ProgressRing percent={stagePercent(app.stage, app.is_international, app.track)} flag={app.flag ?? "progress"} size={56} sublabel="" />
           </div>

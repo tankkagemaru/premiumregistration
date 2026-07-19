@@ -6,6 +6,8 @@ import {
   paidTowards,
   formatMoney,
   FEE_TYPE_LABEL,
+  FEE_STATUS_LABEL,
+  COMMISSION_MILESTONE_LABEL,
   type FeeStatus,
 } from "@/lib/admin/finance";
 import { getFxRates, toMYR, CURRENCIES } from "@/lib/admin/fx";
@@ -105,8 +107,8 @@ export default async function FinancePage({
             Fees &amp; commission
           </h1>
           <p className="mt-2 text-sm text-ink-soft">
-            Record-only in v1 — payments are logged here against each fee; no money
-            moves through the system.
+            Log each payment received against its fee — collections themselves
+            happen through the bank as usual.
           </p>
         </div>
         <SearchBox placeholder="Search fee — student, type, status, amount…" />
@@ -143,7 +145,7 @@ export default async function FinancePage({
             </thead>
             <tbody>
               {feeRows.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-ink-muted">Nothing here.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-ink-muted">No fees in this view.</td></tr>
               )}
               {feeRows.map((f) => (
                 <tr key={f.id} className="border-b border-border-warm/60 bg-paper last:border-0">
@@ -165,6 +167,11 @@ export default async function FinancePage({
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs text-ink-soft tabular">
                     {formatMoney(paidTowards(f, payments), f.currency)}
+                    {paidTowards(f, payments) > f.amount && f.amount > 0 && (
+                      <span className="ms-1.5 inline-flex rounded bg-brand-gold/15 px-1.5 py-0.5 text-[10px] font-medium text-brand-gold">
+                        over-received
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-ink-muted">
                     {f.due_date ?? "—"}
@@ -172,7 +179,7 @@ export default async function FinancePage({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${FEE_BADGE[f.status]}`}>
-                        {f.status}
+                        {FEE_STATUS_LABEL[f.status] ?? f.status}
                       </span>
                       <FeeStatusSelect id={f.id} status={f.status} />
                     </div>
@@ -240,7 +247,7 @@ export default async function FinancePage({
                     />
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-muted">
-                    {c.milestone.replace(/_/g, " ")}
+                    {COMMISSION_MILESTONE_LABEL[c.milestone] ?? c.milestone.replace(/_/g, " ")}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5">

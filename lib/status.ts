@@ -115,7 +115,8 @@ export async function lookupStatus(
     const leadStage: Record<string, string> =
       { new: "registration", contacted: "admissions", enrolled: "enrolled", dropped: "registration" };
     const track = (reg.tracks?.[0] as string) ?? "english";
-    const isIntl = (reg.nationality ?? "").toLowerCase() !== "my";
+    const { isInternationalNationality } = await import("@/lib/admin/leads-shared");
+    const isIntl = isInternationalNationality(reg.nationality as string | null);
     const requirements = await getDocRequirements({
       track,
       qualification: null,

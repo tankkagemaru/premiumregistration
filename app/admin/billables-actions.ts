@@ -80,13 +80,28 @@ export async function updateBillableItem(
   revalidatePath("/admin/finance");
 }
 
-export async function deleteBillableItem(id: string) {
+export async function deleteBillableItem(
+  id: string,
+): Promise<{ ok: boolean; error?: string } | void> {
   if (!authConfigured) return;
   const supabase = await financeAdmin();
   if (!supabase) return;
+  // Fees keep their provenance via billable_item_id — deleting a referenced
+  // item would orphan them. Turn it off instead.
+  const { count } = await supabase
+    .from("fees")
+    .select("id", { count: "exact", head: true })
+    .eq("billable_item_id", id);
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      error: `${count} fee(s) were created from this item — set it to Off instead of deleting.`,
+    };
+  }
   await supabase.from("billable_items").delete().eq("id", id);
   await logAudit({ action: "billable_deleted", target_type: "billable_item", target_id: id });
   revalidatePath("/admin/finance");
+  return { ok: true };
 }
 
 /* ---- creating a fee from the catalogue ---- */

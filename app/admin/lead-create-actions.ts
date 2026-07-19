@@ -161,7 +161,8 @@ export async function createStudentDirect(
     if (dup) return { ok: false, error: "duplicate", duplicate: dup };
   }
 
-  const isInternational = (input.nationality ?? "").toLowerCase() !== "my";
+  const { isInternationalNationality } = await import("@/lib/admin/leads-shared");
+  const isInternational = isInternationalNationality(input.nationality);
 
   const { data: student, error: se } = await supabase
     .from("students")

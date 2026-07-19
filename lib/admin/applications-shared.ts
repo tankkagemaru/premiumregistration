@@ -166,7 +166,21 @@ export const ENGLISH_CLASS_TASKS = [
   { key: "books", label: "Books ordered (if needed)" },
 ] as const;
 
-export type ApplicationStatus = "active" | "withdrawn" | "completed";
+export type ApplicationStatus = "active" | "deferred" | "withdrawn" | "completed";
+
+export const APP_STATUS_LABEL: Record<string, string> = {
+  active: "Active",
+  deferred: "Deferred",
+  withdrawn: "Withdrawn",
+  completed: "Completed",
+};
+
+export const APP_STATUS_TONE: Record<string, string> = {
+  active: "bg-status-present/15 text-status-present",
+  deferred: "bg-status-late-bg text-brand-gold",
+  withdrawn: "bg-brand-red-bg text-brand-red",
+  completed: "bg-cream-50 text-ink-muted border border-border-warm",
+};
 
 export interface Application {
   id: string;
@@ -194,6 +208,7 @@ export interface Application {
   class_end?: string | null;
   class_checklist?: Record<string, boolean> | null;
   offer_acknowledged_at?: string | null;
+  offer_expires_at?: string | null; // set when the offer letter is generated
   ready_for_visa?: boolean | null;
   plan?: StudyPlan | null;
 }

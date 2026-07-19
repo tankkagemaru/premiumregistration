@@ -74,6 +74,62 @@ export async function advanceApplicationStage(
 }
 
 /**
+ * Withdraw / defer / complete / reactivate a student — the lifecycle verbs the
+ * pipeline was missing (the statuses existed in the schema but nothing set
+ * them). Withdrawing or deferring requires a reason; everything lands on the
+ * timeline + audit log, and the owner is notified.
+ */
+export async function setApplicationStatus(
+  id: string,
+  status: string,
+  reason?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!authConfigured) return { ok: true };
+  const profile = await getProfile();
+  if (!profile || !["admin", "admissions", "academic"].includes(profile.role))
+    return { ok: false, error: "forbidden" };
+  if (!["active", "deferred", "withdrawn", "completed"].includes(status))
+    return { ok: false, error: "bad_status" };
+  if (["withdrawn", "deferred"].includes(status) && !reason?.trim())
+    return { ok: false, error: "A reason is required to withdraw or defer." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: app } = await admin
+    .from("applications")
+    .select("status, student_name, assigned_to")
+    .eq("id", id)
+    .maybeSingle();
+  if (!app) return { ok: false, error: "not_found" };
+  if (app.status === status) return { ok: true };
+
+  await admin.from("applications").update({ status }).eq("id", id);
+  const label =
+    status === "active" ? "reactivated" : status === "completed" ? "marked completed" : status;
+  await admin.from("application_events").insert({
+    application_id: id,
+    actor_id: profile.id,
+    type: "note",
+    body: `Application ${label}${reason?.trim() ? ` — ${reason.trim()}` : ""}`,
+  });
+  if (app.assigned_to && app.assigned_to !== profile.id) {
+    await admin.from("notifications").insert({
+      user_id: app.assigned_to,
+      type: "status_change",
+      payload: { title: `${app.student_name ?? "Application"} ${label}`, application_id: id },
+    });
+  }
+  await logAudit({
+    action: `application_${status}`,
+    target_type: "application",
+    target_id: id,
+    detail: reason?.trim() ?? "",
+  });
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/**
  * Admissions flags a student ready to start the visa process — the exit gate for
  * the Offer stage (international). Records it on the timeline; the Visa team then
  * sees the handoff and can start EMGS.
@@ -402,7 +458,8 @@ export async function createApplicationFromLead(leadId: string) {
     .single();
   if (!reg) return;
 
-  const isInternational = (reg.nationality ?? "").toLowerCase() !== "my";
+  const { isInternationalNationality } = await import("@/lib/admin/leads-shared");
+  const isInternational = isInternationalNationality(reg.nationality);
 
   // Resolve the referring agent (if any) from the agent_code on the enquiry.
   let agentId: string | null = null;

@@ -77,7 +77,7 @@ export function ResourcesManager({ resources, canEdit }: { resources: Resource[]
                   <button onClick={() => run(() => updateResource(r.id, { active: !r.active }))} className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${r.active ? "bg-status-present/15 text-status-present" : "bg-cream-50 text-ink-muted"}`}>
                     {r.active ? "Live" : "Off"}
                   </button>
-                  <button onClick={() => run(() => deleteResource(r.id))} aria-label="Delete" className="text-ink-muted hover:text-brand-red">
+                  <button onClick={() => { if (window.confirm(`Delete "${r.label}" from the agent portal resources?`)) run(() => deleteResource(r.id)); }} aria-label="Delete" className="text-ink-muted hover:text-brand-red">
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   </button>
                 </div>

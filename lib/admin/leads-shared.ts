@@ -2,6 +2,18 @@
  * Pure types + constants shared by client and server. No server-only imports
  * here, so client components can use it safely.
  */
+/**
+ * Is this nationality value international (non-Malaysian)? The public form
+ * stores ISO "my", but agent-keyed and imported records arrive as "MYS",
+ * "Malaysia", "Malaysian"… — a bare !== "my" check routed locals into the visa
+ * lane. Blank counts as local (the safer default: no visa case is opened).
+ */
+export function isInternationalNationality(nationality?: string | null): boolean {
+  const n = (nationality ?? "").trim().toLowerCase();
+  if (!n) return false;
+  return !["my", "mys", "malaysia", "malaysian", "warganegara malaysia"].includes(n);
+}
+
 export type LeadStatus = "new" | "contacted" | "quoted" | "enrolled" | "dropped";
 export const LEAD_STATUSES: LeadStatus[] = [
   "new",

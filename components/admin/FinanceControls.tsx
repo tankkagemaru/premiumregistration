@@ -295,13 +295,17 @@ export function CommissionStatusSelect({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
   return (
+    <span className="inline-flex flex-col">
     <select
       value={status}
       disabled={pending}
       onChange={(e) =>
         start(async () => {
-          await setCommissionStatus(id, e.target.value);
+          setErr(null);
+          const r = await setCommissionStatus(id, e.target.value);
+          if (r && !r.ok) { setErr(r.error ?? "Blocked."); return; }
           router.refresh();
         })
       }
@@ -309,9 +313,11 @@ export function CommissionStatusSelect({
     >
       {["accrued", "invoiced", "paid"].map((s) => (
         <option key={s} value={s}>
-          {s}
+          {s === "accrued" ? "Accrued" : s === "invoiced" ? "Invoiced" : "Paid"}
         </option>
       ))}
     </select>
+    {err && <span className="mt-0.5 max-w-[180px] text-[10px] text-brand-red">{err}</span>}
+    </span>
   );
 }

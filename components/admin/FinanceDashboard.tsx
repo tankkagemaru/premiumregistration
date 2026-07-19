@@ -46,6 +46,10 @@ export async function FinanceDashboard() {
   const unpriced = fees.filter((f) => f.amount === 0 && f.status !== "waived");
   const payableCount = commissions.filter((c) => c.direction === "payable" && c.status !== "paid").length;
   const toClaim = commissions.filter((c) => c.claim_ready && c.status !== "paid").length;
+  // Accruals the rules engine couldn't price — they'd otherwise sit TBD forever.
+  const unpricedCommissions = commissions.filter(
+    (c) => c.direction === "payable" && c.amount == null && c.status !== "paid",
+  ).length;
 
   const feeById = new Map(fees.map((f) => [f.id, f] as const));
   const recentPayments = [...payments]
@@ -55,6 +59,7 @@ export async function FinanceDashboard() {
   const attention: { label: string; count: number; href: string; loud?: boolean }[] = [
     { label: "Overdue fees", count: overdue.length, href: "/admin/finance?stage=outstanding", loud: true },
     { label: "Fees awaiting a price", count: unpriced.length, href: "/admin/finance?stage=outstanding" },
+    { label: "Commission accruals awaiting a price", count: unpricedCommissions, href: "/admin/finance?stage=commissions", loud: true },
     { label: "Commissions to pay", count: payableCount, href: "/admin/finance?stage=commissions" },
     { label: "Claims to process", count: toClaim, href: "/admin/finance?stage=commissions" },
     { label: "Requests for Finance", count: financeRequests.length, href: "/admin/requests" },

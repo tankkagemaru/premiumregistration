@@ -329,10 +329,28 @@ export async function setCommissionClaimReady(id: string, ready: boolean) {
   revalidatePath("/agent");
 }
 
-export async function setCommissionStatus(id: string, status: string) {
+export async function setCommissionStatus(
+  id: string,
+  status: string,
+): Promise<{ ok: boolean; error?: string } | void> {
   if (!authConfigured) return;
   const ctx = await financeClient();
   if (!ctx) return;
+  // Closing the loop: a payable commission can only be marked paid once the
+  // agent's claim invoice is on file and the amount is priced.
+  if (status === "paid") {
+    const { data: c } = await ctx.admin
+      .from("commissions")
+      .select("direction, amount, claim_invoice_doc_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (c?.direction === "payable") {
+      if (c.amount == null)
+        return { ok: false, error: "Set the commission amount before marking it paid." };
+      if (!c.claim_invoice_doc_id)
+        return { ok: false, error: "The agent's claim invoice must be uploaded before marking paid." };
+    }
+  }
   await ctx.admin
     .from("commissions")
     .update({ status, ...(status === "paid" ? { paid_at: new Date().toISOString().slice(0, 10) } : {}) })

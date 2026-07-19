@@ -317,7 +317,10 @@ export function CommissionRulesManager({
                       <Pencil className="h-3.5 w-3.5" aria-hidden />
                     </button>
                     <button
-                      onClick={() => start(async () => { await deleteCommissionRule(r.id); router.refresh(); })}
+                      onClick={() => {
+                        if (!window.confirm(`Delete the rule "${r.label ?? ruleTarget(r)}"? This cannot be undone — prefer switching it off.`)) return;
+                        start(async () => { await deleteCommissionRule(r.id); router.refresh(); });
+                      }}
                       aria-label="Delete rule"
                       className="text-ink-muted hover:text-brand-red"
                     >

@@ -241,7 +241,13 @@ export function BillableItemsManager({ items }: { items: BillableItem[] }) {
                     {i.active ? "Active" : "Off"}
                   </button>
                   <button
-                    onClick={() => run(() => deleteBillableItem(i.id))}
+                    onClick={() => {
+                      if (!window.confirm(`Delete "${i.name}" from the price list? This cannot be undone — prefer setting it to Off.`)) return;
+                      run(async () => {
+                        const r = await deleteBillableItem(i.id);
+                        if (r && !r.ok && r.error) window.alert(r.error);
+                      });
+                    }}
                     aria-label="Delete item"
                     className="text-ink-muted hover:text-brand-red"
                   >

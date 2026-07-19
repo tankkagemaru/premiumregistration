@@ -11,6 +11,20 @@ export type FeeType =
   | "tuition"
   | "other";
 
+export const FEE_STATUS_LABEL: Record<string, string> = {
+  unpaid: "Unpaid",
+  partial: "Partially paid",
+  paid: "Paid",
+  waived: "Waived",
+};
+
+export const COMMISSION_MILESTONE_LABEL: Record<string, string> = {
+  on_enrolment: "On enrolment",
+  on_payment: "On payment",
+  on_arrival: "On arrival",
+  on_offer: "On offer",
+};
+
 export const FEE_TYPE_LABEL: Record<FeeType, string> = {
   application: "Application fee",
   registration: "Registration fee",

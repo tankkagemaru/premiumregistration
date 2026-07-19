@@ -144,6 +144,10 @@ export function AgreementsManager({
               {agreements.map((a) => {
                 const ds = agentDocs[a.agent_id] ?? [];
                 const verified = ds.filter((d) => d.review_status === "verified").length;
+                const notice = (events[a.id] ?? []).find((e) => e.type === "termination_notice");
+                const noticeEnd = notice
+                  ? new Date(new Date(notice.created_at).getTime() + 30 * 86_400_000).toISOString().slice(0, 10)
+                  : null;
                 return (
                   <tr key={a.id} className="border-b border-border-warm/60 bg-paper last:border-0">
                     <td className="px-4 py-2.5">
@@ -154,6 +158,11 @@ export function AgreementsManager({
                       <span className={`inline-flex rounded px-2 py-0.5 text-[11px] font-medium ${AGREEMENT_STATUS_TONE[a.status]}`}>
                         {AGREEMENT_STATUS_LABEL[a.status]}
                       </span>
+                      {noticeEnd && a.status !== "void" && (
+                        <span className="ms-1.5 inline-flex rounded bg-brand-red-bg px-1.5 py-0.5 text-[10px] font-medium text-brand-red">
+                          notice — ends {noticeEnd}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-ink-soft">
                       {ds.length ? `${verified}/${ds.length} verified` : "—"}
@@ -565,18 +574,35 @@ function AgreementEditor({
         {events.length > 0 && (
           <Section title="Record — requests & notices">
             <div className="flex flex-col gap-2.5">
-              {events.map((e) => (
-                <div
-                  key={e.id}
-                  className={`border-s-2 ps-3 ${e.type === "termination_notice" ? "border-brand-red" : "border-border-warm"}`}
-                >
-                  <p className={`text-sm font-medium ${e.type === "termination_notice" ? "text-brand-red" : "text-ink"}`}>
-                    {AGREEMENT_EVENT_LABEL[e.type] ?? e.type}
-                  </p>
-                  {e.body && <p className="text-xs text-ink-soft">{e.body}</p>}
-                  <p className="text-[11px] text-ink-muted">{String(e.created_at).slice(0, 10)}</p>
-                </div>
-              ))}
+              {events.map((e) => {
+                // Clause 12(b): a termination notice matures 30 days after it
+                // was given — compute and surface the countdown so the void
+                // isn't forgotten.
+                const noticeEnd =
+                  e.type === "termination_notice"
+                    ? new Date(new Date(e.created_at).getTime() + 30 * 86_400_000).toISOString().slice(0, 10)
+                    : null;
+                const matured = noticeEnd != null && noticeEnd <= new Date().toISOString().slice(0, 10);
+                return (
+                  <div
+                    key={e.id}
+                    className={`border-s-2 ps-3 ${e.type === "termination_notice" ? "border-brand-red" : "border-border-warm"}`}
+                  >
+                    <p className={`text-sm font-medium ${e.type === "termination_notice" ? "text-brand-red" : "text-ink"}`}>
+                      {AGREEMENT_EVENT_LABEL[e.type] ?? e.type}
+                    </p>
+                    {e.body && <p className="text-xs text-ink-soft">{e.body}</p>}
+                    <p className="text-[11px] text-ink-muted">{String(e.created_at).slice(0, 10)}</p>
+                    {noticeEnd && (
+                      <p className={`mt-0.5 text-[11px] font-medium ${matured ? "text-brand-red" : "text-brand-gold"}`}>
+                        {matured
+                          ? `Notice matured on ${noticeEnd} — the Agreement has ended; void it now.`
+                          : `Takes effect ${noticeEnd} (30 days from notice).`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <p className="mt-2 text-[11px] text-ink-muted">
               These also arrive in the Requests inbox. Agreed changes are executed as a signed
