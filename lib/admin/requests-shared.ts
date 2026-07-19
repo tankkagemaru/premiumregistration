@@ -32,6 +32,6 @@ export interface ActionRequest {
   title: string;
   detail?: string | null;
   due_date?: string | null;
-  status: "open" | "done";
+  status: "open" | "done" | "dismissed";
   created_at: string;
 }
